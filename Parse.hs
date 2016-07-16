@@ -23,6 +23,7 @@ reservedOp = P.reservedOp lexer
 
 data Tree =     Operator OP Tree Tree
             |   Num Integer
+            |   Var String
             deriving (Show)
 data OP = Plus | Minus | Mul | Div |Lt | Gt | Eq | Ge | Le | Ne deriving (Show)
 op :: String -> OP
@@ -44,13 +45,20 @@ factor :: Parser Tree
 factor = do
             x <- many1 digit <?> ""
             return $ Num $ read x 
-        <?> "factor"
+        
+    <|> do 
+            x <- parens simple_expression
+            return x
+    <|> do
+            x <- many1 letter
+            return $ Var x
+    <?> "factor"
 term :: Parser Tree
 term =  try (do 
             left <- factor
             c <- oneOf "*/"
             let o = op [c]
-            right <- factor
+            right <- term
             return $ Operator o left right)
         <|>
             factor
@@ -62,7 +70,7 @@ add_expression =
         left <- term
         c <- oneOf "+-"
         let o = op [c]
-        right <- term
+        right <- add_expression
         return $ Operator o left right)
     <|> 
         term
