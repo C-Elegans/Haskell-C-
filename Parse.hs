@@ -25,7 +25,7 @@ data Tree =     Operator OP Tree Tree
             |   Num Integer
             |   Var String
             |   Assign Tree Tree
-            |   Node Tree Tree
+            |   List [Tree]
             deriving (Show)
 data OP = Plus | Minus | Mul | Div |Lt | Gt | Eq | Ge | Le | Ne deriving (Show)
 op :: String -> OP
@@ -106,6 +106,16 @@ expression =
         right <- simple_expression
         return $ Assign left right)
     <|> simple_expression
+expr_list :: Parser Tree
+expr_list =
+    do
+        expr <- expression
+        char ';'
+        (List list) <- expr_list
+        
+        return $ List (expr:list)
+    <|> try(do
+            return $ List [])
         
 run :: Show a => Parser a -> String -> IO ()
 run p input
