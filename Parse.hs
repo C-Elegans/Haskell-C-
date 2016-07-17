@@ -24,6 +24,8 @@ reservedOp = P.reservedOp lexer
 data Tree =     Operator OP Tree Tree
             |   Num Integer
             |   Var String
+            |   Assign Tree Tree
+            |   Node Tree Tree
             deriving (Show)
 data OP = Plus | Minus | Mul | Div |Lt | Gt | Eq | Ge | Le | Ne deriving (Show)
 op :: String -> OP
@@ -49,10 +51,12 @@ factor = do
     <|> do 
             x <- parens simple_expression
             return x
-    <|> do
-            x <- many1 letter
-            return $ Var x
+    <|> var
     <?> "factor"
+var :: Parser Tree
+var = do
+        str <- many1 letter
+        return $ Var str
 term :: Parser Tree
 term =  try (do 
             left <- factor
@@ -93,6 +97,15 @@ simple_expression =
         return $ Operator op left right)
     <|>
         add_expression
+        
+expression :: Parser Tree
+expression = 
+    try (do
+        left <- var
+        char '='
+        right <- simple_expression
+        return $ Assign left right)
+    <|> simple_expression
         
 run :: Show a => Parser a -> String -> IO ()
 run p input
