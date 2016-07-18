@@ -30,8 +30,15 @@ data Tree =     Operator OP Tree Tree
             |   Return Tree
             |   If Tree Tree
             |   IfElse Tree Tree Tree
+            |   Compound Tree Tree
+            |   EmptyTree
+            |   VarDec Type String
+            |   FuncDec Type String Tree Tree
             deriving (Show)
 data OP = Plus | Minus | Mul | Div |Lt | Gt | Eq | Ge | Le | Ne deriving (Show)
+data Type =
+    V_Int | V_Void
+    deriving (Show)
 op :: String -> OP
 op c 
     | c == "+" = Plus
@@ -95,8 +102,90 @@ rel_op =
     <|> do {str <- string "=="; return $ op str}
     <|> do {str <- string ">"; return $ op str}
     <|> do {str <- string "<"; return $ op str}
-statement = expression_statement <|> return_statement <|> selection_statement
+statement = expression_statement <|> return_statement <|> selection_statement <|> compound_statement
 
+fun_declaration = 
+    do
+    t <- type_specifier
+    spaces
+    id <- identifier
+    spaces
+    char '('
+    spaces
+    pars <- params
+    spaces
+    char ')'
+    spaces
+    stmt <- compound_statement
+    return $ FuncDec t id pars stmt
+
+params = try (param_list) <|> 
+    do
+        reserved "void"
+        return $ List []
+param_list =
+    try(do
+        p <- param
+        spaces
+        char ','
+        spaces
+        (List params) <- param_list
+        return $ List (p:params))
+    <|>
+        do
+            p <- param
+            return $ List [p]
+param = 
+    do
+        t <- type_specifier
+        spaces
+        id <- identifier
+        return $ VarDec t id
+compound_statement =
+    do
+        char '{'
+        spaces
+        locals <- local_declarations
+        spaces
+        stmts  <- statement_list
+        spaces
+        char '}'
+        return $ Compound locals stmts
+
+statement_list =
+    do
+        stmt <- statement
+        spaces
+        (List list) <- statement_list
+        return $ List (stmt:list)
+    <|> try(do
+                return $ List [])
+local_declarations :: Parser Tree
+local_declarations = 
+    do
+        vdec <- var_declaration
+        char ';'
+        spaces
+        (List list) <- local_declarations
+        return $ List (vdec:list)
+    <|>
+    try(do
+        return $ List [])
+
+var_declaration = 
+    do
+        t <- type_specifier
+        name <- identifier
+        return $ VarDec t name
+type_specifier = 
+    do
+        reserved "int"
+        return V_Int
+    <|>
+    do
+        reserved "void"
+        return V_Void
+    
 expression_statement =
     do
         spaces
@@ -134,12 +223,16 @@ selection_statement =
             stmt <- statement
             return $ If condition stmt
     <?> "Conditional statement"
+
+
 return_statement :: Parser Tree
 return_statement = 
     do
         reserved "return"
         spaces
         tree <- expression
+        spaces
+        char ';'
         return $ Return tree
 
     
