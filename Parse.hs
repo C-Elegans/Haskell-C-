@@ -34,6 +34,7 @@ data Tree =     Operator OP Tree Tree
             |   EmptyTree
             |   VarDec Type String
             |   FuncDec Type String Tree Tree
+            |   FCall String Tree
             deriving (Show)
 data OP = Plus | Minus | Mul | Div |Lt | Gt | Eq | Ge | Le | Ne deriving (Show)
 data Type =
@@ -62,12 +63,16 @@ factor = do
     <|> do 
             x <- parens simple_expression
             return x
+    <|> try( do
+                c <- call
+                return c)
     <|> var
+    
     <?> "factor"
 var :: Parser Tree
-var = do
+var = try(do
         str <- identifier
-        return $ Var str
+        return $ Var str)
 term :: Parser Tree
 term =  try (do 
             left <- factor
@@ -258,7 +263,34 @@ expression =
         right <- simple_expression
         return $ Assign left right)
     <|> simple_expression
+call =
+    do
+        id <- identifier
+        spaces
+        char '('
+        spaces
+        a <- args
+        spaces
+        char ')'
+        return $ FCall id a
 
+args =
+    arg_list
+    <|>
+    do
+        return $ List []
+arg_list =
+    try(do
+            expr <- expression
+            spaces
+            char ','
+            spaces
+            (List list) <- arg_list
+            return $ List (expr:list))
+    <|>
+        do
+            expr <- expression
+            return $ List [expr]
         
 run :: Show a => Parser a -> String -> IO ()
 run p input
