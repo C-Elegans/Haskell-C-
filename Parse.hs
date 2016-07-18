@@ -9,7 +9,8 @@ import Text.Parsec.Language (haskellStyle, haskellDef)
 lexer :: P.TokenParser ()
 lexer  = P.makeTokenParser
          $ haskellDef
-         { P.reservedOpNames = ["*","/","+","-", "<",">","=", "<=",">=","!="]
+         {  P.reservedOpNames = ["*","/","+","-", "<",">","=", "<=",">=","!="],
+            P.reservedNames = ["return", "if", "else", "while", "int", "void"]
          }
 whiteSpace = P.whiteSpace lexer
 lexeme = P.lexeme lexer
@@ -26,6 +27,9 @@ data Tree =     Operator OP Tree Tree
             |   Var String
             |   Assign Tree Tree
             |   List [Tree]
+            |   Return Tree
+            |   If Tree Tree
+            |   IfElse Tree Tree Tree
             deriving (Show)
 data OP = Plus | Minus | Mul | Div |Lt | Gt | Eq | Ge | Le | Ne deriving (Show)
 op :: String -> OP
@@ -55,13 +59,15 @@ factor = do
     <?> "factor"
 var :: Parser Tree
 var = do
-        str <- many1 letter
+        str <- identifier
         return $ Var str
 term :: Parser Tree
 term =  try (do 
             left <- factor
+            spaces
             c <- oneOf "*/"
             let o = op [c]
+            spaces
             right <- term
             return $ Operator o left right)
         <|>
@@ -72,8 +78,10 @@ add_expression :: Parser Tree
 add_expression = 
     try (do
         left <- term
+        spaces
         c <- oneOf "+-"
         let o = op [c]
+        spaces
         right <- add_expression
         return $ Operator o left right)
     <|> 
@@ -87,12 +95,61 @@ rel_op =
     <|> do {str <- string "=="; return $ op str}
     <|> do {str <- string ">"; return $ op str}
     <|> do {str <- string "<"; return $ op str}
+statement = expression_statement <|> return_statement <|> selection_statement
+
+expression_statement =
+    do
+        spaces
+        expr <- expression
+        spaces
+        char ';'
+        return expr
+selection_statement :: Parser Tree
+selection_statement = 
+    try(do
+            reserved "if"
+            spaces
+            char '('
+            spaces
+            condition <- expression
+            spaces
+            char ')'
+            spaces
+            stmt <- statement
+            spaces
+            reserved "else"
+            spaces
+            stmt2 <- statement
+            return $ IfElse condition stmt stmt2)
+    <|>
+        do
+            reserved "if"
+            spaces
+            char '('
+            spaces
+            condition <- expression
+            spaces
+            char ')'
+            spaces
+            stmt <- statement
+            return $ If condition stmt
+    <?> "Conditional statement"
+return_statement :: Parser Tree
+return_statement = 
+    do
+        reserved "return"
+        spaces
+        tree <- expression
+        return $ Return tree
+
     
 simple_expression :: Parser Tree
 simple_expression =
     try (do
         left <- add_expression
+        spaces
         op <- rel_op
+        spaces
         right <- add_expression
         return $ Operator op left right)
     <|>
@@ -102,20 +159,13 @@ expression :: Parser Tree
 expression = 
     try (do
         left <- var
+        spaces
         char '='
+        spaces
         right <- simple_expression
         return $ Assign left right)
     <|> simple_expression
-expr_list :: Parser Tree
-expr_list =
-    do
-        expr <- expression
-        char ';'
-        (List list) <- expr_list
-        
-        return $ List (expr:list)
-    <|> try(do
-            return $ List [])
+
         
 run :: Show a => Parser a -> String -> IO ()
 run p input
