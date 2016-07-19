@@ -54,6 +54,26 @@ op c
     | c == ">=" = Ge
     | otherwise = error $ "Invalid operator: " ++ c
 
+declaration_list =
+    do
+        decl <- declaration
+        spaces
+        (List list) <- declaration_list
+        return $ List (decl:list)
+    <|>
+    try( do
+        return $ List [] )
+declaration =
+    try(
+        do
+            f <- fun_declaration
+            return f
+        )
+    <|>
+    try(do
+        vdec <- var_declaration
+        return vdec)
+    
 
 factor :: Parser Tree
 factor = do
@@ -178,10 +198,11 @@ local_declarations =
         return $ List [])
 
 var_declaration = 
-    do
+    try(do
         t <- type_specifier
         name <- identifier
-        return $ VarDec t name
+        char ';'
+        return $ VarDec t name)
 type_specifier = 
     do
         reserved "int"
