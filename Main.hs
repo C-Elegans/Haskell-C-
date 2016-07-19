@@ -16,8 +16,8 @@ main =
             contents <- hGetContents handle
             
             let tree = parse declaration_list contents
-            --prettyprint_tree tree
+            prettyprint_tree tree
             let (List l) = tree
-            let tree' = post_apply (\tree -> trace (show tree) tree) tree
-            print tree'
+            let tree' = post_apply const_subexpr_simplification tree
+            prettyprint_tree tree'
             hClose handle
