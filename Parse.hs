@@ -25,6 +25,7 @@ reservedOp = P.reservedOp lexer
 data Tree =     Operator OP Tree Tree
             |   Num Integer
             |   Var String
+            |   VarAssign String
             |   Assign Tree Tree
             |   List [Tree]
             |   Return Tree
@@ -52,6 +53,7 @@ prettyprint_helper col tree =
                     prettyprint_helper (col+1) left
                     prettyprint_helper (col+1) right
             (Var x) -> putStrLn ("Var: " ++x)
+            (VarAssign str) -> putStrLn ("VarAssign: " ++ str)
             (Assign left right) ->
                 do
                     putStrLn "Assign"
@@ -104,6 +106,7 @@ prettyprint_helper col tree =
                     spaceTabs col
                     putStrLn "args: "
                     prettyprint_helper (col+1) args
+            
 data OP = Plus | Minus | Mul | Div |Lt | Gt | Eq | Ge | Le | Ne deriving (Show)
 data Type =
     V_Int | V_Void
@@ -163,6 +166,10 @@ var :: Parser Tree
 var = try(do
         str <- identifier
         return $ Var str)
+varAssign :: Parser Tree
+varAssign = try(do
+        str <- identifier
+        return $ VarAssign str)  
 term :: Parser Tree
 term =  try (do 
             left <- factor
@@ -347,7 +354,7 @@ simple_expression =
 expression :: Parser Tree
 expression = 
     try (do
-        left <- var
+        left <- varAssign
         spaces
         char '='
         spaces

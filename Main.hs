@@ -20,4 +20,7 @@ main =
             let (List l) = tree
             let tree' = run_passes passes tree
             prettyprint_tree tree'
+            let funcs = getFunctions tree'
+            print funcs
+            print $ getGlobals tree'
             hClose handle
