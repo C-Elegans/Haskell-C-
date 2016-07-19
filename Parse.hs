@@ -5,7 +5,7 @@ import Text.Parsec.Expr
 import Text.Parsec.String (Parser)
 import qualified Text.Parsec.Token as P
 import Text.Parsec.Language (haskellStyle, haskellDef)
-
+import Control.Monad (replicateM_)
 lexer :: P.TokenParser ()
 lexer  = P.makeTokenParser
          $ haskellDef
@@ -36,10 +36,80 @@ data Tree =     Operator OP Tree Tree
             |   FuncDec Type String Tree Tree
             |   FCall String Tree
             deriving (Show)
+spaceTabs n = replicateM_ n (putStr "    ")
+
+prettyprint_tree tree =
+    prettyprint_helper 0 tree
+    
+prettyprint_helper col tree =
+    do
+        spaceTabs col
+        case tree of
+            (Num x) -> putStrLn $ show x
+            (Operator op left right) ->
+                do
+                    putStrLn $ show op
+                    prettyprint_helper (col+1) left
+                    prettyprint_helper (col+1) right
+            (Var x) -> putStrLn ("Var: " ++x)
+            (Assign left right) ->
+                do
+                    putStrLn "Assign"
+                    prettyprint_helper (col+1) left
+                    prettyprint_helper (col+1) right
+            (List list) ->
+                do
+                    putStrLn "List"
+                    mapM_ (prettyprint_helper (col+1)) list
+            (Return tree) ->
+                do
+                    putStrLn "Return"
+                    prettyprint_helper (col+1) tree
+            (If left right) ->
+                do
+                    putStrLn "If"
+                    prettyprint_helper (col+1) left
+                    spaceTabs col
+                    putStrLn "Then: "
+                    prettyprint_helper (col+1) right
+            (IfElse cond left right) ->
+                do
+                    putStrLn "If"
+                    prettyprint_helper (col+1) cond
+                    spaceTabs col
+                    putStrLn "Then: "
+                    prettyprint_helper (col+1) left
+                    spaceTabs col
+                    putStrLn "else: "
+                    prettyprint_helper (col+1) right
+            (Compound decls stmts) ->
+                do
+                    putStrLn "Block"
+                    prettyprint_helper (col+1) decls
+                    prettyprint_helper (col+1) stmts
+            (EmptyTree) -> putStrLn "Empty"
+            (VarDec t str) -> putStrLn ("VarDec " ++ str ++ " = " ++ (show t))
+            (FuncDec t id left right) ->
+                do
+                    putStrLn ("Func " ++ id ++ " -> " ++ (show t))
+                    spaceTabs col
+                    putStrLn "Pars: "
+                    prettyprint_helper (col+1) left
+                    spaceTabs col
+                    putStrLn "Body: "
+                    prettyprint_helper (col+1) right
+            (FCall id args) ->
+                do
+                    putStrLn ("Call " ++ id ++ "()")
+                    spaceTabs col
+                    putStrLn "args: "
+                    prettyprint_helper (col+1) args
 data OP = Plus | Minus | Mul | Div |Lt | Gt | Eq | Ge | Le | Ne deriving (Show)
 data Type =
     V_Int | V_Void
-    deriving (Show)
+instance Show Type where
+    show V_Int = "int"
+    show V_Void = "void"
 op :: String -> OP
 op c 
     | c == "+" = Plus
