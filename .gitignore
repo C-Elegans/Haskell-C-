@@ -3,3 +3,4 @@
 .cabal-sandbox/
 Parse
 cabal.sandbox.config
+cmm
