@@ -18,6 +18,6 @@ main =
             let tree = parse declaration_list contents
             prettyprint_tree tree
             let (List l) = tree
-            let tree' = post_apply const_subexpr_simplification tree
+            let tree' = run_passes passes tree
             prettyprint_tree tree'
             hClose handle

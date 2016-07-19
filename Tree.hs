@@ -18,18 +18,13 @@ post_apply f (VarDec t str) = f (VarDec t str)
 post_apply f (FuncDec t str left right) = (FuncDec t str (post_apply f left) (post_apply f right))
 post_apply f (FCall str tree) = f (FCall str (post_apply f tree))
 
-const_subexpr_simplification tree =
-    
-    case tree of
-        (Operator o left right) ->
-            
-            case left of
-                (Num l) -> 
-                    
-                    case right of
-                        (Num r) ->
-                            Num ((funcop o) l r)
-                        _ -> tree
-                _ -> tree
-        _ -> tree
-    
+const_subexpr_simplification (Operator op (Num l) (Num r)) = Num ((funcop op) l r)
+const_subexpr_simplification tree = tree
+
+passes = [const_subexpr_simplification]
+
+run_passes (pass:passes) tree =
+    let tree' = post_apply pass tree
+    in run_passes passes tree'
+
+run_passes [] tree = tree
