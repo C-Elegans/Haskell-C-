@@ -23,5 +23,6 @@ main =
             prettyprint_tree tree'
             let funcs = getFunctions tree'
             let blocks = map blockify funcs
-            print blocks
+            mapM print blocks
+            mapM (print_blocks 0) blocks
             hClose handle

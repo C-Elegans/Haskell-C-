@@ -70,8 +70,7 @@ addSymbol str val = do
     return ()
     
 
-passes = [check_defined,const_subexpr_simplification, constant_folding, const_subexpr_simplification]
-
+passes = [check_defined,const_subexpr_simplification]
 run_passes (pass:passes) tree =
     let (tree',symTab) = runState (m_apply pass tree) (M.empty)
     
