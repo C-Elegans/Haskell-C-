@@ -266,7 +266,6 @@ local_declarations :: Parser Tree
 local_declarations = 
     do
         vdec <- var_declaration
-        char ';'
         spaces
         (List list) <- local_declarations
         return $ List (vdec:list)
@@ -277,7 +276,9 @@ local_declarations =
 var_declaration = 
     try(do
         t <- type_specifier
+        spaces
         name <- identifier
+        spaces
         char ';'
         return $ VarDec t name)
 type_specifier = 
