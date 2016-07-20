@@ -42,8 +42,10 @@ m_apply f (Compound left right) = do
     r <- m_apply f right
     f (Compound l r)
 m_apply f (FuncDec t str left right) = do
+    state <- get
     l <- m_apply f left
     r <- m_apply f right
+    put state
     f (FuncDec t str l r)
 m_apply f (FCall str tree) = do
     t <- m_apply f tree
@@ -56,12 +58,10 @@ getGlobals (List lst) = [VarDec t str | (VarDec t str) <- lst]
 type SymTab = M.Map String (Integer)
 type EV a = State SymTab a
 
-lookUp :: String -> EV (Integer)
+lookUp :: String -> EV (Maybe Integer)
 lookUp str = do
     symTab <- get
-    case M.lookup str symTab of
-        Just v -> return v
-        Nothing -> error $ "Undefined variable " ++ str
+    return $ M.lookup str symTab
 
 addSymbol :: String -> Integer -> EV ()
 addSymbol str val = do
@@ -70,13 +70,31 @@ addSymbol str val = do
     return ()
     
 
-passes = [const_subexpr_simplification, constant_folding, const_subexpr_simplification]
+passes = [check_defined,const_subexpr_simplification, constant_folding, const_subexpr_simplification]
 
 run_passes (pass:passes) tree =
     let (tree',symTab) = runState (m_apply pass tree) (M.empty)
     
     in run_passes passes tree'
 run_passes [] tree = tree
+
+
+    
+check_defined (VarDec t v) = do
+    addSymbol v 1
+    return (VarDec t v)
+check_defined (Var v) = do
+    val <- lookUp v
+    case val of
+        Just x -> return (Var v)
+        Nothing -> error $ "Undefined Variable: " ++ v
+check_defined (VarAssign v) = do
+    val <- lookUp v
+    case val of
+        Just x -> return (VarAssign v)
+        Nothing -> error $ "Undefined Variable: " ++ v
+check_defined tree = return tree
+
 
 const_subexpr_simplification :: Tree -> EV Tree
 const_subexpr_simplification (Operator op (Num l) (Num r)) =
@@ -90,9 +108,7 @@ constant_folding (Assign (VarAssign v) (Num x)) = do
     addSymbol v x
     return (Assign (VarAssign v) (Num x))
 constant_folding (Var v) = do
-    symTab <- get    
-    do 
-    let val = M.lookup v symTab
+    val <- lookUp v
     case val of
         (Just x) -> return (Num x)
         (Nothing) -> return (Var v)

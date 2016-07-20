@@ -1,4 +1,8 @@
-int main(void){
-	x=1+2;
-	return x+4;
+int main(int i){
+	i=i+1;
+	if (i<4){
+		return 3;
+	}else{
+		return 2;
+	}
 }
