@@ -70,7 +70,7 @@ addSymbol str val = do
     return ()
     
 
-passes = [check_defined,const_subexpr_simplification]
+passes = [check_defined,const_subexpr_simplification, arith_identity_removal]
 run_passes (pass:passes) tree =
     let (tree',symTab) = runState (m_apply pass tree) (M.empty)
     
@@ -100,6 +100,24 @@ const_subexpr_simplification (Operator op (Num l) (Num r)) =
     do 
     return (Num ((funcop op) l r))
 const_subexpr_simplification tree = return tree
+
+
+arith_identity_removal :: Tree -> EV Tree
+arith_identity_removal tree@(Operator op x (Num 0)) = do
+    case op of
+        Plus -> return x
+        Minus -> return x
+        Mul -> return (Num 0)
+        _ -> return tree
+arith_identity_removal tree@(Operator op (Num 0) x) = do
+    case op of
+        Plus -> return x
+        Mul -> return (Num 0)
+        _ -> return tree
+
+arith_identity_removal (Operator Mul x (Num 1)) = return x
+arith_identity_removal (Operator Mul (Num 1) x) = return x
+arith_identity_removal x = return x
 
 constant_folding :: Tree -> EV Tree
 
