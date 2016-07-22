@@ -10,10 +10,13 @@ lexer :: P.TokenParser ()
 lexer  = P.makeTokenParser
          $ haskellDef
          {  P.reservedOpNames = ["*","/","+","-", "<",">","=", "<=",">=","!="],
-            P.reservedNames = ["return", "if", "else", "while", "int", "void"]
+            P.reservedNames = ["return", "if", "else", "while", "int", "void"],
+            P.commentLine = "//",
+            P.commentStart = "/*",
+            P.commentEnd = "*/"
          }
 whiteSpace = P.whiteSpace lexer
-lexeme = P.lexeme lexer
+
 symbol = P.symbol lexer
 natural = P.natural lexer
 parens = P.parens lexer
@@ -21,6 +24,11 @@ semi = P.semi lexer
 identifier = P.identifier lexer
 reserved = P.reserved lexer
 reservedOp = P.reservedOp lexer
+
+lexeme p = do 
+    x <- p
+    whiteSpace
+    return x
 
 data Tree =     Operator OP Tree Tree
             |   Num Integer
@@ -130,7 +138,6 @@ op c
 declaration_list =
     do
         decl <- declaration
-        spaces
         (List list) <- declaration_list
         return $ List (decl:list)
     <|>
@@ -150,9 +157,8 @@ declaration =
 
 factor :: Parser Tree
 factor = do
-            x <- many1 digit <?> ""
-            return $ Num $ read x 
-        
+            x <- natural
+            return $ Num x
     <|> do 
             x <- parens simple_expression
             return x
@@ -173,10 +179,8 @@ varAssign = try(do
 term :: Parser Tree
 term =  try (do 
             left <- factor
-            spaces
-            c <- oneOf "*/"
+            c <- lexeme $ oneOf "*/"
             let o = op [c]
-            spaces
             right <- term
             return $ Operator o left right)
         <|>
@@ -187,10 +191,10 @@ add_expression :: Parser Tree
 add_expression = 
     try (do
         left <- term
-        spaces
-        c <- oneOf "+-"
+        
+        c <- lexeme $ oneOf "+-"
         let o = op [c]
-        spaces
+        
         right <- add_expression
         return $ Operator o left right)
     <|> 
@@ -209,15 +213,11 @@ statement = expression_statement <|> return_statement <|> selection_statement <|
 fun_declaration = 
     do
     t <- type_specifier
-    spaces
     id <- identifier
-    spaces
-    char '('
-    spaces
+    lexeme $ char '('
     pars <- params
-    spaces
-    char ')'
-    spaces
+    lexeme $ char ')'
+    
     stmt <- compound_statement
     return $ FuncDec t id pars stmt
 
@@ -229,7 +229,7 @@ param_list =
     try(do
         p <- param
         spaces
-        char ','
+        lexeme $ char ','
         spaces
         (List params) <- param_list
         return $ List (p:params))
@@ -245,19 +245,15 @@ param =
         return $ VarDec t id
 compound_statement =
     do
-        char '{'
-        spaces
+        lexeme $char '{'
         locals <- local_declarations
-        spaces
         stmts  <- statement_list
-        spaces
-        char '}'
+        lexeme $ char '}'
         return $ Compound locals stmts
 
 statement_list =
     do
-        stmt <- statement
-        spaces
+        stmt <- lexeme $ statement
         (List list) <- statement_list
         return $ List (stmt:list)
     <|> try(do
@@ -265,8 +261,7 @@ statement_list =
 local_declarations :: Parser Tree
 local_declarations = 
     do
-        vdec <- var_declaration
-        spaces
+        vdec <- lexeme $ var_declaration
         (List list) <- local_declarations
         return $ List (vdec:list)
     <|>
@@ -276,10 +271,8 @@ local_declarations =
 var_declaration = 
     try(do
         t <- type_specifier
-        spaces
         name <- identifier
-        spaces
-        char ';'
+        lexeme $ char ';'
         return $ VarDec t name)
 type_specifier = 
     do
@@ -292,38 +285,27 @@ type_specifier =
     
 expression_statement =
     do
-        spaces
         expr <- expression
-        spaces
-        char ';'
+        lexeme $ char ';'
         return expr
 selection_statement :: Parser Tree
 selection_statement = 
     try(do
-            reserved "if"
-            spaces
-            char '('
-            spaces
+            lexeme $ reserved "if"
+            
+            lexeme $ char '('
             condition <- expression
-            spaces
-            char ')'
-            spaces
+            lexeme $ char ')'
             stmt <- statement
-            spaces
-            reserved "else"
-            spaces
+            lexeme $ reserved "else"
             stmt2 <- statement
             return $ IfElse condition stmt stmt2)
     <|>
         do
-            reserved "if"
-            spaces
-            char '('
-            spaces
+            lexeme $ reserved "if"
+            lexeme $ char '('
             condition <- expression
-            spaces
-            char ')'
-            spaces
+            lexeme $ char ')'
             stmt <- statement
             return $ If condition stmt
     <?> "Conditional statement"
@@ -332,11 +314,9 @@ selection_statement =
 return_statement :: Parser Tree
 return_statement = 
     do
-        reserved "return"
-        spaces
+        lexeme $ reserved "return"
         tree <- expression
-        spaces
-        char ';'
+        lexeme $ char ';'
         return $ Return tree
 
     
@@ -344,9 +324,7 @@ simple_expression :: Parser Tree
 simple_expression =
     try (do
         left <- add_expression
-        spaces
         op <- rel_op
-        spaces
         right <- add_expression
         return $ Operator op left right)
     <|>
@@ -356,21 +334,16 @@ expression :: Parser Tree
 expression = 
     try (do
         left <- varAssign
-        spaces
-        char '='
-        spaces
+        lexeme $ char '='
         right <- simple_expression
         return $ Assign left right)
     <|> simple_expression
 call =
     do
         id <- identifier
-        spaces
-        char '('
-        spaces
+        lexeme $ char '('
         a <- args
-        spaces
-        char ')'
+        lexeme $ char ')'
         return $ FCall id a
 
 args =
@@ -381,9 +354,7 @@ args =
 arg_list =
     try(do
             expr <- expression
-            spaces
-            char ','
-            spaces
+            lexeme $ char ','
             (List list) <- arg_list
             return $ List (expr:list))
     <|>
