@@ -23,7 +23,7 @@ main =
             let tree' = run_passes passes tree
             prettyprint_tree tree'
             let funcs = getFunctions tree'
-            let blocks = map blockify funcs
+            let blocks = map reduce $ map blockify funcs
             mapM print blocks
             mapM (print_blocks 0) blocks
             hClose handle
