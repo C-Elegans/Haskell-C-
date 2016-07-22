@@ -3,6 +3,7 @@ import Parse
 import Eval
 import Tree
 import Blocks
+import SSA
 import System.Environment
 import System.IO
 import Debug.Trace (trace)
