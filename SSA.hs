@@ -37,20 +37,24 @@ getVar :: SSAAssignment -> SSAVar
 getVar (AssignOp var _ _ _) = var
 getVar (AssignVal var _) = var
 
-toSSA :: Parse.Tree -> SSAState [SSAAssignment]
-toSSA (Parse.Num x) = do
+toSSA :: [Parse.Tree] -> SSAState [SSAAssignment]
+toSSA ((Parse.Num x):tree) = do
     v <- newSVar "_tmp"
-    return [(AssignVal v (Num x))]
+    rest <- toSSA tree
+    return ((AssignVal v (Num x)):rest)
 
-toSSA (Parse.Operator op left right) = do
-    lft <- toSSA left
-    rgt <- toSSA right
+toSSA ((Parse.Operator op left right):tree) = do
+    lft <- toSSA [left]
+    rgt <- toSSA [right]
     let lvar = getVar $ last lft
     let rvar = getVar $ last rgt
     res <- newSVar "_tmp"
-    return (lft ++ rgt ++ [AssignOp res op (Var lvar) (Var rvar)])
-toSSA (Parse.Assign (Parse.VarAssign str) right) = do
-    rgt <- toSSA right
+    rest <- toSSA tree
+    return (lft ++ rgt ++ ((AssignOp res op (Var lvar) (Var rvar)):(rest)))
+toSSA ((Parse.Assign (Parse.VarAssign str) right):tree) = do
+    rgt <- toSSA [right]
     res <- newSVar str
     let rvar = getVar $ last rgt
-    return (rgt ++ [AssignVal res (Var rvar)])
+    rest <- toSSA tree
+    return (rgt ++ ((AssignVal res (Var rvar)):rest))
+toSSA [] = return []
