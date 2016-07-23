@@ -1,16 +1,9 @@
 module Blocks where
 import Parse (Tree(..), OP(..), Type(..),spaceTabs)
 import Tree (getFunctions, getGlobals)
+import BlockDef
+import SSA(print_SSAAssignmentList)
 
-data BVar = BVar Type String
-    deriving (Show)
-data Block =
-        BFunc Type String [BVar] [Block]
-    |   BStatement [Tree] 
-    |   BIf Tree [Block]
-    |   BIfElse Tree [Block] [Block]
-    |   BVars [BVar]
-    deriving (Show)
 vars :: Tree -> [BVar]
 vars (List (x:xs)) = 
     case x of
@@ -85,6 +78,9 @@ print_blocks level ((b:blocks)) = do
             print_blocks (level+1) right
         (BVars vars) ->
             putStrLn $ "Vars" ++ (show vars)
+        (BSSA assignments) -> do
+            putStrLn $ "Assignments: "  
+            print_SSAAssignmentList (level+1) assignments
         
     print_blocks level blocks
 print_blocks _ [] = return ()

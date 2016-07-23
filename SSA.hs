@@ -1,26 +1,20 @@
 module SSA where
 import qualified Data.Map as M
 import qualified Parse
-import Parse (OP(..))
+import BlockDef
+import Parse (OP(..),spaceTabs)
 import Control.Monad
 import Control.Monad.State
-
+import Debug.Trace (trace)
 type SSATab = M.Map String (Int)
 type SSAState a = State SSATab a
-data SSAAssignment = AssignOp SSAVar OP Val Val |
-                     AssignVal SSAVar Val
-    
-data SSAVar = SSAVar String Int 
-data Val = Var SSAVar | Num Integer 
-    deriving (Show)
 
-instance Show SSAVar where
-    show (SSAVar str x) = str ++ "_" ++ (show x)
-instance Show SSAAssignment where
-    show (AssignOp var op l r) =
-        (show var) ++ " <- " ++ (show op) ++ " " ++ (show l) ++ " " ++ (show r)
-    show (AssignVal var val) =
-        (show var) ++ " <- " ++ (show val)
+print_SSAAssignmentList level (l:lst) = do
+    spaceTabs level
+    putStrLn (show l)
+    print_SSAAssignmentList level lst
+print_SSAAssignmentList _ [] = return ()
+
 newSVar :: String -> SSAState (SSAVar)
 newSVar str = do
     tab <- get
@@ -57,4 +51,61 @@ toSSA ((Parse.Assign (Parse.VarAssign str) right):tree) = do
     let rvar = getVar $ last rgt
     rest <- toSSA tree
     return (rgt ++ ((AssignVal res (Var rvar)):rest))
+toSSA ((Parse.Var str):tree) = do
+    v <- newSVar str
+    rest <- toSSA tree
+    return ((AssignVal v (Var v)):rest)
+toSSA ((Parse.Return expr):tree) = do
+    val <- toSSA [expr]
+    rest <- toSSA tree
+    let retVar = getVar $ last val
+    return (val ++ ((Ret (Var retVar)):rest))
+toSSA (x:xs) =
+    trace ("Error: " ++ show x) (
+    do
+        rest <- toSSA xs
+        return (rest))
 toSSA [] = return []
+{-
+        BFunc Type String [BVar] [Block]
+    |   BStatement [Tree] 
+    |   BIf Tree [Block]
+    |   BIfElse Tree [Block] [Block]
+    |   BVars [BVar]
+    |   BSSA [SSAAssignment]
+-}
+runBlocks :: [Block] -> [Block]
+runBlocks blocks =
+    trace (show blocks) (
+    fst $ runState (blk2SSA blocks) M.empty)
+blk2SSA :: [Block] -> SSAState [Block]
+blk2SSA ((BStatement trees):blocks) = 
+    trace ("Statement") (
+    do
+        results <- toSSA trees
+        rest <- blk2SSA blocks
+        return ((BSSA results):rest))
+blk2SSA ((BFunc t str vars blks):blocks) = 
+    trace "Func" (
+    do
+        blks' <- blk2SSA blks
+        rest <- blk2SSA blocks
+        return ((BFunc t str vars blks'):rest))
+blk2SSA ((BIf tree blks):blocks) = do
+    blks' <- blk2SSA blks
+    rest <- blk2SSA blocks
+    return ((BIf tree blks'):rest)
+blk2SSA ((BIfElse tree left right):blocks) = do
+    lft <- blk2SSA left
+    rgt <- blk2SSA right
+    rest <- blk2SSA blocks
+    return ((BIfElse tree lft rgt):rest)
+
+blk2SSA ((BVars vars):blocks) = do
+    rest <- blk2SSA blocks
+    return ((BVars vars):rest)
+blk2SSA (x:xs) = trace (show x) (do
+    rest <- blk2SSA xs
+    return (x:rest)
+    )
+blk2SSA [] = return []

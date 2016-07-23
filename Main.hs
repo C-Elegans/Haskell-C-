@@ -6,6 +6,8 @@ import Blocks
 import SSA
 import System.Environment
 import System.IO
+import qualified Data.Map
+import Control.Monad.State
 import Debug.Trace (trace)
 main =
     do
@@ -24,6 +26,9 @@ main =
             prettyprint_tree tree'
             let funcs = getFunctions tree'
             let blocks = map reduce $ map blockify funcs
-            mapM print blocks
+            
             mapM (print_blocks 0) blocks
+            let sblocks = runBlocks $ head blocks
+            print_blocks 0 sblocks
+            
             hClose handle
