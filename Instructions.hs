@@ -10,7 +10,8 @@ data Opcode = Nop | Add | Sub | Push | Pop | Mov | And | Or | Xor | Not | Neg | 
 data Instruction = 
     Inst_RR Opcode Register Register | 
     Inst_RI Opcode Register Address | 
-    Inst_R Opcode Register   |   
+    Inst_R Opcode Register   |  
+    Inst_I Opcode Address |
     Inst Opcode   |   
     Inst_Mem Opcode Register Register ByteFlag  |   
     Inst_MemI Opcode Register Register Address ByteFlag DispFlag   |   
@@ -18,7 +19,7 @@ data Instruction =
     Inst_JmpI Opcode Condition Address  |
     Inst_Label String
     
-data Address = Label String | Const Int
+data Address = Label String | Const Integer
 
 data Condition = Nv | Eq | Ne | Os | Oc | Hi | Ls | P | N | Cs | Cc | Ge | G | Le | L | Al
     deriving (Enum, Data, Typeable)
@@ -64,6 +65,8 @@ instance Show Instruction where
     show (Inst_JmpI op cond num) =
         (show op) ++ "." ++ (show cond) ++ " " ++ (show num)
     show (Inst_Label str) = str ++ ":"
+    show (Inst_I op address) =
+        (show op) ++ " " ++ (show address)
     show (Inst_Mem op rD rS bf) =
         let regString = case op of
                 Ld ->

@@ -4,6 +4,7 @@ import Eval
 import Tree
 import Blocks
 import SSA
+import TempCodegen
 import System.Environment
 import System.IO
 import qualified Data.Map
@@ -25,10 +26,6 @@ main =
             let tree' = run_passes passes tree
             prettyprint_tree tree'
             let funcs = getFunctions tree'
-            let blocks = map reduce $ map blockify funcs
-            
-            mapM (print_blocks 0) blocks
-            let sblocks = runBlocks $ head blocks
-            print_blocks 0 sblocks
-            
+            let locals = map getLocals funcs
+            print locals
             hClose handle
