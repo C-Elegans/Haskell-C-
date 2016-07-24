@@ -13,3 +13,10 @@ int main(int i){
 	l=k + j + 1;
 	return l * 4 ; 
 }
+int test(void){
+	int i;
+	i=0;
+	while (i <5){
+		i = i+1;
+	}
+}

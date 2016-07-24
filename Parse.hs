@@ -44,6 +44,7 @@ data Tree =     Operator OP Tree Tree
             |   VarDec Type String
             |   FuncDec Type String Tree Tree
             |   FCall String Tree
+            |   While Tree Tree
             deriving (Show)
 spaceTabs n = replicateM_ n (putStr "    ")
 
@@ -114,7 +115,13 @@ prettyprint_helper col tree =
                     spaceTabs col
                     putStrLn "args: "
                     prettyprint_helper (col+1) args
-            
+            (While cond tree) ->
+                do 
+                    putStrLn "While:"
+                    prettyprint_helper (col+1) cond
+                    spaceTabs col
+                    putStrLn "do:"
+                    prettyprint_helper (col+1) tree
 data OP = Plus | Minus | Mul | Div |Lt | Gt | Eq | Ge | Le | Ne deriving (Show)
 data Type =
     V_Int | V_Void
@@ -208,7 +215,8 @@ rel_op =
     <|> do {str <- string "=="; return $ op str}
     <|> do {str <- string ">"; return $ op str}
     <|> do {str <- string "<"; return $ op str}
-statement = expression_statement <|> return_statement <|> selection_statement <|> compound_statement
+statement = expression_statement <|> return_statement <|> selection_statement 
+    <|> compound_statement <|> iteration_statement
 
 fun_declaration = 
     do
@@ -310,7 +318,15 @@ selection_statement =
             return $ If condition stmt
     <?> "Conditional statement"
 
-
+iteration_statement :: Parser Tree
+iteration_statement =
+    do
+        lexeme $ reserved "while"
+        lexeme $ char '('
+        cond <- expression
+        lexeme $ char ')'
+        stmt <- statement
+        return $ While cond stmt
 return_statement :: Parser Tree
 return_statement = 
     do
