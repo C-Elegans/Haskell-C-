@@ -74,7 +74,14 @@ codegen_helper (If cond tree) tab = do
     block <- codegen_helper tree tab
     let prologue = [Inst_R Pop R0, Inst_RI Cmp R0 (Const 0), Inst_JmpI Jmp Eq (Label ("ifEnd" ++ suffix))]
     return (condition ++ prologue ++ block ++ [Inst_Label ("ifEnd" ++ suffix)])
-
+codegen_helper (IfElse cond left right) tab = do
+    suffix <- labelSuffix
+    condition <- codegen_helper cond tab
+    lft <- codegen_helper left tab
+    rgt <- codegen_helper right tab
+    let prologue = [Inst_R Pop R0, Inst_RI Cmp R0 (Const 0), Inst_JmpI Jmp Eq (Label ("ifElse" ++ suffix))]
+    return (condition ++ prologue ++  lft ++ [Inst_JmpI Jmp Al (Label ("ifEnd" ++ suffix)),
+        Inst_Label ("ifElse" ++ suffix)] ++ rgt ++ [Inst_Label ("ifEnd" ++ suffix)]) 
 codegen_helper (Return tree) tab = do
     code <- codegen_helper tree tab
     return (code ++ [Inst_R Pop R0, Inst_RR Mov R7 R6, Inst_R Pop R6,Inst Ret])
