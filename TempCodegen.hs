@@ -1,6 +1,7 @@
 module TempCodegen where
 import Instructions
 import Parse hiding (Eq, Ne, Gt, Ge, Lt, Le)
+import qualified Parse
 import Debug.Trace
 import Control.Monad.State
 import qualified Data.Map as M
@@ -39,7 +40,12 @@ codegen_helper (Operator op left right) t = do
                 [Inst_RR Sub R0 R1]
             Mul -> error "Mul unsupported"
             Div -> error "Div unsupported"
-            
+            Parse.Eq -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Eq R0]
+            Parse.Ne -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Ne R0]
+            Parse.Gt -> [Inst_RR Cmp R0 R1, Inst_Jmp Set G R0]
+            Parse.Ge -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Ge R0]
+            Parse.Lt -> [Inst_RR Cmp R0 R1, Inst_Jmp Set L R0]
+            Parse.Le -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Le R0]
     return (lft ++ rgt ++ [Inst_R Pop R1, Inst_R Pop R0] ++ operation ++ [Inst_R Push R0])
 codegen_helper (Var str) tab = 
     let loc = M.lookup str tab
@@ -82,6 +88,12 @@ codegen_helper (IfElse cond left right) tab = do
     let prologue = [Inst_R Pop R0, Inst_RI Cmp R0 (Const 0), Inst_JmpI Jmp Eq (Label ("ifElse" ++ suffix))]
     return (condition ++ prologue ++  lft ++ [Inst_JmpI Jmp Al (Label ("ifEnd" ++ suffix)),
         Inst_Label ("ifElse" ++ suffix)] ++ rgt ++ [Inst_Label ("ifEnd" ++ suffix)]) 
+codegen_helper (While cond tree) tab = do
+    suffix <- labelSuffix
+    condition <- codegen_helper cond tab
+    code <- codegen_helper tree tab
+    return ((Inst_Label ("while_begin" ++ suffix):condition) ++ [Inst_R Pop R0, Inst_RI Cmp R0 (Const 0), Inst_JmpI Jmp Eq (Label ("while_end"++suffix) )] ++
+        code ++ [Inst_JmpI Jmp Al (Label ("while_begin" ++ suffix)),Inst_Label ("while_end" ++ suffix)])
 codegen_helper (Return tree) tab = do
     code <- codegen_helper tree tab
     return (code ++ [Inst_R Pop R0, Inst_RR Mov R7 R6, Inst_R Pop R6,Inst Ret])
