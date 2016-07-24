@@ -4,3 +4,4 @@
 Parse
 cabal.sandbox.config
 cmm
+*.s

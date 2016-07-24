@@ -40,8 +40,18 @@ instance Show Opcode where
         in map toLower upper
 instance Show Address where
     show (Label str) = str
-    show (Const num) = "0x" ++ ( showHex num "")
+    show (Const num)| num >= 0 = "0x" ++ ( showHex num "")
+                    | num < 0 = "0x" ++ ( showHex (65536+num) "")
 
+intToReg :: Int -> Register
+intToReg 0 = R0
+intToReg 1 = R1
+intToReg 2 = R2
+intToReg 3 = R3
+intToReg 4 = R4
+intToReg 5 = R5
+intToReg 6 = R6
+intToReg 7 = R7
 instance Show Register where
     show (R0) = "r0"
     show (R1) = "r1"

@@ -1,22 +1,7 @@
 int main(int i){
-	int j;
-	int k;
-	/*
-		Woo! comments work
-	*/
-	int l;
-	j=2+i;
-	k=j*j;
-	if (1){
-		k=2;
-	} //help
-	l=k + j + 1;
-	return l * 4 ; 
-}
-int test(void){
-	int i;
-	i=0;
-	while (i <5){
-		i = i+1;
+	if(i==3){
+		i=5;
 	}
+	return i;
 }
+
