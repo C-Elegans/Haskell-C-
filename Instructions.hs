@@ -6,7 +6,7 @@ import Data.Data
 import Data.Typeable
 data Opcode = Nop | Add | Sub | Push | Pop | Mov | And | Or | Xor | Not | Neg | Ld | St |
     Cmp | Jmp | Call | Ret | Shl | Shr | Rol | Rcl | Ldcp | Stcp | Adc | Sbb | Set
-    deriving (Data, Typeable)
+    deriving (Data, Typeable,Eq)
 data Instruction = 
     Inst_RR Opcode Register Register | 
     Inst_RI Opcode Register Address | 
@@ -20,15 +20,16 @@ data Instruction =
     Inst_Label String
     
 data Address = Label String | Const Integer
+    deriving (Eq)
 
 data Condition = Nv | Eq | Ne | Os | Oc | Hi | Ls | P | N | Cs | Cc | Ge | G | Le | L | Al
     deriving (Enum, Data, Typeable)
 data Register = R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7 
     deriving (Enum,Eq,Ord)
 data ByteFlag = Byte | Word
-    deriving (Show)
+    deriving (Show, Eq)
 data DispFlag = Displacement | Constant
-    deriving (Show)
+    deriving (Show, Eq)
     
 instance Show Condition where
     show x  = 
