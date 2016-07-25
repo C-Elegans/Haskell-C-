@@ -50,6 +50,12 @@ m_apply f (FuncDec t str left right) = do
 m_apply f (FCall str tree) = do
     t <- m_apply f tree
     f (FCall str t)
+m_apply f (Deref tree) = do
+    tree' <- m_apply f tree
+    f (Deref tree')
+m_apply f (Addr tree) = do
+    t <- m_apply f tree
+    f (Addr t)
 
 m_apply f tree = f tree
 getFunctions (List lst) = [FuncDec t str decls body | (FuncDec t str decls body) <- lst]
@@ -92,6 +98,7 @@ check_defined (VarAssign v) = do
     case val of
         Just (x,t) -> return (AnnotatedVarAssign v t)
         Nothing -> error $ "Undefined Variable: " ++ v
+
 check_defined tree = return tree
 
 

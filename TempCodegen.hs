@@ -47,20 +47,25 @@ codegen_helper (Operator op left right) t = do
             Parse.Lt -> [Inst_RR Cmp R0 R1, Inst_Jmp Set L R0]
             Parse.Le -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Le R0]
     return (lft ++ rgt ++ [Inst_R Pop R1, Inst_R Pop R0] ++ operation ++ [Inst_R Push R0])
-codegen_helper (AnnotatedVar str V_Int) tab = 
+codegen_helper (AnnotatedVar str t) tab = 
     let loc = M.lookup str tab
     in case loc of
         (Just v) ->
             return [Inst_MemI Ld R0 R6 (Const (toInteger (-v))) Word Displacement, Inst_R Push R0]
         Nothing ->
             return (error $ "Undefined variable: " ++ str)
-codegen_helper (Assign (AnnotatedVarAssign str V_Int) expr) tab = do
+codegen_helper (Assign (Deref left) right) tab = do
+    lft <- codegen_helper left tab
+    rgt <- codegen_helper right tab
+    return (rgt++lft++[Inst_R Pop R0, Inst_R Pop R1, Inst_Mem St R0 R1 Word])
+codegen_helper (Assign (AnnotatedVarAssign str t) expr) tab = do
     code <- codegen_helper expr tab
     let vloc = M.lookup str tab
     case vloc of
         (Just loc) ->
             return (code ++ [Inst_R Pop R0, Inst_MemI St R6 R0 (Const (toInteger (-loc))) Word Displacement])
         (Nothing) -> return (error $ "Undefined variable: " ++ str)
+
 codegen_helper (FuncDec t str vs stmts) tab = do
     let (Just spsub) = M.lookup " count" tab
         movs = movPars vs 0 tab
@@ -97,6 +102,17 @@ codegen_helper (While cond tree) tab = do
 codegen_helper (Return tree) tab = do
     code <- codegen_helper tree tab
     return (code ++ [Inst_R Pop R0, Inst_RR Mov R7 R6, Inst_R Pop R6,Inst Ret])
+codegen_helper (Deref tree) tab = do
+    expr <- codegen_helper tree tab
+    return (expr ++ [Inst_R Pop R0, Inst_Mem Ld R0 R0 Word,Inst_R Push R0])
+codegen_helper (Addr (AnnotatedVar str t)) tab =
+    let loc = M.lookup str tab
+    in case loc of
+        (Just v) ->
+            return [Inst_RR Mov R0 R6,Inst_RI Sub R0 (Const (toInteger v)),Inst_R Push R0]
+        Nothing ->
+            return (error $ "Undefined variable: " ++ str)
+codegen_helper (Var v) tab = error $ "Did not annotate var: " ++ v
 codegen_helper x tab = trace ("Defaulting to empty on: " ++ (show x)) (return [])
 
 movPars :: Tree -> Int -> SymTab -> [Instruction]

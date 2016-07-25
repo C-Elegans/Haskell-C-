@@ -38,7 +38,7 @@ main =
             let code = codegen pairs cleanFileName
             mapM_ print code
             putStrLn "\n"
-            let betterCode = optimize code
+            let betterCode = code
             mapM_ print betterCode
             let outFileName = (args!!1)
             let codeString = concat $ intersperse "\n" $ map show betterCode

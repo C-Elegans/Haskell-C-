@@ -47,6 +47,8 @@ data Tree =     Operator OP Tree Tree
             |   FuncDec Type String Tree Tree
             |   FCall String Tree
             |   While Tree Tree
+            |   Deref Tree
+            |   Addr Tree
             deriving (Show)
 spaceTabs n = replicateM_ n (putStr "    ")
 
@@ -128,12 +130,19 @@ prettyprint_helper col tree =
                 putStrLn $ "Var: " ++ str ++ " (" ++ (show t) ++ ")" 
             (AnnotatedVarAssign str t) ->
                 putStrLn $ "Var: " ++ str ++ " (" ++ (show t) ++ ")" 
+            (Deref tree) -> do
+                putStrLn "Deref:"
+                prettyprint_helper (col+1) tree
+            (Addr (Var str)) -> do
+                putStrLn $ "&" ++ str
+            (Addr (AnnotatedVar str t)) -> putStrLn $ "&" ++ str ++ " (" ++ (show t) ++ ")"
 data OP = Plus | Minus | Mul | Div |Lt | Gt | Eq | Ge | Le | Ne deriving (Show)
 data Type =
-    V_Int | V_Void
+    V_Int | V_Void | V_IntPtr
 instance Show Type where
     show V_Int = "int"
     show V_Void = "void"
+    show V_IntPtr = "int*"
 op :: String -> OP
 op c 
     | c == "+" = Plus
@@ -179,8 +188,20 @@ factor = do
                 c <- call
                 return c)
     <|> var
-    
+    <|> derefrence
+    <|> addressOf
     <?> "factor"
+derefrence :: Parser Tree
+derefrence = do
+    lexeme $ char '*'
+    expr <- simple_expression
+    return $ Deref expr
+
+addressOf :: Parser Tree
+addressOf = do
+    lexeme $ char '&'
+    v <- var
+    return $ Addr v
 var :: Parser Tree
 var = try(do
         str <- identifier
@@ -289,6 +310,11 @@ var_declaration =
         lexeme $ char ';'
         return $ VarDec t name)
 type_specifier = 
+    try(do
+        reserved "int"
+        lexeme $ char '*'
+        return V_IntPtr)
+    <|>
     do
         reserved "int"
         return V_Int
@@ -359,7 +385,13 @@ expression =
         lexeme $ char '='
         right <- simple_expression
         return $ Assign left right)
-    <|> simple_expression
+    <|>try(do
+        lexeme $ char '*'
+        left <- simple_expression
+        lexeme $ char '='
+        right <- simple_expression
+        return $ Assign (Deref left) right)
+    <|>simple_expression
 call =
     do
         id <- identifier
