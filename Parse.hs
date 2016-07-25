@@ -184,9 +184,7 @@ factor = do
     <|> do 
             x <- parens simple_expression
             return x
-    <|> try( do
-                c <- call
-                return c)
+    <|> try( call)
     <|> var
     <|> derefrence
     <|> addressOf
@@ -311,16 +309,16 @@ var_declaration =
         return $ VarDec t name)
 type_specifier = 
     try(do
-        reserved "int"
+        lexeme $ reserved "int"
         lexeme $ char '*'
         return V_IntPtr)
     <|>
     do
-        reserved "int"
+        lexeme $ reserved "int"
         return V_Int
     <|>
     do
-        reserved "void"
+        lexeme $ reserved "void"
         return V_Void
     
 expression_statement =
@@ -424,10 +422,13 @@ run p input
                           }
             Right x  -> print x 
 
-parse :: Parser Tree -> String -> Tree
+parse :: Parser Tree -> String -> IO Tree
 parse p input =
     case (Parsec.parse p "" input) of
-            Left err -> Num (-1)
-            Right x  -> x
+            Left err -> do
+                putStr "Parse error at "
+                print err
+                return (EmptyTree)
+            Right x  -> return x
             
 

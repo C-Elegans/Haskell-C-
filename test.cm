@@ -1,7 +1,5 @@
 int main(int i){
-	int* j;
-	j=&i;
-	test(j);
+	test(&i);
 	return i;
 }
 void test(int* x){

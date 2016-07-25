@@ -112,8 +112,22 @@ codegen_helper (Addr (AnnotatedVar str t)) tab =
             return [Inst_RR Mov R0 R6,Inst_RI Sub R0 (Const (toInteger v)),Inst_R Push R0]
         Nothing ->
             return (error $ "Undefined variable: " ++ str)
+codegen_helper (FCall name pars ) tab = do
+    parameters <- genPars pars 0 tab
+    return (parameters ++ [Inst_JmpI Call Al (Label name)])
 codegen_helper (Var v) tab = error $ "Did not annotate var: " ++ v
 codegen_helper x tab = trace ("Defaulting to empty on: " ++ (show x)) (return [])
+
+genPars :: Tree -> Int -> SymTab -> State (String,Int) [Instruction]
+genPars (List (x:xs)) parNum tab 
+    | parNum < 4
+    = do
+        par <- codegen_helper x tab
+        rest <- (genPars (List xs) (parNum+1) tab)
+        return ( par ++ rest ++ [Inst_R Pop (intToReg parNum)])
+    |otherwise = error $ "only 4 parameters supported"
+
+genPars (List []) _ _ = return []
 
 movPars :: Tree -> Int -> SymTab -> [Instruction]
 movPars (List ((VarDec t str):rest)) x tab

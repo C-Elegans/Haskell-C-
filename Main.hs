@@ -25,7 +25,7 @@ main =
             handle <- openFile filename ReadMode
             contents <- hGetContents handle
             
-            let tree = parse declaration_list contents
+            tree <- parse declaration_list contents
             
             let (List l) = tree
             let tree' = run_passes passes tree
