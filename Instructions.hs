@@ -24,7 +24,7 @@ data Address = Label String | Const Integer
 data Condition = Nv | Eq | Ne | Os | Oc | Hi | Ls | P | N | Cs | Cc | Ge | G | Le | L | Al
     deriving (Enum, Data, Typeable)
 data Register = R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7 
-    deriving (Enum)
+    deriving (Enum,Eq)
 data ByteFlag = Byte | Word
     deriving (Show)
 data DispFlag = Displacement | Constant

@@ -4,9 +4,11 @@ import Eval
 import Tree
 import Blocks
 import SSA
+import Optimize (run_stack_analysis)
 import TempCodegen
 import System.Environment
 import System.IO
+import Optimize
 import Data.List (intersperse)
 import System.FilePath
 import qualified Data.Map
@@ -36,8 +38,11 @@ main =
             print locals
             let code = codegen pairs cleanFileName
             mapM_ print code
+            putStrLn "\n"
+            let betterCode = run_stack_analysis code
+            mapM_ print betterCode
             let outFileName = (args!!1)
-            let codeString = concat $ intersperse "\n" $ map show code
+            let codeString = concat $ intersperse "\n" $ map show betterCode
             print codeString
             out_handle <- openFile outFileName WriteMode
             hPutStr out_handle (codeString ++ "\nend:\n\n")
