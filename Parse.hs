@@ -46,6 +46,7 @@ data Tree =     Operator OP Tree Tree
             |   VarDec Type String
             |   FuncDec Type String Tree Tree
             |   FCall String Tree
+            |   FCallRet String Tree
             |   While Tree Tree
             |   Deref Tree
             |   Addr Tree
@@ -119,6 +120,12 @@ prettyprint_helper col tree =
                     spaceTabs col
                     putStrLn "args: "
                     prettyprint_helper (col+1) args
+            (FCallRet id args) ->
+                do
+                    putStrLn ("Call_r " ++ id ++ "()")
+                    spaceTabs col
+                    putStrLn "args: "
+                    prettyprint_helper (col+1) args
             (While cond tree) ->
                 do 
                     putStrLn "While:"
@@ -184,7 +191,9 @@ factor = do
     <|> do 
             x <- parens simple_expression
             return x
-    <|> try( call)
+    <|> try(do
+        (FCall name pars) <- call
+        return (FCallRet name pars))
     <|> var
     <|> derefrence
     <|> addressOf
@@ -240,7 +249,7 @@ rel_op =
     <|> do {str <- string "=="; return $ op str}
     <|> do {str <- string ">"; return $ op str}
     <|> do {str <- string "<"; return $ op str}
-statement = expression_statement <|> return_statement <|> selection_statement 
+statement = call_stmt <|> expression_statement <|> return_statement <|> selection_statement 
     <|> compound_statement <|> iteration_statement
 
 fun_declaration = 
@@ -390,6 +399,11 @@ expression =
         right <- simple_expression
         return $ Assign (Deref left) right)
     <|>simple_expression
+call_stmt =
+    do
+        c <- call
+        lexeme $ char ';'
+        return c
 call =
     do
         id <- identifier

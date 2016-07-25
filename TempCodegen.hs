@@ -115,6 +115,9 @@ codegen_helper (Addr (AnnotatedVar str t)) tab =
 codegen_helper (FCall name pars ) tab = do
     parameters <- genPars pars 0 tab
     return (parameters ++ [Inst_JmpI Call Al (Label name)])
+codegen_helper (FCallRet name pars ) tab = do
+    parameters <- genPars pars 0 tab
+    return (parameters ++ [Inst_JmpI Call Al (Label name),Inst_R Push R0])
 codegen_helper (Var v) tab = error $ "Did not annotate var: " ++ v
 codegen_helper x tab = trace ("Defaulting to empty on: " ++ (show x)) (return [])
 

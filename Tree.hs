@@ -50,6 +50,9 @@ m_apply f (FuncDec t str left right) = do
 m_apply f (FCall str tree) = do
     t <- m_apply f tree
     f (FCall str t)
+m_apply f (FCallRet str tree) = do
+    t <- m_apply f tree
+    f (FCallRet str t)
 m_apply f (Deref tree) = do
     tree' <- m_apply f tree
     f (Deref tree')

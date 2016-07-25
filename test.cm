@@ -1,7 +1,9 @@
 int main(int i){
-	test(&i);
-	return i;
+	return sum(37);
 }
-void test(int* x){
-	*x = 3;
+int sum(int x){
+	if(x==0){
+		return x;
+	}
+	return x+sum(x-1);
 }
