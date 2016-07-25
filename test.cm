@@ -1,7 +1,9 @@
 int main(int i){
 	int* j;
-	j = &i;
-	*j = 1;
+	j=&i;
+	test(j);
 	return i;
 }
-
+void test(int* x){
+	*x = 3;
+}

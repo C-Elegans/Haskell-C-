@@ -70,7 +70,7 @@ codegen_helper (FuncDec t str vs stmts) tab = do
     let (Just spsub) = M.lookup " count" tab
         movs = movPars vs 0 tab
     code <- codegen_helper stmts tab
-    return ([Inst_Label str, Inst_R Push R6, Inst_RR Mov R6 R7, Inst_RI Sub R7 (Const $ toInteger spsub)]++ movs ++ code)
+    return ([Inst_Label str, Inst_R Push R6, Inst_RR Mov R6 R7, Inst_RI Sub R7 (Const $ toInteger spsub)]++ movs ++ code ++ [Inst_RR Mov R7 R6, Inst_R Pop R6, Inst Ret])
 codegen_helper (List (x:xs)) tab = do
     res <- codegen_helper x tab
     code <- codegen_helper (List (xs)) tab
