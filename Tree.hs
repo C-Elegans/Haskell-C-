@@ -55,18 +55,18 @@ m_apply f tree = f tree
 getFunctions (List lst) = [FuncDec t str decls body | (FuncDec t str decls body) <- lst]
 getGlobals (List lst) = [VarDec t str | (VarDec t str) <- lst]
 
-type SymTab = M.Map String (Integer)
+type SymTab = M.Map String (Integer,Type)
 type EV a = State SymTab a
 
-lookUp :: String -> EV (Maybe Integer)
+lookUp :: String -> EV (Maybe (Integer,Type))
 lookUp str = do
     symTab <- get
     return $ M.lookup str symTab
 
-addSymbol :: String -> Integer -> EV ()
-addSymbol str val = do
+addSymbol :: String -> Integer -> Type -> EV ()
+addSymbol str val t = do
     symTab <- get
-    put $ M.insert str val symTab
+    put $ M.insert str (val,t) symTab
     return ()
     
 
@@ -80,17 +80,17 @@ run_passes [] tree = tree
 
     
 check_defined (VarDec t v) = do
-    addSymbol v 1
+    addSymbol v 1 t
     return (VarDec t v)
 check_defined (Var v) = do
     val <- lookUp v
     case val of
-        Just x -> return (Var v)
+        Just (x,t) -> return (AnnotatedVar v t)
         Nothing -> error $ "Undefined Variable: " ++ v
 check_defined (VarAssign v) = do
     val <- lookUp v
     case val of
-        Just x -> return (VarAssign v)
+        Just (x,t) -> return (AnnotatedVarAssign v t)
         Nothing -> error $ "Undefined Variable: " ++ v
 check_defined tree = return tree
 
@@ -119,18 +119,7 @@ arith_identity_removal (Operator Mul x (Num 1)) = return x
 arith_identity_removal (Operator Mul (Num 1) x) = return x
 arith_identity_removal x = return x
 
-constant_folding :: Tree -> EV Tree
 
-constant_folding (Assign (VarAssign v) (Num x)) = do
-    addSymbol v x
-    return (Assign (VarAssign v) (Num x))
-constant_folding (Var v) = do
-    val <- lookUp v
-    case val of
-        (Just x) -> return (Num x)
-        (Nothing) -> return (Var v)
-        
-constant_folding tree = return tree
 
 
 

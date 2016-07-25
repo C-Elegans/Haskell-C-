@@ -34,6 +34,8 @@ data Tree =     Operator OP Tree Tree
             |   Num Integer
             |   Var String
             |   VarAssign String
+            |   AnnotatedVar String Type
+            |   AnnotatedVarAssign String Type
             |   Assign Tree Tree
             |   List [Tree]
             |   Return Tree
@@ -122,6 +124,10 @@ prettyprint_helper col tree =
                     spaceTabs col
                     putStrLn "do:"
                     prettyprint_helper (col+1) tree
+            (AnnotatedVar str t) ->
+                putStrLn $ "Var: " ++ str ++ " (" ++ (show t) ++ ")" 
+            (AnnotatedVarAssign str t) ->
+                putStrLn $ "Var: " ++ str ++ " (" ++ (show t) ++ ")" 
 data OP = Plus | Minus | Mul | Div |Lt | Gt | Eq | Ge | Le | Ne deriving (Show)
 data Type =
     V_Int | V_Void

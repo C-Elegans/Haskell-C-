@@ -47,14 +47,14 @@ codegen_helper (Operator op left right) t = do
             Parse.Lt -> [Inst_RR Cmp R0 R1, Inst_Jmp Set L R0]
             Parse.Le -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Le R0]
     return (lft ++ rgt ++ [Inst_R Pop R1, Inst_R Pop R0] ++ operation ++ [Inst_R Push R0])
-codegen_helper (Var str) tab = 
+codegen_helper (AnnotatedVar str V_Int) tab = 
     let loc = M.lookup str tab
     in case loc of
         (Just v) ->
             return [Inst_MemI Ld R0 R6 (Const (toInteger (-v))) Word Displacement, Inst_R Push R0]
         Nothing ->
             return (error $ "Undefined variable: " ++ str)
-codegen_helper (Assign (VarAssign str) expr) tab = do
+codegen_helper (Assign (AnnotatedVarAssign str V_Int) expr) tab = do
     code <- codegen_helper expr tab
     let vloc = M.lookup str tab
     case vloc of
