@@ -38,7 +38,7 @@ codegen_helper (Operator op left right) t = do
                 [Inst_RR Add R0 R1]
             Minus ->
                 [Inst_RR Sub R0 R1]
-            Mul -> error "Mul unsupported"
+            Mul -> [Inst_JmpI Call Al (Label "mul")]
             Div -> error "Div unsupported"
             Parse.Eq -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Eq R0]
             Parse.Ne -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Ne R0]
