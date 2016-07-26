@@ -63,7 +63,7 @@ m_apply f (Addr tree) = do
 
 m_apply f tree = f tree
 getFunctions (List lst) = [FuncDec t str decls body | (FuncDec t str decls body) <- lst]
-getGlobals (List lst) = [VarDec t str | (VarDec t str) <- lst]
+getGlobals (List lst) = [GlobalDec t str | (GlobalDec t str) <- lst]
 
 type SymTab = M.Map String (Integer,Type)
 type EV a = State SymTab a
@@ -88,7 +88,9 @@ run_passes (pass:passes) tree =
 run_passes [] tree = tree
 
 
-    
+check_defined def@(GlobalDec t str) = do
+    addSymbol str 2 t
+    return def
 check_defined (VarDec t v) = do
     addSymbol v 1 t
     return (VarDec t v)

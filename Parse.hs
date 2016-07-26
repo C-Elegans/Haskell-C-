@@ -36,6 +36,7 @@ data Tree =     Operator OP Tree Tree
             |   Num Int
             |   Var String
             |   VarAssign String
+            |   GlobalDec Type String
             |   AnnotatedVar String Type
             |   AnnotatedVarAssign String Type
             |   Assign Tree Tree
@@ -108,6 +109,7 @@ prettyprint_helper col tree =
                     prettyprint_helper (col+1) stmts
             (EmptyTree) -> putStrLn "Empty"
             (VarDec t str) -> putStrLn ("VarDec " ++ str ++ " = " ++ (show t))
+            (GlobalDec t str) -> putStrLn ("Global " ++ str ++ "=" ++ (show t))
             (ArrayDec t str sz) -> putStrLn ("Array (" ++ (show t) ++ ") "++ str ++ " [" ++ (show sz) ++ "]") 
             (FuncDec t id left right) ->
                 do
@@ -192,8 +194,8 @@ declaration =
         )
     <|>
     try(do
-        vdec <- var_declaration
-        return vdec)
+        (VarDec t str) <- var_declaration
+        return (GlobalDec t str))
     
 
 factor :: Parser Tree

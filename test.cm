@@ -1,4 +1,6 @@
+int glob;
 int main(int i){
 	i=i/2;
+	glob=1;
 }
 

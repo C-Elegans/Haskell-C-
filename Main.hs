@@ -30,12 +30,16 @@ main =
             let (List l) = tree
             let tree' = run_passes passes tree
             prettyprint_tree tree'
+            let globals = getGlobals tree'
+            let globalList = [(str,Global) | (GlobalDec t str) <- globals]
+            print globalList
             let funcs = getFunctions tree'
             let locals = map getLocals funcs
+            
             let pairs = zip funcs locals
             print pairs
             print locals
-            let code = codegen pairs cleanFileName
+            let code = codegen pairs globalList cleanFileName
             mapM_ print code
             putStrLn "\n"
             let betterCode = optimize code

@@ -5,19 +5,22 @@ import qualified Parse
 import Debug.Trace
 import Control.Monad.State
 import qualified Data.Map as M
-type SymTab = M.Map String Int
+type SymTab = M.Map String Location
 
-codegen :: [(Tree,SymTab)] -> String -> [Instruction]
-codegen trees filename =
-    fst $ runState (doCodegen trees) (filename,0)
+data Location = Global | Local Int
+    deriving (Show)
+codegen :: [(Tree,SymTab)] -> [(String,Location)] -> String -> [Instruction]
+codegen trees globals filename =
+    fst $ runState (doCodegen trees globals) (filename,0)
 
-doCodegen :: [(Tree,SymTab)] -> State (String,Int) [Instruction]
-doCodegen (pair:rest) = do
+doCodegen :: [(Tree,SymTab)] -> [(String,Location)] -> State (String,Int) [Instruction]
+doCodegen (pair:rest) globals = do
     let (func,tab) = pair
-    res <- codegen_helper func tab
-    code <- doCodegen (rest)
+    let newTab = M.union tab (M.fromList globals) 
+    res <- codegen_helper func newTab
+    code <- doCodegen (rest) globals
     return (res ++ code)
-doCodegen [] = return []
+doCodegen [] globals = return []
 
 labelSuffix :: State (String,Int) String
 labelSuffix = do
@@ -50,18 +53,15 @@ codegen_helper (Operator op left right) t = do
             Parse.Lt -> [Inst_RR Cmp R0 R1, Inst_Jmp Set L R0]
             Parse.Le -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Le R0]
     return (lft ++ rgt ++ [Inst_R Pop R1, Inst_R Pop R0] ++ operation ++ [Inst_R Push R0])
-codegen_helper (AnnotatedVar str V_Char) tab = 
-    let loc = M.lookup str tab
-    in case loc of
-        (Just v) ->
-            return [Inst_MemI Ld R0 R6 (Const (-v)) Byte Displacement, Inst_R Push R0]
-        Nothing ->
-            return (error $ "Undefined variable: " ++ str)
+
 codegen_helper (AnnotatedVar str t) tab = 
     let loc = M.lookup str tab
+        bf = if t == V_Char then Byte else Word
     in case loc of
-        (Just v) ->
-            return [Inst_MemI Ld R0 R6 (Const (-v)) Word Displacement, Inst_R Push R0]
+        (Just (Local loc)) ->
+            return [Inst_MemI Ld R0 R6 (Const (-loc)) bf Displacement, Inst_R Push R0]
+        (Just Global) ->
+            return [Inst_MemI Ld R0 R0 (Label str) bf Constant, Inst_R Push R0] 
         Nothing ->
             return (error $ "Undefined variable: " ++ str)
 
@@ -74,12 +74,14 @@ codegen_helper (Assign (AnnotatedVarAssign str t) expr) tab = do
     let vloc = M.lookup str tab
     let bf = if t == V_Char then Byte else Word
     case vloc of
-        (Just loc) ->
+        (Just (Local loc)) ->
             return (code ++ [Inst_R Pop R0, Inst_MemI St R6 R0 (Const (-loc)) bf Displacement])
+        (Just Global) ->
+            return (code ++ [Inst_R Pop R0, Inst_MemI St R0 R0 (Label str) bf Constant])
         (Nothing) -> return (error $ "Undefined variable: " ++ str)
 
 codegen_helper (FuncDec t str vs stmts) tab = do
-    let (Just spsub) = M.lookup " count" tab
+    let (Just (Local spsub)) = M.lookup " count" tab
         movs = movPars vs 0 tab
     code <- codegen_helper stmts tab
     return ([Inst_Label str, Inst_R Push R6, Inst_RR Mov R6 R7, Inst_RI Sub R7 (Const spsub)]++ movs ++ code ++ [Inst_RR Mov R7 R6, Inst_R Pop R6, Inst Ret])
@@ -120,8 +122,10 @@ codegen_helper (Deref tree) tab = do
 codegen_helper (Addr (AnnotatedVar str t)) tab =
     let loc = M.lookup str tab
     in case loc of
-        (Just v) ->
+        (Just (Local v)) ->
             return [Inst_RR Mov R0 R6,Inst_RI Sub R0 (Const v),Inst_R Push R0]
+        (Just Global) ->
+            return [Inst_RI Mov R0 (Label str), Inst_R Push R0]
         Nothing ->
             return (error $ "Undefined variable: " ++ str)
 codegen_helper (FCall name pars ) tab = do
@@ -147,7 +151,7 @@ genPars (List []) _ _ = return []
 movPars :: Tree -> Int -> SymTab -> [Instruction]
 movPars (List ((VarDec t str):rest)) x tab
     | x < 4 = 
-        let (Just loc) = M.lookup str tab
+        let (Just (Local loc)) = M.lookup str tab
         in 
             if t == V_Char then
                 ((Inst_MemI St R6 (intToReg x) (Const (-loc)) Byte Displacement):(movPars (List rest) (x+1) tab))
@@ -160,14 +164,14 @@ assignLocal x size = do
     tab <- get
     let counter = M.lookup " count" tab
     case counter of
-        (Just v) -> do
-            let tab' = M.insert " count" (v+size) tab
-            let tab'' = M.insert x (v+size) tab'
+        (Just (Local v)) -> do
+            let tab' = M.insert " count" (Local (v+size)) tab
+            let tab'' = M.insert x (Local (v+size)) tab'
             put tab''
             return (v+size)
         Nothing -> do
-            let tab' = M.insert " count" size tab
-            let tab'' = M.insert x size tab'
+            let tab' = M.insert " count" (Local size) tab
+            let tab'' = M.insert x (Local size) tab'
             put tab''
             return size
             
