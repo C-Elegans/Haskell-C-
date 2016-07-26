@@ -147,14 +147,18 @@ prettyprint_helper col tree =
             (Addr (AnnotatedVar str t)) -> putStrLn $ "&" ++ str ++ " (" ++ (show t) ++ ")"
 data OP = Plus | Minus | Mul | Div |Lt | Gt | Eq | Ge | Le | Ne deriving (Show)
 data Type =
-    V_Int | V_Void | V_IntPtr
+    V_Int | V_Void | V_IntPtr | V_Char | V_CharPtr
+    deriving (Eq)
 instance Show Type where
     show V_Int = "int"
     show V_Void = "void"
     show V_IntPtr = "int*"
-
+    show V_Char = "char"
+    show V_CharPtr = "char*"
+    
 toPtr :: Type -> Type
 toPtr V_Int = V_IntPtr
+toPtr V_Char = V_CharPtr
 toPtr t = error $ "No valid pointer type for: " ++ (show t)
 op :: String -> OP
 op c 
@@ -255,7 +259,7 @@ rel_op =
     <|> do {str <- string "=="; return $ op str}
     <|> do {str <- string ">"; return $ op str}
     <|> do {str <- string "<"; return $ op str}
-statement = call_stmt <|> expression_statement <|> return_statement <|> selection_statement 
+statement = try(call_stmt) <|> expression_statement <|> return_statement <|> selection_statement 
     <|> compound_statement <|> iteration_statement
 
 fun_declaration = 
@@ -331,19 +335,28 @@ var_declaration =
         lexeme $ char ']'
         lexeme $ char ';'
         return $ ArrayDec t name (fromIntegral size)
+
 type_specifier = 
-    try(do
-        lexeme $ reserved "int"
-        lexeme $ char '*'
-        return V_IntPtr)
-    <|>
     do
         lexeme $ reserved "int"
-        return V_Int
+        try (do
+            lexeme $ char '*'
+            return V_IntPtr)
+            <|>
+            return V_Int
+    <|>
+    do
+        lexeme $ reserved "char"
+        try (do
+            lexeme $ char '*'
+            return V_CharPtr)
+            <|>
+            return V_Char
     <|>
     do
         lexeme $ reserved "void"
         return V_Void
+    
     
 expression_statement =
     do

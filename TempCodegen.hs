@@ -47,6 +47,13 @@ codegen_helper (Operator op left right) t = do
             Parse.Lt -> [Inst_RR Cmp R0 R1, Inst_Jmp Set L R0]
             Parse.Le -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Le R0]
     return (lft ++ rgt ++ [Inst_R Pop R1, Inst_R Pop R0] ++ operation ++ [Inst_R Push R0])
+codegen_helper (AnnotatedVar str V_Char) tab = 
+    let loc = M.lookup str tab
+    in case loc of
+        (Just v) ->
+            return [Inst_MemI Ld R0 R6 (Const (toInteger (-v))) Byte Displacement, Inst_R Push R0]
+        Nothing ->
+            return (error $ "Undefined variable: " ++ str)
 codegen_helper (AnnotatedVar str t) tab = 
     let loc = M.lookup str tab
     in case loc of
@@ -54,6 +61,7 @@ codegen_helper (AnnotatedVar str t) tab =
             return [Inst_MemI Ld R0 R6 (Const (toInteger (-v))) Word Displacement, Inst_R Push R0]
         Nothing ->
             return (error $ "Undefined variable: " ++ str)
+
 codegen_helper (Assign (Deref left) right) tab = do
     lft <- codegen_helper left tab
     rgt <- codegen_helper right tab
@@ -61,9 +69,10 @@ codegen_helper (Assign (Deref left) right) tab = do
 codegen_helper (Assign (AnnotatedVarAssign str t) expr) tab = do
     code <- codegen_helper expr tab
     let vloc = M.lookup str tab
+    let bf = if t == V_Char then Byte else Word
     case vloc of
         (Just loc) ->
-            return (code ++ [Inst_R Pop R0, Inst_MemI St R6 R0 (Const (toInteger (-loc))) Word Displacement])
+            return (code ++ [Inst_R Pop R0, Inst_MemI St R6 R0 (Const (toInteger (-loc))) bf Displacement])
         (Nothing) -> return (error $ "Undefined variable: " ++ str)
 
 codegen_helper (FuncDec t str vs stmts) tab = do
@@ -136,7 +145,11 @@ movPars :: Tree -> Int -> SymTab -> [Instruction]
 movPars (List ((VarDec t str):rest)) x tab
     | x < 4 = 
         let (Just loc) = M.lookup str tab
-        in ((Inst_MemI St R6 (intToReg x) (Const (toInteger (-loc))) Word Displacement):(movPars (List rest) (x+1) tab))
+        in 
+            if t == V_Char then
+                ((Inst_MemI St R6 (intToReg x) (Const (toInteger (-loc))) Byte Displacement):(movPars (List rest) (x+1) tab))
+            else
+                ((Inst_MemI St R6 (intToReg x) (Const (toInteger (-loc))) Word Displacement):(movPars (List rest) (x+1) tab))
     | otherwise = error "More than 4 parameters not supported yet"
 movPars (List []) _ _ = []
 assignLocal :: String -> Int -> State SymTab Int
@@ -183,7 +196,10 @@ localTable (VarDec t str) =
         return ()
 localTable (ArrayDec t str size) =
     do
-        assignLocal str (size*2)
+        if t==V_Char then
+            assignLocal str (size)
+        else
+            assignLocal str (size*2)
         return ()
 localTable (FuncDec t str vars tree) = do
     localTable vars
