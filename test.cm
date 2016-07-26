@@ -1,6 +1,12 @@
 int glob;
 int main(int i){
-	i=i/2;
-	glob=1;
+	char a[4];
+	char b[4];
+	*a = 'A';
+	*(a+1) = 't';
+	*(a+2) = '\n';
+	*(a+3) = '\0';
+	strcpy(b,a);
+	print_hex(strlen(b));
 }
 
