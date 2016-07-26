@@ -30,14 +30,7 @@ print_hex:
 	st.b [0xff02],r1
 	ret
 hexdata: ;ascii hex constants
-	.dw 0x3130
-	.dw 0x3332
-	.dw 0x3534
-	.dw 0x3736
-	.dw 0x3938
-	.dw 0x4241
-	.dw 0x4443
-	.dw 0x4645
+	.ascii "0123456789ABCDEF"
 
 putc:
 	st.b [0xff02],r0
