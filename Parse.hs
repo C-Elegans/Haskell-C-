@@ -6,6 +6,7 @@ import Text.Parsec.String (Parser)
 import qualified Text.Parsec.Token as P
 import Text.Parsec.Language (haskellStyle, haskellDef)
 import Control.Monad (replicateM_)
+import Data.Char (ord)
 lexer :: P.TokenParser ()
 lexer  = P.makeTokenParser
          $ haskellDef
@@ -24,7 +25,8 @@ semi = P.semi lexer
 identifier = P.identifier lexer
 reserved = P.reserved lexer
 reservedOp = P.reservedOp lexer
-
+stringLiteral = P.stringLiteral lexer
+charLiteral = P.charLiteral lexer
 lexeme p = do 
     x <- p
     whiteSpace
@@ -198,6 +200,10 @@ factor :: Parser Tree
 factor = do
             x <- natural
             return $ Num x
+    <|>
+        do
+            c <- charLiteral
+            return $ Num $ toInteger $ ord c
     <|> do 
             x <- parens simple_expression
             return x
