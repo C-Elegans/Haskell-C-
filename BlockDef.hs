@@ -15,7 +15,7 @@ data SSAAssignment =    AssignOp SSAVar OP Val Val
                      |  Ret Val
     
 data SSAVar = SSAVar String Int 
-data Val = Var SSAVar | Num Integer 
+data Val = Var SSAVar | Num Int 
     deriving (Show)
 
 instance Show SSAVar where

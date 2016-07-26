@@ -19,7 +19,7 @@ data Instruction =
     Inst_JmpI Opcode Condition Address  |
     Inst_Label String
     
-data Address = Label String | Const Integer
+data Address = Label String | Const Int
     deriving (Eq)
 
 data Condition = Nv | Eq | Ne | Os | Oc | Hi | Ls | P | N | Cs | Cc | Ge | G | Le | L | Al

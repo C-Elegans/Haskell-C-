@@ -33,7 +33,7 @@ lexeme p = do
     return x
 
 data Tree =     Operator OP Tree Tree
-            |   Num Integer
+            |   Num Int
             |   Var String
             |   VarAssign String
             |   AnnotatedVar String Type
@@ -199,11 +199,11 @@ declaration =
 factor :: Parser Tree
 factor = do
             x <- natural
-            return $ Num x
+            return $ Num $ fromIntegral x
     <|>
         do
             c <- charLiteral
-            return $ Num $ toInteger $ ord c
+            return $ Num $ ord c
     <|> do 
             x <- parens simple_expression
             return x

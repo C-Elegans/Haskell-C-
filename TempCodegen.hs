@@ -51,14 +51,14 @@ codegen_helper (AnnotatedVar str V_Char) tab =
     let loc = M.lookup str tab
     in case loc of
         (Just v) ->
-            return [Inst_MemI Ld R0 R6 (Const (toInteger (-v))) Byte Displacement, Inst_R Push R0]
+            return [Inst_MemI Ld R0 R6 (Const (-v)) Byte Displacement, Inst_R Push R0]
         Nothing ->
             return (error $ "Undefined variable: " ++ str)
 codegen_helper (AnnotatedVar str t) tab = 
     let loc = M.lookup str tab
     in case loc of
         (Just v) ->
-            return [Inst_MemI Ld R0 R6 (Const (toInteger (-v))) Word Displacement, Inst_R Push R0]
+            return [Inst_MemI Ld R0 R6 (Const (-v)) Word Displacement, Inst_R Push R0]
         Nothing ->
             return (error $ "Undefined variable: " ++ str)
 
@@ -72,14 +72,14 @@ codegen_helper (Assign (AnnotatedVarAssign str t) expr) tab = do
     let bf = if t == V_Char then Byte else Word
     case vloc of
         (Just loc) ->
-            return (code ++ [Inst_R Pop R0, Inst_MemI St R6 R0 (Const (toInteger (-loc))) bf Displacement])
+            return (code ++ [Inst_R Pop R0, Inst_MemI St R6 R0 (Const (-loc)) bf Displacement])
         (Nothing) -> return (error $ "Undefined variable: " ++ str)
 
 codegen_helper (FuncDec t str vs stmts) tab = do
     let (Just spsub) = M.lookup " count" tab
         movs = movPars vs 0 tab
     code <- codegen_helper stmts tab
-    return ([Inst_Label str, Inst_R Push R6, Inst_RR Mov R6 R7, Inst_RI Sub R7 (Const $ toInteger spsub)]++ movs ++ code ++ [Inst_RR Mov R7 R6, Inst_R Pop R6, Inst Ret])
+    return ([Inst_Label str, Inst_R Push R6, Inst_RR Mov R6 R7, Inst_RI Sub R7 (Const spsub)]++ movs ++ code ++ [Inst_RR Mov R7 R6, Inst_R Pop R6, Inst Ret])
 codegen_helper (List (x:xs)) tab = do
     res <- codegen_helper x tab
     code <- codegen_helper (List (xs)) tab
@@ -118,7 +118,7 @@ codegen_helper (Addr (AnnotatedVar str t)) tab =
     let loc = M.lookup str tab
     in case loc of
         (Just v) ->
-            return [Inst_RR Mov R0 R6,Inst_RI Sub R0 (Const (toInteger v)),Inst_R Push R0]
+            return [Inst_RR Mov R0 R6,Inst_RI Sub R0 (Const v),Inst_R Push R0]
         Nothing ->
             return (error $ "Undefined variable: " ++ str)
 codegen_helper (FCall name pars ) tab = do
@@ -147,9 +147,9 @@ movPars (List ((VarDec t str):rest)) x tab
         let (Just loc) = M.lookup str tab
         in 
             if t == V_Char then
-                ((Inst_MemI St R6 (intToReg x) (Const (toInteger (-loc))) Byte Displacement):(movPars (List rest) (x+1) tab))
+                ((Inst_MemI St R6 (intToReg x) (Const (-loc)) Byte Displacement):(movPars (List rest) (x+1) tab))
             else
-                ((Inst_MemI St R6 (intToReg x) (Const (toInteger (-loc))) Word Displacement):(movPars (List rest) (x+1) tab))
+                ((Inst_MemI St R6 (intToReg x) (Const (-loc)) Word Displacement):(movPars (List rest) (x+1) tab))
     | otherwise = error "More than 4 parameters not supported yet"
 movPars (List []) _ _ = []
 assignLocal :: String -> Int -> State SymTab Int

@@ -1,7 +1,7 @@
 module Eval where
 import Parse 
 
-funcop ::  OP -> Integer -> Integer -> Integer
+funcop ::  OP -> Int -> Int -> Int
 funcop Plus = (+)
 funcop Minus = (-)
 funcop Mul = (*)
@@ -17,12 +17,12 @@ apply f l r =
     let b = f l r
     in boolToInt b
 
-boolToInt :: Bool -> Integer
+boolToInt :: Bool -> Int
 boolToInt b
         | b == True = 1
         | otherwise = 0
 
-eval :: Tree -> Integer
+eval :: Tree -> Int
 eval (Num x) = x
 eval (Operator op left right) =
     let l = eval left

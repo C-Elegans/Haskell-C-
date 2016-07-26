@@ -6,7 +6,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Debug.Trace (trace)
 type Stack = ([(StackEntry,Int)],Set Register)
-data StackEntry = Undefined | Unknown Register | Known Integer
+data StackEntry = Undefined | Unknown Register | Known Int
     deriving (Show)
  
 optimize :: [Instruction] -> [Instruction]
