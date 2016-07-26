@@ -15,3 +15,4 @@ mul_skip:
 	jmp mul_loop
 mul_end:
 ret
+

@@ -2,10 +2,10 @@ HASKELL_SRCS = $(wildcard *.hs)
 
 out.o: out.s
 	d16 out.s out.o
-	python ~/programming/d16i/run_d16i.py out.o
+	python ~/programming/d16i/run_d16i.py -q out.o
 
-out.s: compiler.s start.s lib/numeric.s
-	cat start.s lib/numeric.s compiler.s > out.s
+out.s: compiler.s start.s lib/numeric.s lib/io.s
+	cat start.s lib/numeric.s lib/io.s compiler.s > out.s
 
 compiler.s: cmm test.cm
 	./cmm test.cm compiler.s
