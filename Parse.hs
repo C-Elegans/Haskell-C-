@@ -54,6 +54,8 @@ data Tree =     Operator OP Tree Tree
             |   While Tree Tree
             |   Deref Tree
             |   Addr Tree
+            |   Str String
+            |   StrLabel String
             deriving (Show)
 spaceTabs n = replicateM_ n (putStr "    ")
 
@@ -139,6 +141,8 @@ prettyprint_helper col tree =
                     spaceTabs col
                     putStrLn "do:"
                     prettyprint_helper (col+1) tree
+            (Str str) -> putStrLn $ "String: " ++ str
+            (StrLabel str) -> putStrLn $ "String at: " ++ str
             (AnnotatedVar str t) ->
                 putStrLn $ "Var: " ++ str ++ " (" ++ (show t) ++ ")" 
             (AnnotatedVarAssign str t) ->
@@ -216,6 +220,9 @@ factor = do
     <|> derefrence
     <|> addressOf
     <?> "factor"
+strLiteral = do
+    str <- stringLiteral
+    return $ Str str
 derefrence :: Parser Tree
 derefrence = do
     lexeme $ char '*'
@@ -420,7 +427,8 @@ simple_expression =
         return $ Operator op left right)
     <|>
         add_expression
-        
+    <|> 
+        strLiteral
 expression :: Parser Tree
 expression = 
     try (do

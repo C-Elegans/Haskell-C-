@@ -66,8 +66,10 @@ instance Show Register where
 instance Show Instruction where
     show (Inst_RR op rD rS) =
         (show op) ++ " " ++ (show rD) ++ ", " ++ (show rS)
-    show (Inst_RI op rD num) =
+    show (Inst_RI op rD (Const num)) =
         (show op) ++ " " ++ (show rD) ++ ", #" ++ (show num)
+    show (Inst_RI op rD (Label lbl)) =
+        (show op) ++ " " ++ (show rD) ++ ", " ++ lbl
     show (Inst_R op r) =
         (show op) ++ " " ++ (show r)
     show (Inst op) = show op

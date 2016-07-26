@@ -26,22 +26,22 @@ main =
             contents <- hGetContents handle
             
             tree <- parse declaration_list contents
-            
+            prettyprint_tree tree
             let (List l) = tree
-            let tree' = run_passes passes tree
+            let (tree',strings) = run_tree tree
             prettyprint_tree tree'
             let globals = getGlobals tree'
             let globalList = [(str,Global) | (GlobalDec t str) <- globals]
-            print globalList
+            
             let funcs = getFunctions tree'
             let locals = map getLocals funcs
             
             let pairs = zip funcs locals
-            print pairs
-            print locals
+            print strings
             let code = codegen pairs globalList cleanFileName
             mapM_ print code
             putStrLn "\n"
+            let assembledStrings = assemble_strings strings cleanFileName
             let betterCode = optimize code
             mapM_ print betterCode
             let outFileName = (args!!1)
@@ -49,7 +49,7 @@ main =
             print codeString
             putStrLn $ "Reduced code length by: " ++ (show (round $ 100 * (1- ((fromIntegral $ length betterCode) / (fromIntegral $ length code))))) ++ "%"
             out_handle <- openFile outFileName WriteMode
-            hPutStr out_handle (codeString ++ "\nend:\n\n")
+            hPutStr out_handle (codeString ++ "\nend:\n\n" ++ assembledStrings)
             
             hClose handle
             hClose out_handle

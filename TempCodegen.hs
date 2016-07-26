@@ -26,7 +26,7 @@ labelSuffix :: State (String,Int) String
 labelSuffix = do
     (name,count) <- get
     put (name,count+1)
-    return ("_" ++ name ++ "_" ++ (show count))
+    return ("_" ++ (show count) ++ "_" ++ name)
 
 
 codegen_helper :: Tree -> SymTab -> State (String,Int) [Instruction]
@@ -135,6 +135,10 @@ codegen_helper (FCallRet name pars ) tab = do
     parameters <- genPars pars 0 tab
     return (parameters ++ [Inst_JmpI Call Al (Label name),Inst_R Push R0])
 codegen_helper (Var v) tab = error $ "Did not annotate var: " ++ v
+codegen_helper (StrLabel str) tab = do
+    (filename,count) <- get
+    let label = str ++ "_" ++ filename
+    return $ [Inst_RI Mov R0 (Label label),Inst_R Push R0]
 codegen_helper x tab = trace ("Defaulting to empty on: " ++ (show x)) (return [])
 
 genPars :: Tree -> Int -> SymTab -> State (String,Int) [Instruction]
@@ -233,3 +237,10 @@ localTable (While cond tree) = do
     localTable tree
     return ()
 localTable _ = return ()
+assemble_strings :: [(String,String)] -> String -> String
+assemble_strings (s:strs) filename =
+    let (label,string) = s
+        label' = label ++ "_" ++ filename
+        assembledString = label' ++ ":\n    "++".asciz \"" ++ string ++"\"\n"
+    in assembledString ++ (assemble_strings strs filename)
+assemble_strings [] _ = []
