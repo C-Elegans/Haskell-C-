@@ -5,6 +5,7 @@ import Debug.Trace (trace)
 import Control.Monad.State
 import Control.Monad.Trans.Maybe
 import Data.Map (Map)
+import Data.Bits
 import qualified Data.Map as M
 
 m_apply :: (Tree -> EV Tree) -> Tree -> EV Tree 
@@ -79,7 +80,7 @@ addSymbol str val t = do
     return ()
     
 
-passes = [check_defined,const_subexpr_simplification, arith_identity_removal]
+passes = [check_defined,const_subexpr_simplification, arith_identity_removal, mul_div_reduction]
 run_passes (pass:passes) tree =
     let (tree',symTab) = runState (m_apply pass tree) (M.empty)
     
@@ -132,6 +133,23 @@ arith_identity_removal (Operator Mul x (Num 1)) = return x
 arith_identity_removal (Operator Mul (Num 1) x) = return x
 arith_identity_removal x = return x
 
+mul_div_reduction :: Tree -> EV Tree
+mul_div_reduction (Operator Mul val (Num x)) 
+    | isPowerOf2 x = do
+        let shifter = countTrailingZeros x
+        return (Operator Shl val (Num shifter))
+mul_div_reduction (Operator Mul (Num x) val) 
+    | isPowerOf2 x = do
+        let shifter = countTrailingZeros x
+        return (Operator Shl val (Num shifter))
+mul_div_reduction (Operator Div val (Num x)) 
+    | isPowerOf2 x = do
+        let shifter = countTrailingZeros x
+        return (Operator Shr val (Num shifter))
+mul_div_reduction x = return x
+    
+
+isPowerOf2 n = ((.&.) n (n-1)) == 0
 
 
 

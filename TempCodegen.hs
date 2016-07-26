@@ -1,6 +1,6 @@
 module TempCodegen where
 import Instructions
-import Parse hiding (Eq, Ne, Gt, Ge, Lt, Le)
+import Parse hiding (Eq, Ne, Gt, Ge, Lt, Le, Shl, Shr)
 import qualified Parse
 import Debug.Trace
 import Control.Monad.State
@@ -38,6 +38,9 @@ codegen_helper (Operator op left right) t = do
                 [Inst_RR Add R0 R1]
             Minus ->
                 [Inst_RR Sub R0 R1]
+            Parse.Shl ->
+                [Inst_RR Shl R0 R1]
+            Parse.Shr -> [Inst_RR Shr R0 R1]
             Mul -> [Inst_JmpI Call Al (Label "mul")]
             Div -> error "Div unsupported"
             Parse.Eq -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Eq R0]

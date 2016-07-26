@@ -147,7 +147,7 @@ prettyprint_helper col tree =
             (Addr (Var str)) -> do
                 putStrLn $ "&" ++ str
             (Addr (AnnotatedVar str t)) -> putStrLn $ "&" ++ str ++ " (" ++ (show t) ++ ")"
-data OP = Plus | Minus | Mul | Div |Lt | Gt | Eq | Ge | Le | Ne deriving (Show)
+data OP = Plus | Minus | Mul | Div | Shl | Shr |Lt | Gt | Eq | Ge | Le | Ne deriving (Show)
 data Type =
     V_Int | V_Void | V_IntPtr | V_Char | V_CharPtr
     deriving (Eq)
