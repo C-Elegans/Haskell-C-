@@ -44,6 +44,7 @@ data Tree =     Operator OP Tree Tree
             |   Compound Tree Tree
             |   EmptyTree
             |   VarDec Type String
+            |   ArrayDec Type String Int
             |   FuncDec Type String Tree Tree
             |   FCall String Tree
             |   FCallRet String Tree
@@ -105,6 +106,7 @@ prettyprint_helper col tree =
                     prettyprint_helper (col+1) stmts
             (EmptyTree) -> putStrLn "Empty"
             (VarDec t str) -> putStrLn ("VarDec " ++ str ++ " = " ++ (show t))
+            (ArrayDec t str sz) -> putStrLn ("Array (" ++ (show t) ++ ") "++ str ++ " [" ++ (show sz) ++ "]") 
             (FuncDec t id left right) ->
                 do
                     putStrLn ("Func " ++ id ++ " -> " ++ (show t))
@@ -150,6 +152,10 @@ instance Show Type where
     show V_Int = "int"
     show V_Void = "void"
     show V_IntPtr = "int*"
+
+toPtr :: Type -> Type
+toPtr V_Int = V_IntPtr
+toPtr t = error $ "No valid pointer type for: " ++ (show t)
 op :: String -> OP
 op c 
     | c == "+" = Plus
@@ -316,6 +322,15 @@ var_declaration =
         name <- identifier
         lexeme $ char ';'
         return $ VarDec t name)
+    <|>
+    do
+        t <- type_specifier
+        name <- identifier
+        lexeme $ char '['
+        size <- natural
+        lexeme $ char ']'
+        lexeme $ char ';'
+        return $ ArrayDec t name (fromIntegral size)
 type_specifier = 
     try(do
         lexeme $ reserved "int"

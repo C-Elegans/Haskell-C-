@@ -57,7 +57,7 @@ codegen_helper (AnnotatedVar str t) tab =
 codegen_helper (Assign (Deref left) right) tab = do
     lft <- codegen_helper left tab
     rgt <- codegen_helper right tab
-    return (rgt++lft++[Inst_R Pop R0, Inst_R Pop R1, Inst_Mem St R0 R1 Word])
+    return (lft ++rgt++[Inst_R Pop R1, Inst_R Pop R0, Inst_Mem St R0 R1 Word])
 codegen_helper (Assign (AnnotatedVarAssign str t) expr) tab = do
     code <- codegen_helper expr tab
     let vloc = M.lookup str tab
@@ -139,21 +139,21 @@ movPars (List ((VarDec t str):rest)) x tab
         in ((Inst_MemI St R6 (intToReg x) (Const (toInteger (-loc))) Word Displacement):(movPars (List rest) (x+1) tab))
     | otherwise = error "More than 4 parameters not supported yet"
 movPars (List []) _ _ = []
-assignLocal :: String -> State SymTab Int
-assignLocal x = do
+assignLocal :: String -> Int -> State SymTab Int
+assignLocal x size = do
     tab <- get
     let counter = M.lookup " count" tab
     case counter of
         (Just v) -> do
-            let tab' = M.insert " count" (v+2) tab
-            let tab'' = M.insert x (v+2) tab'
+            let tab' = M.insert " count" (v+size) tab
+            let tab'' = M.insert x (v+size) tab'
             put tab''
-            return (v+2)
+            return (v+size)
         Nothing -> do
-            let tab' = M.insert " count" 2 tab
-            let tab'' = M.insert x 2 tab'
+            let tab' = M.insert " count" size tab
+            let tab'' = M.insert x size tab'
             put tab''
-            return 2
+            return size
             
 {-
     data Tree =     Operator OP Tree Tree
@@ -179,7 +179,11 @@ getLocals tree =
 localTable :: Tree -> State SymTab ()
 localTable (VarDec t str) =
     do
-        assignLocal str
+        assignLocal str 2
+        return ()
+localTable (ArrayDec t str size) =
+    do
+        assignLocal str (size*2)
         return ()
 localTable (FuncDec t str vars tree) = do
     localTable vars
