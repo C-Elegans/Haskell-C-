@@ -5,7 +5,7 @@ import Data.Char
 import Data.Data
 import Data.Typeable
 data Opcode = Nop | Add | Sub | Push | Pop | Mov | And | Or | Xor | Not | Neg | Ld | St |
-    Cmp | Jmp | Call | Ret | Shl | Shr | Rol | Rcl | Ldcp | Stcp | Adc | Sbb | Set
+    Cmp | Jmp | Call | Ret | Shl | Shr | Rol | Rcl | Ldcp | Stcp | Adc | Sbb | Set | Test
     deriving (Data, Typeable,Eq)
 data Instruction = 
     Inst_RR Opcode Register Register | 

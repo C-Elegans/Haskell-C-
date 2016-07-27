@@ -1,5 +1,9 @@
 int glob;
 int main(int i){
-	puts("testing\n");
+	i=0;
+	while(i<10){
+		print_hex(i);
+		i=i+1;
+	}
 }
 

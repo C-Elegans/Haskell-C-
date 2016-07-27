@@ -37,7 +37,7 @@ putc:
 	ret
 puts:
 	ld.b r1,[r0]
-	cmp r1,0
+	test r1,r1
 	jmp.eq puts_end
 	st.b [0xff02],r1
 	add r0,1

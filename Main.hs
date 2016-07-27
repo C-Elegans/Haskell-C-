@@ -37,7 +37,7 @@ main =
             let locals = map getLocals funcs
             
             let pairs = zip funcs locals
-            print strings
+            
             let code = codegen pairs globalList cleanFileName
             mapM_ print code
             putStrLn "\n"
@@ -46,7 +46,7 @@ main =
             mapM_ print betterCode
             let outFileName = (args!!1)
             let codeString = concat $ intersperse "\n" $ map show betterCode
-            print codeString
+            
             putStrLn $ "Reduced code length by: " ++ (show (round $ 100 * (1- ((fromIntegral $ length betterCode) / (fromIntegral $ length code))))) ++ "%"
             out_handle <- openFile outFileName WriteMode
             hPutStr out_handle (codeString ++ "\nend:\n\n" ++ assembledStrings)

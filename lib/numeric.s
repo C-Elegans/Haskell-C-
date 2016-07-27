@@ -4,8 +4,7 @@ xor r0,r0
 mul_loop:
 	cmp r1,0
 	jmp.eq mul_end
-	mov r2,r1
-	and r2,1
+	test r1,1
 	jmp.eq mul_skip
 	add r0,r3
 mul_skip:

@@ -53,6 +53,10 @@ m_apply f (FuncDec t str left right) clear =
         l <- m_apply f left clear
         r <- m_apply f right clear
         f (FuncDec t str l r)
+m_apply f (While cond tree) b = do
+    c <- m_apply f cond b
+    t <- m_apply f tree b
+    f (While c t)
 m_apply f (FCall str tree) b = do
     t <- m_apply f tree b
     f (FCall str t)

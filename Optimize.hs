@@ -1,7 +1,7 @@
 module Optimize where
 import Stack (run_stack_analysis)
 import Instructions
-passes = [run_stack_analysis,run_stack_analysis,peephole_1,peephole_2,const_fold,load_store,redundant_ret,indexed_mem,peephole_3]
+passes = [run_stack_analysis,run_stack_analysis,peephole_1,peephole_2,const_fold,load_store,redundant_ret,indexed_mem,peephole_3,cmp_to_test]
 
 optimize :: [Instruction] -> [Instruction]
 optimize = run passes
@@ -61,3 +61,9 @@ peephole_3 ((Inst_R Push reg1):inst@(Inst_RI op reg2 dat):(Inst_R Pop reg3):rest
     inst:(peephole_3 rest)
 peephole_3 (x:xs) = x:(peephole_3 xs)
 peephole_3 [] = []
+
+cmp_to_test :: [Instruction] -> [Instruction]
+cmp_to_test ((Inst_RI Cmp reg (Const 0)):rest) =
+    ((Inst_RR Test reg reg):(cmp_to_test rest))
+cmp_to_test (x:xs) = x:(cmp_to_test xs)
+cmp_to_test [] = []
