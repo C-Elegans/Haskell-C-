@@ -1,7 +1,5 @@
 int glob;
 int main(int i){
-	char b[9];
 	puts("testing\n");
-	print_hex(strlen(b));
 }
 

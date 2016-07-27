@@ -55,7 +55,7 @@ run_stack_analysis :: [Instruction] -> [Instruction]
 run_stack_analysis insts=
     let (instructions,indices) = fst $ runState (stack_analysis insts 0) ([],Set.empty)
         sorted = sort indices
-    in trace (show sorted) (stack_analysis_cleanup (instructions,sorted) 0)
+    in stack_analysis_cleanup (instructions,sorted) 0
     --in trace (show sorted) (instructions)
 
 stack_analysis :: [Instruction] -> Int -> State Stack ([Instruction],[Int])
