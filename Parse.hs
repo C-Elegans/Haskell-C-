@@ -155,7 +155,7 @@ prettyprint_helper col tree =
             (Addr (AnnotatedVar str t)) -> putStrLn $ "&" ++ str ++ " (" ++ (show t) ++ ")"
 data OP = Plus | Minus | Mul | Div | Shl | Shr |Lt | Gt | Eq | Ge | Le | Ne deriving (Show)
 data Type =
-    V_Int | V_Void | V_IntPtr | V_Char | V_CharPtr
+    V_Int | V_Void | V_IntPtr | V_Char | V_CharPtr | V_IntArr | V_CharArr
     deriving (Eq)
 instance Show Type where
     show V_Int = "int"
@@ -163,11 +163,17 @@ instance Show Type where
     show V_IntPtr = "int*"
     show V_Char = "char"
     show V_CharPtr = "char*"
+    show V_IntArr = "int[]"
+    show V_CharArr = "char[]"
     
 toPtr :: Type -> Type
 toPtr V_Int = V_IntPtr
 toPtr V_Char = V_CharPtr
 toPtr t = error $ "No valid pointer type for: " ++ (show t)
+
+toArr V_Int = V_IntArr
+toArr V_Char = V_CharArr
+toArr t = error $ "No valid array type for: " ++ (show t)
 op :: String -> OP
 op c 
     | c == "+" = Plus

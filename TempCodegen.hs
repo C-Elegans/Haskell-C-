@@ -54,6 +54,15 @@ codegen_helper (Operator op left right) t = do
             Parse.Le -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Le R0]
     return (lft ++ rgt ++ [Inst_R Pop R1, Inst_R Pop R0] ++ operation ++ [Inst_R Push R0])
 
+codegen_helper (AnnotatedVar str t) tab
+    |t == V_CharArr || t == V_IntArr = 
+    let loc = M.lookup str tab
+    in case loc of
+        (Just (Local loc)) ->
+            return [Inst_RR Mov R0 R6, Inst_RI Sub R0 (Const loc), Inst_R Push R0]
+        (Just Global) ->
+            return [Inst_RI Mov R0 (Label str), Inst_R Push R0]
+        Nothing -> return $ error $ "Undefined vairable: " ++ str
 codegen_helper (AnnotatedVar str t) tab = 
     let loc = M.lookup str tab
         bf = if t == V_Char then Byte else Word

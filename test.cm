@@ -1,9 +1,7 @@
 int glob;
 int main(int i){
-	i=0;
-	while(i<10){
-		print_hex(i);
-		i=i+1;
-	}
+	char test[16];
+	memcpy(test,"test",6);
+	puts(test);
 }
 

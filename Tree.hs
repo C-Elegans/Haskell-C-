@@ -1,5 +1,5 @@
 module Tree where
-import Parse (Tree(..), OP(..), Type(..), toPtr)
+import Parse (Tree(..), OP(..), Type(..), toArr)
 import Eval (funcop)
 import Debug.Trace (trace)
 import Control.Monad.State
@@ -107,7 +107,7 @@ check_defined (VarDec t v) = do
     addSymbol v 1 t
     return (VarDec t v)
 check_defined tree@(ArrayDec t v sz) = do
-    addSymbol v 1 (toPtr t)
+    addSymbol v 1 (toArr t)
     return tree
 check_defined (Var v) = do
     val <- lookUp v

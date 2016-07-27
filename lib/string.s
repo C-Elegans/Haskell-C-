@@ -23,4 +23,29 @@ strlen_end:
 	ret
 
 memcpy: ;r0 - dest, r1 - source, r3 count
+	push r0
+	xor r3,r3
+	or r3,r0
+	or r3,r1
+	or r3,r2
+	test r3,1
+	jmp.eq memcpy_2
+memcpy_loop:
+	ld.b r3,[r1]
+	st.b [r0],r3
+	add r0,1
+	add r1,1
+	sub r2,1
+	jmp.ne memcpy_loop
+	pop r0
+	ret
 	
+memcpy_2:
+	ld r3,[r1]
+	st [r0],r3
+	add r0,2
+	add r1,2
+	sub r2,2
+	jmp.ne memcpy_2
+	pop r0
+	ret
