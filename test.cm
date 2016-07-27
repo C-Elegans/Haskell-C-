@@ -4,5 +4,6 @@ int main(int i){
 	memcpy(test+1,"test\n",7);
 	*test = '*';
 	puts(test);
+	print_hex(*test);
 }
 

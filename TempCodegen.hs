@@ -129,8 +129,10 @@ codegen_helper (Return tree) tab = do
     code <- codegen_helper tree tab
     return (code ++ [Inst_R Pop R0, Inst_RR Mov R7 R6, Inst_R Pop R6,Inst Ret])
 codegen_helper (Deref tree) tab = do
+    let t = getType tree
+    let bf = if t == V_CharPtr || t == V_CharArr then Byte else Word
     expr <- codegen_helper tree tab
-    return (expr ++ [Inst_R Pop R0, Inst_Mem Ld R0 R0 Word,Inst_R Push R0])
+    return (expr ++ [Inst_R Pop R0, Inst_Mem Ld R0 R0 bf,Inst_R Push R0])
 codegen_helper (Addr (AnnotatedVar str t)) tab =
     let loc = M.lookup str tab
     in case loc of
