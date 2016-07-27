@@ -6,7 +6,7 @@ run: out.o
 	@python3 ~/programming/d16i/run_d16i.py -q out.o
 	
 out.o: out.s
-	d16 out.s out.o
+	d16 -o out.o out.s
 
 out.s: compiler.s start.s $(LIBS)
 	cat start.s $(LIBS) compiler.s > out.s
