@@ -75,9 +75,12 @@ codegen_helper (AnnotatedVar str t) tab =
             return (error $ "Undefined variable: " ++ str)
 
 codegen_helper (Assign (Deref left) right) tab = do
+    let t = getType left
+    let bf = if t == V_CharArr || t == V_CharPtr then Byte else Word
+        
     lft <- codegen_helper left tab
     rgt <- codegen_helper right tab
-    return (lft ++rgt++[Inst_R Pop R1, Inst_R Pop R0, Inst_Mem St R0 R1 Word])
+    return (lft ++rgt++[Inst_R Pop R1, Inst_R Pop R0, Inst_Mem St R0 R1 bf])
 codegen_helper (Assign (AnnotatedVarAssign str t) expr) tab = do
     code <- codegen_helper expr tab
     let vloc = M.lookup str tab
@@ -253,3 +256,13 @@ assemble_strings (s:strs) filename =
         assembledString = label' ++ ":\n    "++".asciz \"" ++ string ++"\"\n"
     in assembledString ++ (assemble_strings strs filename)
 assemble_strings [] _ = []
+
+getType :: Tree -> Type
+getType (AnnotatedVar str t) = t
+
+getType (Num x) = V_Int
+
+getType (Operator op left right) =
+    let t1 = getType left
+        t2 = getType right
+    in max t1 t2

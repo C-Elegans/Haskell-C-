@@ -1,7 +1,8 @@
 int glob;
 int main(int i){
 	char test[16];
-	memcpy(test,"test",6);
+	memcpy(test+1,"test\n",7);
+	*test = '*';
 	puts(test);
 }
 

@@ -165,6 +165,16 @@ instance Show Type where
     show V_CharPtr = "char*"
     show V_IntArr = "int[]"
     show V_CharArr = "char[]"
+instance Ord Type where
+    V_Int <= V_IntPtr = True
+    V_Char <= V_Int = True
+    V_Char <= V_CharPtr = True
+    V_Int <= V_CharPtr = True
+    V_CharPtr <= V_CharArr = True
+    V_IntPtr <= V_IntArr = True
+    V_Int <= V_IntArr = True
+    V_Int <= V_CharArr = True
+    _ <= _ = False
     
 toPtr :: Type -> Type
 toPtr V_Int = V_IntPtr
