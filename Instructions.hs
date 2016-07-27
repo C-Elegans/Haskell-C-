@@ -53,6 +53,24 @@ intToReg 4 = R4
 intToReg 5 = R5
 intToReg 6 = R6
 intToReg 7 = R7
+
+cond_inverse :: Condition -> Condition
+cond_inverse Al = Al
+cond_inverse Nv = Nv
+cond_inverse Eq = Ne
+cond_inverse Ne = Eq
+cond_inverse Os = Oc
+cond_inverse Oc = Os
+cond_inverse Hi = Ls
+cond_inverse Ls = Hi
+cond_inverse P = N
+cond_inverse N = P
+cond_inverse Ge = L
+cond_inverse G = Le
+cond_inverse Le = G
+cond_inverse L = Ge
+cond_inverse Cc = Cs
+cond_inverse Cs = Cc
 instance Show Register where
     show (R0) = "r0"
     show (R1) = "r1"

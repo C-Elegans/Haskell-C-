@@ -1,7 +1,9 @@
 module Optimize where
 import Stack (run_stack_analysis)
 import Instructions
-passes = [run_stack_analysis,run_stack_analysis,peephole_1,peephole_2,const_fold,load_store,redundant_ret,indexed_mem,peephole_3,cmp_to_test]
+passes = [run_stack_analysis,run_stack_analysis,peephole_1,peephole_2,
+    const_fold,load_store,redundant_ret,indexed_mem,peephole_3,cmp_to_test,
+    cond_jump]
 
 optimize :: [Instruction] -> [Instruction]
 optimize = run passes
@@ -67,3 +69,10 @@ cmp_to_test ((Inst_RI Cmp reg (Const 0)):rest) =
     ((Inst_RR Test reg reg):(cmp_to_test rest))
 cmp_to_test (x:xs) = x:(cmp_to_test xs)
 cmp_to_test [] = []
+
+cond_jump ((Inst_Jmp Set cond reg):(Inst_RR Test reg2 reg3):(Inst_JmpI Jmp Eq dest):rest) 
+    | reg == reg2 && reg2 == reg3 =
+        let newcond = cond_inverse cond
+        in (Inst_JmpI Jmp newcond dest):(cond_jump rest)
+cond_jump (x:xs) = x:(cond_jump xs)
+cond_jump [] = []
