@@ -1,16 +1,16 @@
 HASKELL_SRCS = $(wildcard *.hs)
-LIBS = $(wildcard lib/*.s)
-
-run: out.o 
+LIBSRCS = $(wildcard lib/*.s)
+LIBS = $(patsubst %.s,%.o,$(LIBSRCS))
+run: out
 	@echo "Emulator output:"
-	@python3 ~/programming/d16i/run_d16i.py -q out.o
+	@python3 ~/programming/d16i/run_d16i.py -q out
 	
-out.o: out.s
-	d16 -o out.o out.s
+%.o: %.s
+	d16 $< -o $@
 
-out.s: compiler.s start.s $(LIBS)
-	cat start.s $(LIBS) compiler.s > out.s
-
+out: start.o $(LIBS) compiler.o
+	d16-ld $^ -o out
+	
 compiler.s: cmm test.cm
 	./cmm test.cm compiler.s
 	

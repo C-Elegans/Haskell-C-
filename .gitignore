@@ -6,3 +6,4 @@ cabal.sandbox.config
 cmm
 *.s
 !lib/*.s
+out
