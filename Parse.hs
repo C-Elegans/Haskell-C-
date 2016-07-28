@@ -19,7 +19,7 @@ lexer  = P.makeTokenParser
 whiteSpace = P.whiteSpace lexer
 
 symbol = P.symbol lexer
-natural = P.natural lexer
+integer = P.integer lexer
 parens = P.parens lexer
 semi = P.semi lexer
 identifier = P.identifier lexer
@@ -27,6 +27,9 @@ reserved = P.reserved lexer
 reservedOp = P.reservedOp lexer
 stringLiteral = P.stringLiteral lexer
 charLiteral = P.charLiteral lexer
+squares = P.brackets lexer
+commaSep1 = P.commaSep1 lexer
+commaSep = P.commaSep lexer
 lexeme p = do 
     x <- p
     whiteSpace
@@ -197,15 +200,12 @@ op c
     | c == "<=" = Le
     | c == ">=" = Ge
     | otherwise = error $ "Invalid operator: " ++ c
-
-declaration_list =
-    do
-        decl <- declaration
-        (List list) <- declaration_list
-        return $ List (decl:list)
-    <|>
-    try( do
-        return $ List [] )
+    
+declaration_list = do
+    lst <- many declaration
+    spaces
+    eof
+    return $ List lst
 declaration =
     try(
         do
@@ -213,14 +213,14 @@ declaration =
             return f
         )
     <|>
-    try(do
+    do
         (VarDec t str) <- var_declaration
-        return (GlobalDec t str))
-    
+        return (GlobalDec t str)
+    <?> "declaration"
 
 factor :: Parser Tree
 factor = do
-            x <- natural
+            x <- integer
             return $ Num $ fromIntegral x
     <|>
         do
@@ -239,25 +239,29 @@ factor = do
 strLiteral = do
     str <- stringLiteral
     return $ Str str
+    <?> "String literal"
 derefrence :: Parser Tree
 derefrence = do
     lexeme $ char '*'
     expr <- simple_expression
     return $ Deref expr
-
+    <?> "Derefrence"
 addressOf :: Parser Tree
 addressOf = do
     lexeme $ char '&'
     v <- var
     return $ Addr v
+    <?> "Address of operator"
 var :: Parser Tree
 var = try(do
         str <- identifier
         return $ Var str)
+    <?> "Variable"
 varAssign :: Parser Tree
 varAssign = try(do
         str <- identifier
-        return $ VarAssign str)  
+        return $ VarAssign str) 
+        <?> "Assignment var"
 term :: Parser Tree
 term =  try (do 
             left <- factor
@@ -281,7 +285,7 @@ add_expression =
         return $ Operator o left right)
     <|> 
         term
-
+    
 rel_op :: Parser OP
 rel_op =
         try (do {str <- string "<="; return $ op str})
@@ -290,42 +294,31 @@ rel_op =
     <|> do {str <- string "=="; return $ op str}
     <|> do {str <- string ">"; return $ op str}
     <|> do {str <- string "<"; return $ op str}
+    <?> "Comparison operator"
 statement = try(call_stmt) <|> expression_statement <|> return_statement <|> selection_statement 
     <|> compound_statement <|> iteration_statement
-
+    <?> "statement"
 fun_declaration = 
     do
     t <- type_specifier
     id <- identifier
-    lexeme $ char '('
-    pars <- params
-    lexeme $ char ')'
+    
+    pars <- parens params
+    
     
     stmt <- compound_statement
     return $ FuncDec t id pars stmt
-
-params = try (param_list) <|> 
-    do
-        reserved "void"
-        return $ List []
-param_list =
-    try(do
-        p <- param
-        spaces
-        lexeme $ char ','
-        spaces
-        (List params) <- param_list
-        return $ List (p:params))
-    <|>
-        do
-            p <- param
-            return $ List [p]
+    <?> "Function Declaration"
+params = do
+    lst <- commaSep param
+    return $ List lst
 param = 
     do
         t <- type_specifier
         spaces
         id <- identifier
         return $ VarDec t id
+    <?> "Parameter"
 compound_statement =
     do
         lexeme $char '{'
@@ -334,38 +327,30 @@ compound_statement =
         lexeme $ char '}'
         return $ Compound locals stmts
 
-statement_list =
-    do
-        stmt <- lexeme $ statement
-        (List list) <- statement_list
-        return $ List (stmt:list)
-    <|> try(do
-                return $ List [])
+statement_list = do
+    lst <- many statement
+    return $ List lst
 local_declarations :: Parser Tree
-local_declarations = 
-    do
-        vdec <- lexeme $ var_declaration
-        (List list) <- local_declarations
-        return $ List (vdec:list)
-    <|>
-    try(do
-        return $ List [])
-
+local_declarations = do
+    lst <- many var_declaration
+    return $ List lst
+    
 var_declaration = 
     try(do
         t <- type_specifier
         name <- identifier
-        lexeme $ char ';'
+        semi
         return $ VarDec t name)
     <|>
     do
         t <- type_specifier
         name <- identifier
-        lexeme $ char '['
-        size <- natural
-        lexeme $ char ']'
-        lexeme $ char ';'
+        
+        size <- squares integer
+        
+        semi
         return $ ArrayDec t name (fromIntegral size)
+    <?> "Var declaration"
 
 type_specifier = 
     do
@@ -387,21 +372,21 @@ type_specifier =
     do
         lexeme $ reserved "void"
         return V_Void
-    
+    <?> "type specifier"
     
 expression_statement =
     do
         expr <- expression
-        lexeme $ char ';'
+        semi
         return expr
 selection_statement :: Parser Tree
 selection_statement = 
     try(do
             lexeme $ reserved "if"
             
-            lexeme $ char '('
-            condition <- expression
-            lexeme $ char ')'
+            
+            condition <- parens expression
+            
             stmt <- statement
             lexeme $ reserved "else"
             stmt2 <- statement
@@ -409,9 +394,9 @@ selection_statement =
     <|>
         do
             lexeme $ reserved "if"
-            lexeme $ char '('
-            condition <- expression
-            lexeme $ char ')'
+            
+            condition <- parens expression
+            
             stmt <- statement
             return $ If condition stmt
     <?> "Conditional statement"
@@ -420,9 +405,9 @@ iteration_statement :: Parser Tree
 iteration_statement =
     do
         lexeme $ reserved "while"
-        lexeme $ char '('
-        cond <- expression
-        lexeme $ char ')'
+        
+        cond <- parens expression
+        
         stmt <- statement
         return $ While cond stmt
 return_statement :: Parser Tree
@@ -430,9 +415,9 @@ return_statement =
     do
         lexeme $ reserved "return"
         tree <- expression
-        lexeme $ char ';'
+        semi
         return $ Return tree
-
+    <?> "return"
     
 simple_expression :: Parser Tree
 simple_expression =
@@ -459,35 +444,24 @@ expression =
         right <- simple_expression
         return $ Assign (Deref left) right)
     <|>simple_expression
+    <?> "expression"
 call_stmt =
     do
         c <- call
-        lexeme $ char ';'
+        semi
         return c
 call =
     do
         id <- identifier
-        lexeme $ char '('
-        a <- args
-        lexeme $ char ')'
-        return $ FCall id a
-
-args =
-    arg_list
-    <|>
-    do
-        return $ List []
-arg_list =
-    try(do
-            expr <- expression
-            lexeme $ char ','
-            (List list) <- arg_list
-            return $ List (expr:list))
-    <|>
-        do
-            expr <- expression
-            return $ List [expr]
         
+        a <- parens args
+        
+        return $ FCall id a
+    <?> "Function call"
+args = do
+    lst <- commaSep expression
+    return $ List lst
+    <?> "args"
 run :: Show a => Parser a -> String -> IO ()
 run p input
         = case (Parsec.parse p "" input) of
@@ -496,13 +470,11 @@ run p input
                           }
             Right x  -> print x 
 
-parse :: Parser Tree -> String -> IO Tree
+parse :: Parser Tree -> String -> IO ( Tree)
 parse p input =
     case (Parsec.parse p "" input) of
             Left err -> do
-                putStr "Parse error at "
-                print err
-                return (EmptyTree)
-            Right x  -> return x
+                return $ error $ "Parse error: " ++ (show err)
+            Right x  -> return (x)
             
 
