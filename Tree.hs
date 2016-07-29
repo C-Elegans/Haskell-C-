@@ -73,6 +73,9 @@ m_apply f (Deref tree) b = do
 m_apply f (Addr tree) b = do
     t <- m_apply f tree b
     f (Addr t)
+m_apply f (Cast t expr) b = do
+    e <- m_apply f expr b
+    f (Cast t e)
 
 m_apply f tree _ = f tree
 getFunctions (List lst) = [FuncDec t str decls body | (FuncDec t str decls body) <- lst]

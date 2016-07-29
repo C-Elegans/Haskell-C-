@@ -5,10 +5,10 @@ void main(int i){
 	int** k;
 	j=&i;
 	k=&j;
-	**k=5;
+	**k=0x4305;
 	j=&r;
 	**k=37;
-	print_hex(i);
+	print_hex((char)i);
 	print_hex(r);
 }
 

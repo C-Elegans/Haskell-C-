@@ -81,6 +81,7 @@ data Tree =     Operator OP Tree Tree
             |   Addr Tree
             |   Str String
             |   StrLabel String
+            |   Cast Type Tree
             deriving (Show)
 spaceTabs n = replicateM_ n (putStr "    ")
 
@@ -182,7 +183,9 @@ prettyprint_helper col tree =
             (Addr (Var str)) -> do
                 putStrLn $ "&" ++ str
             (Addr (AnnotatedVar str t)) -> putStrLn $ "&" ++ str ++ " (" ++ (show t) ++ ")"
-
+            (Cast t exp) -> do
+                putStrLn $ "Cast (" ++ (show t) ++ ")"
+                prettyprint_helper (col+1) exp
 
     
 
@@ -222,6 +225,8 @@ factor = do
             x <- integer
             return $ Num $ fromIntegral x
     <|>
+        cast
+    <|> 
         do
             c <- charLiteral
             return $ Num $ ord c
@@ -234,7 +239,12 @@ factor = do
     <|> var
     
     
+    
     <?> "factor"
+cast = do
+    t <- parens type_specifier
+    exp <- simple_expression
+    return $ Cast t exp
 strLiteral = do
     str <- stringLiteral
     return $ Str str

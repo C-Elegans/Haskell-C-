@@ -63,6 +63,11 @@ codegen_helper (Operator op left right) t = do
             Parse.Xor -> [Inst_RR Xor R0 R1]
             
     return (lft ++ rgt ++ [Inst_R Pop R1, Inst_R Pop R0] ++ operation ++ [Inst_R Push R0])
+codegen_helper (Cast t expr) tab = do
+    e <- codegen_helper expr tab
+    case t of
+        P_Char ->  return $ e++ [Inst_R Pop R0, Inst_RI And R0 (Const 0xff), Inst_R Push R0]
+        _   -> return e
 codegen_helper (UnaryOp op tree) tab = do
     lft <- codegen_helper tree tab
     let operation = case op of
@@ -285,7 +290,7 @@ getType (Operator op left right) =
     let t1 = getType left
         t2 = getType right
     in max t1 t2
-    
+getType (Cast t expr) = t    
 escape :: String -> String
 escape ('\n':cs) = '\\':'n':(escape cs)
 escape ('\0':cs) = '\\':'0':(escape cs)
