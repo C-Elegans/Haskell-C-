@@ -10,12 +10,31 @@ import Data.Char (ord)
 lexer :: P.TokenParser ()
 lexer  = P.makeTokenParser
          $ haskellDef
-         {  P.reservedOpNames = ["*","/","+","-", "<",">","=", "<=",">=","!="],
+         {  P.reservedOpNames = ["*","/","+","-", "<",">","=", "<=",">=","!=","<<",">>","&","|","^"],
             P.reservedNames = ["return", "if", "else", "while", "int", "void"],
             P.commentLine = "//",
             P.commentStart = "/*",
             P.commentEnd = "*/"
          }
+table = [   [prefix "~" (UnaryOp Not), prefix "-" (UnaryOp Neg), prefix "*" (Deref), prefix "&" (Addr) ],
+            [binary "*" (Operator Mul) AssocRight, binary "/" (Operator Div) AssocRight],
+            [binary "+" (Operator Plus) AssocRight, binary "-" (Operator Minus) AssocRight],
+            [binary "<<" (Operator Shl) AssocRight, binary ">>" (Operator Shr) AssocRight],
+            [binary "==" (Operator Eq) AssocRight, binary "!=" (Operator Ne) AssocRight,
+                binary "<" (Operator Lt) AssocRight,binary "<=" (Operator Le) AssocRight,
+                binary ">" (Operator Gt) AssocRight,binary "==" (Operator Ge) AssocRight],
+            [binary "&" (Operator And) AssocRight],
+            [binary "^" (Operator Xor) AssocRight],
+            [binary "|" (Operator Or) AssocRight]
+            
+        ]
+prefix name fun = Prefix (do reservedOp name; return fun;)
+binary name fun assoc = Infix (do reservedOp name; return fun;) assoc
+expr = buildExpressionParser table factor
+data OP = Plus | Minus | Mul | Div | Shl | Shr | And | Or | Xor | Not | Neg |
+    Lt | Gt | Eq | Ge | Le | Ne 
+    deriving (Show)
+
 whiteSpace = P.whiteSpace lexer
 
 symbol = P.symbol lexer
@@ -36,6 +55,7 @@ lexeme p = do
     return x
 
 data Tree =     Operator OP Tree Tree
+            |   UnaryOp OP Tree
             |   Num Int
             |   Var String
             |   VarAssign String
@@ -75,6 +95,10 @@ prettyprint_helper col tree =
                     putStrLn $ show op
                     prettyprint_helper (col+1) left
                     prettyprint_helper (col+1) right
+            (UnaryOp op left) ->
+                do
+                    putStrLn $ show op
+                    prettyprint_helper (col+1) left
             (Var x) -> putStrLn ("Var: " ++x)
             (VarAssign str) -> putStrLn ("VarAssign: " ++ str)
             (Assign left right) ->
@@ -156,7 +180,7 @@ prettyprint_helper col tree =
             (Addr (Var str)) -> do
                 putStrLn $ "&" ++ str
             (Addr (AnnotatedVar str t)) -> putStrLn $ "&" ++ str ++ " (" ++ (show t) ++ ")"
-data OP = Plus | Minus | Mul | Div | Shl | Shr |Lt | Gt | Eq | Ge | Le | Ne deriving (Show)
+
 data Type =
     V_Int | V_Void | V_IntPtr | V_Char | V_CharPtr | V_IntArr | V_CharArr
     deriving (Eq)
@@ -233,8 +257,8 @@ factor = do
         (FCall name pars) <- call
         return (FCallRet name pars))
     <|> var
-    <|> derefrence
-    <|> addressOf
+    
+    
     <?> "factor"
 strLiteral = do
     str <- stringLiteral
@@ -262,39 +286,7 @@ varAssign = try(do
         str <- identifier
         return $ VarAssign str) 
         <?> "Assignment var"
-term :: Parser Tree
-term =  try (do 
-            left <- factor
-            c <- lexeme $ oneOf "*/"
-            let o = op [c]
-            right <- term
-            return $ Operator o left right)
-        <|>
-            factor
-        <?> "term"
-        
-add_expression :: Parser Tree
-add_expression = 
-    try (do
-        left <- term
-        
-        c <- lexeme $ oneOf "+-"
-        let o = op [c]
-        
-        right <- add_expression
-        return $ Operator o left right)
-    <|> 
-        term
-    
-rel_op :: Parser OP
-rel_op =
-        try (do {str <- string "<="; return $ op str})
-    <|> try (do {str <- string ">="; return $ op str})
-    <|> do {str <- string "!="; return $ op str}
-    <|> do {str <- string "=="; return $ op str}
-    <|> do {str <- string ">"; return $ op str}
-    <|> do {str <- string "<"; return $ op str}
-    <?> "Comparison operator"
+
 statement = try(call_stmt) <|> expression_statement <|> return_statement <|> selection_statement 
     <|> compound_statement <|> iteration_statement
     <?> "statement"
@@ -421,13 +413,7 @@ return_statement =
     
 simple_expression :: Parser Tree
 simple_expression =
-    try (do
-        left <- add_expression
-        op <- rel_op
-        right <- add_expression
-        return $ Operator op left right)
-    <|>
-        add_expression
+        expr
     <|> 
         strLiteral
 expression :: Parser Tree

@@ -1,6 +1,6 @@
 module TempCodegen where
 import Instructions
-import Parse hiding (Eq, Ne, Gt, Ge, Lt, Le, Shl, Shr)
+import Parse hiding (OP(..))
 import qualified Parse
 import Debug.Trace
 import Control.Monad.State
@@ -39,25 +39,35 @@ codegen_helper (Num x) _ =
 
 codegen_helper (Operator op left right) t = do
     lft <- codegen_helper left t
+    
     rgt <- codegen_helper right t
     let operation = case op of
-            Plus ->
+            Parse.Plus ->
                 [Inst_RR Add R0 R1]
-            Minus ->
+            Parse.Minus ->
                 [Inst_RR Sub R0 R1]
             Parse.Shl ->
                 [Inst_RR Shl R0 R1]
             Parse.Shr -> [Inst_RR Shr R0 R1]
-            Mul -> [Inst_JmpI Call Al (Label "mul")]
-            Div -> error "Div unsupported"
+            Parse.Mul -> [Inst_JmpI Call Al (Label "mul")]
+            Parse.Div -> error "Div unsupported"
             Parse.Eq -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Eq R0]
             Parse.Ne -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Ne R0]
             Parse.Gt -> [Inst_RR Cmp R0 R1, Inst_Jmp Set G R0]
             Parse.Ge -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Ge R0]
             Parse.Lt -> [Inst_RR Cmp R0 R1, Inst_Jmp Set L R0]
             Parse.Le -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Le R0]
+            Parse.And -> [Inst_RR And R0 R1]
+            Parse.Or -> [Inst_RR Or R0 R1]
+            Parse.Xor -> [Inst_RR Xor R0 R1]
+            
     return (lft ++ rgt ++ [Inst_R Pop R1, Inst_R Pop R0] ++ operation ++ [Inst_R Push R0])
-
+codegen_helper (UnaryOp op tree) tab = do
+    lft <- codegen_helper tree tab
+    let operation = case op of
+            Parse.Not -> [Inst_R Not R0]
+            Parse.Neg -> [Inst_R Neg R0]
+    return (lft ++ [Inst_R Pop R0] ++ operation ++ [Inst_R Push R0])
 codegen_helper (AnnotatedVar str t) tab
     |t == V_CharArr || t == V_IntArr = 
     let loc = M.lookup str tab

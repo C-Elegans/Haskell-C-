@@ -14,6 +14,9 @@ m_apply f (Operator op left right) b = do
     l <- m_apply f left b
     r <- m_apply f right b
     f (Operator op l r)
+m_apply f (UnaryOp op tree) b = do
+    t <- m_apply f tree b
+    f (UnaryOp op t)
 m_apply f (Assign left right) b = do
     l <- m_apply f left b
     r <- m_apply f right b
