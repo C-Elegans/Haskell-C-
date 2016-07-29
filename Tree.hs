@@ -2,6 +2,7 @@ module Tree where
 import Parse (Tree(..), OP(..))
 import Eval (funcop)
 import Type
+import TempCodegen (getType)
 import Debug.Trace (trace)
 import Control.Monad.State
 import Control.Monad.Trans.Maybe
@@ -99,7 +100,7 @@ run_tree tree =
     let tree' = run_passes passes tree
         (tree'',(ss,cnt)) = runState (m_apply getStrings tree' False) ([],0)
     in  (tree'',ss)
-passes = [check_defined,const_subexpr_simplification, arith_identity_removal, mul_div_reduction]
+passes = [check_defined,type_check,const_subexpr_simplification, arith_identity_removal, mul_div_reduction]
 run_passes (pass:passes) tree =
     let (tree',symTab) = runState (m_apply pass tree True ) (M.empty)
     
@@ -129,7 +130,14 @@ check_defined (VarAssign v) = do
 
 check_defined tree = return tree
 
-
+type_check expr@(Assign left right) = do
+    let lType = getType left
+    let rType = getType right
+    if canAssign lType rType then
+        return expr
+    else
+        return $ error $ "Cannot assign type " ++ (show rType) ++ " to " ++ (show lType) ++ "\n\t" ++ (show expr)
+type_check tree = return tree
 const_subexpr_simplification :: Tree -> EV Tree
 const_subexpr_simplification (Operator op (Num l) (Num r)) =
     do 

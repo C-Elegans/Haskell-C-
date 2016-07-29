@@ -1,14 +1,7 @@
 int glob2;
 void main(int i){
-	int r;
-	int* j;
-	int** k;
-	j=&i;
-	k=&j;
-	**k=0x4305;
-	j=&r;
-	**k=37;
-	print_hex((char)i);
-	print_hex(r);
+	char c;
+	c = 'a';
+	print_hex(c);
 }
 
