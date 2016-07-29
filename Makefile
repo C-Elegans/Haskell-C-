@@ -17,8 +17,13 @@ compiler.s: cmm test.cm
 cmm: $(HASKELL_SRCS)
 	ghc --make Main.hs -o cmm
 
+clean-all: clean
+	-rm -f cmm
+	-rm -f *.o
+	-rm -f *.hi
+
 clean:
 	-rm -f out.o
-	-rm -f cmm
+	-rm -f lib/*.o
 	-rm -f compiler.s
 	-rm -f out.s

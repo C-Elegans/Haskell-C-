@@ -4,6 +4,7 @@ import Parse hiding (Eq, Ne, Gt, Ge, Lt, Le, Shl, Shr)
 import qualified Parse
 import Debug.Trace
 import Control.Monad.State
+
 import qualified Data.Map as M
 type SymTab = M.Map String Location
 
@@ -30,6 +31,9 @@ labelSuffix = do
 
 
 codegen_helper :: Tree -> SymTab -> State (String,Int) [Instruction]
+codegen_helper (GlobalDec t nam) tab =
+    return [Inst_Label nam, Inst_Directive Dw 0]
+
 codegen_helper (Num x) _ =
     return [Inst_I Push (Const x)]
 
@@ -96,7 +100,7 @@ codegen_helper (FuncDec t str vs stmts) tab = do
     let (Just (Local spsub)) = M.lookup " count" tab
         movs = movPars vs 0 tab
     code <- codegen_helper stmts tab
-    return ([Inst_Label str, Inst_R Push R6, Inst_RR Mov R6 R7, Inst_RI Sub R7 (Const spsub)]++ movs ++ code ++ [Inst_RR Mov R7 R6, Inst_R Pop R6, Inst Ret])
+    return ([Inst_Label str,Inst PushLR, Inst_R Push R6, Inst_RR Mov R6 R7, Inst_RI Sub R7 (Const spsub)]++ movs ++ code ++ [Inst_RR Mov R7 R6, Inst_R Pop R6, Inst_R Pop R1, Inst_Jmp Jmp Al R1])
 codegen_helper (List (x:xs)) tab = do
     res <- codegen_helper x tab
     code <- codegen_helper (List (xs)) tab
@@ -255,7 +259,7 @@ assemble_strings :: [(String,String)] -> String -> String
 assemble_strings (s:strs) filename =
     let (label,string) = s
         label' = label ++ "_" ++ filename
-        assembledString = label' ++ ":\n    "++".asciz \"" ++ string ++"\"\n"
+        assembledString = label' ++ ":\n    "++".asciz \"" ++ (escape string) ++"\"\n"
     in assembledString ++ (assemble_strings strs filename)
 assemble_strings [] _ = []
 
@@ -268,3 +272,11 @@ getType (Operator op left right) =
     let t1 = getType left
         t2 = getType right
     in max t1 t2
+    
+escape :: String -> String
+escape ('\n':cs) = '\\':'n':(escape cs)
+escape ('\0':cs) = '\\':'0':(escape cs)
+escape ('\r':cs) = '\\':'r':(escape cs)
+escape (c:cs) = c:(escape cs)
+escape [] = []
+    

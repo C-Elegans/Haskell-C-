@@ -1,6 +1,5 @@
 module Main where
 import Parse
-import Eval
 import Tree
 import Blocks
 import SSA
@@ -13,6 +12,7 @@ import System.FilePath
 import qualified Data.Map
 import Control.Monad.State
 import Debug.Trace (trace)
+import qualified Data.Map as M (empty)
 main =
     do
         args <- getArgs
@@ -37,9 +37,9 @@ main =
             let locals = map getLocals funcs
             
             let pairs = zip funcs locals
-            
-            let code = codegen pairs globalList cleanFileName
-            mapM_ print code
+            let globalCode = codegen [((List globals),M.empty)] [] cleanFileName
+            let code = globalCode ++ (codegen pairs globalList cleanFileName)
+            --mapM_ print code
             putStrLn "\n"
             let assembledStrings = assemble_strings strings cleanFileName
             let betterCode = optimize code

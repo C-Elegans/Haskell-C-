@@ -1,9 +1,11 @@
-int glob;
+int glob2;
 int main(int i){
 	char test[16];
 	memcpy(test+1,"test\n",7);
 	*test = '*';
+	
 	puts(test);
+	glob2 = 4;
 	print_hex(mul(3,4));
 }
 
