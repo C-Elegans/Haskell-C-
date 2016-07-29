@@ -276,6 +276,8 @@ assemble_strings [] _ = []
 
 getType :: Tree -> Type
 getType (AnnotatedVar str t) = t
+getType (Deref t) =
+    derefType (getType t)
 
 getType (Num x) = P_Int
 

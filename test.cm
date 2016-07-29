@@ -1,8 +1,14 @@
 int glob2;
 void main(int i){
-	char test[8];
-	*test = '*';
-	strcpy(test+1,"test\n");
-	puts(test);
+	int r;
+	int* j;
+	int** k;
+	j=&i;
+	k=&j;
+	**k=5;
+	j=&r;
+	**k=37;
+	print_hex(i);
+	print_hex(r);
 }
 
