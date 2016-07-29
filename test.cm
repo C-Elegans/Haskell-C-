@@ -1,8 +1,8 @@
 int glob2;
-int main(int i){
-	int* j;
-	j = &i;
-	*j = 27;
-	print_hex(i);
+void main(int i){
+	char test[8];
+	*test = '*';
+	strcpy(test+1,"test\n");
+	puts(test);
 }
 

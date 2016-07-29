@@ -1,4 +1,5 @@
 module Parse where
+import Type
 import Text.Parsec hiding (parse)
 import qualified Text.Parsec as Parsec (parse)
 import Text.Parsec.Expr
@@ -11,7 +12,7 @@ lexer :: P.TokenParser ()
 lexer  = P.makeTokenParser
          $ haskellDef
          {  P.reservedOpNames = ["*","/","+","-", "<",">","=", "<=",">=","!=","<<",">>","&","|","^"],
-            P.reservedNames = ["return", "if", "else", "while", "int", "void"],
+            P.reservedNames = ["return", "if", "else", "while", "int", "void", "char"],
             P.commentLine = "//",
             P.commentStart = "/*",
             P.commentEnd = "*/"
@@ -29,6 +30,7 @@ table = [   [prefix "~" (UnaryOp Not), prefix "-" (UnaryOp Neg), prefix "*" (Der
             
         ]
 prefix name fun = Prefix (do reservedOp name; return fun;)
+postfix name fun = Postfix (do reservedOp name; return fun;)
 binary name fun assoc = Infix (do reservedOp name; return fun;) assoc
 expr = buildExpressionParser table factor
 data OP = Plus | Minus | Mul | Div | Shl | Shr | And | Or | Xor | Not | Neg |
@@ -181,36 +183,9 @@ prettyprint_helper col tree =
                 putStrLn $ "&" ++ str
             (Addr (AnnotatedVar str t)) -> putStrLn $ "&" ++ str ++ " (" ++ (show t) ++ ")"
 
-data Type =
-    V_Int | V_Void | V_IntPtr | V_Char | V_CharPtr | V_IntArr | V_CharArr
-    deriving (Eq)
-instance Show Type where
-    show V_Int = "int"
-    show V_Void = "void"
-    show V_IntPtr = "int*"
-    show V_Char = "char"
-    show V_CharPtr = "char*"
-    show V_IntArr = "int[]"
-    show V_CharArr = "char[]"
-instance Ord Type where
-    V_Int <= V_IntPtr = True
-    V_Char <= V_Int = True
-    V_Char <= V_CharPtr = True
-    V_Int <= V_CharPtr = True
-    V_CharPtr <= V_CharArr = True
-    V_IntPtr <= V_IntArr = True
-    V_Int <= V_IntArr = True
-    V_Int <= V_CharArr = True
-    _ <= _ = False
-    
-toPtr :: Type -> Type
-toPtr V_Int = V_IntPtr
-toPtr V_Char = V_CharPtr
-toPtr t = error $ "No valid pointer type for: " ++ (show t)
 
-toArr V_Int = V_IntArr
-toArr V_Char = V_CharArr
-toArr t = error $ "No valid array type for: " ++ (show t)
+    
+
 op :: String -> OP
 op c 
     | c == "+" = Plus
@@ -329,8 +304,8 @@ local_declarations = do
     
 var_declaration = 
     try(do
-        t <- type_specifier
-        name <- identifier
+        t <- lexeme $ type_specifier
+        name <- lexeme $ identifier
         semi
         return $ VarDec t name)
     <|>
@@ -343,29 +318,26 @@ var_declaration =
         semi
         return $ ArrayDec t name (fromIntegral size)
     <?> "Var declaration"
-
-type_specifier = 
-    do
-        lexeme $ reserved "int"
-        try (do
-            lexeme $ char '*'
-            return V_IntPtr)
-            <|>
-            return V_Int
-    <|>
-    do
-        lexeme $ reserved "char"
-        try (do
-            lexeme $ char '*'
-            return V_CharPtr)
-            <|>
-            return V_Char
-    <|>
-    do
-        lexeme $ reserved "void"
-        return V_Void
-    <?> "type specifier"
+type_specifier = do
+    p <- primitive_type
+    ptrs <- many $ char '*'
+    return $ buildType p (length ptrs)
     
+buildType t 0 = t
+buildType t n = Ptr (buildType t (n-1))
+
+primitive_type = do
+        reserved "char"
+        return P_Char
+    <|>
+    do
+        reserved "int"
+        return P_Int
+    <|>
+    do
+        reserved "void"
+        return P_Void
+
 expression_statement =
     do
         expr <- expression

@@ -2,6 +2,7 @@ module TempCodegen where
 import Instructions
 import Parse hiding (OP(..))
 import qualified Parse
+import Type
 import Debug.Trace
 import Control.Monad.State
 
@@ -69,7 +70,7 @@ codegen_helper (UnaryOp op tree) tab = do
             Parse.Neg -> [Inst_R Neg R0]
     return (lft ++ [Inst_R Pop R0] ++ operation ++ [Inst_R Push R0])
 codegen_helper (AnnotatedVar str t) tab
-    |t == V_CharArr || t == V_IntArr = 
+    | isArr t = 
     let loc = M.lookup str tab
     in case loc of
         (Just (Local loc)) ->
@@ -79,7 +80,7 @@ codegen_helper (AnnotatedVar str t) tab
         Nothing -> return $ error $ "Undefined vairable: " ++ str
 codegen_helper (AnnotatedVar str t) tab = 
     let loc = M.lookup str tab
-        bf = if t == V_Char then Byte else Word
+        bf = if t == P_Char then Byte else Word
     in case loc of
         (Just (Local loc)) ->
             return [Inst_MemI Ld R0 R6 (Const (-loc)) bf Displacement, Inst_R Push R0]
@@ -90,7 +91,7 @@ codegen_helper (AnnotatedVar str t) tab =
 
 codegen_helper (Assign (Deref left) right) tab = do
     let t = getType left
-    let bf = if t == V_CharArr || t == V_CharPtr then Byte else Word
+    let bf = if t == (Ptr P_Char) || t == (Arr P_Char) then Byte else Word
         
     lft <- codegen_helper left tab
     rgt <- codegen_helper right tab
@@ -98,7 +99,7 @@ codegen_helper (Assign (Deref left) right) tab = do
 codegen_helper (Assign (AnnotatedVarAssign str t) expr) tab = do
     code <- codegen_helper expr tab
     let vloc = M.lookup str tab
-    let bf = if t == V_Char then Byte else Word
+    let bf = if t == P_Char then Byte else Word
     case vloc of
         (Just (Local loc)) ->
             return (code ++ [Inst_R Pop R0, Inst_MemI St R6 R0 (Const (-loc)) bf Displacement])
@@ -144,7 +145,7 @@ codegen_helper (Return tree) tab = do
     return (code ++ [Inst_R Pop R0, Inst_RR Mov R7 R6, Inst_R Pop R6,Inst Ret])
 codegen_helper (Deref tree) tab = do
     let t = getType tree
-    let bf = if t == V_CharPtr || t == V_CharArr then Byte else Word
+    let bf = if t == (Ptr P_Char) || t == (Arr P_Char) then Byte else Word
     expr <- codegen_helper tree tab
     return (expr ++ [Inst_R Pop R0, Inst_Mem Ld R0 R0 bf,Inst_R Push R0])
 codegen_helper (Addr (AnnotatedVar str t)) tab =
@@ -185,7 +186,7 @@ movPars (List ((VarDec t str):rest)) x tab
     | x < 4 = 
         let (Just (Local loc)) = M.lookup str tab
         in 
-            if t == V_Char then
+            if t == P_Char then
                 ((Inst_MemI St R6 (intToReg x) (Const (-loc)) Byte Displacement):(movPars (List rest) (x+1) tab))
             else
                 ((Inst_MemI St R6 (intToReg x) (Const (-loc)) Word Displacement):(movPars (List rest) (x+1) tab))
@@ -235,7 +236,7 @@ localTable (VarDec t str) =
         return ()
 localTable (ArrayDec t str size) =
     do
-        if t==V_Char then
+        if t==P_Char then
             assignLocal str (size)
         else
             assignLocal str (size*2)
@@ -276,7 +277,7 @@ assemble_strings [] _ = []
 getType :: Tree -> Type
 getType (AnnotatedVar str t) = t
 
-getType (Num x) = V_Int
+getType (Num x) = P_Int
 
 getType (Operator op left right) =
     let t1 = getType left

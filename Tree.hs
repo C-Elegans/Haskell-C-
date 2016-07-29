@@ -1,6 +1,7 @@
 module Tree where
-import Parse (Tree(..), OP(..), Type(..), toArr)
+import Parse (Tree(..), OP(..))
 import Eval (funcop)
+import Type
 import Debug.Trace (trace)
 import Control.Monad.State
 import Control.Monad.Trans.Maybe

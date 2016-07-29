@@ -1,8 +1,7 @@
 module Main where
 import Parse
+import Type
 import Tree
-import Blocks
-import SSA
 import Optimize (optimize)
 import TempCodegen
 import System.Environment
