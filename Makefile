@@ -12,9 +12,10 @@ run: out
 
 out: start.o $(LIBS) compiler.o
 	d16-ld $^ -o out
-	
-compiler.s: cmm test.c
+
+%.i: %.c
 	$(CPP) test.c -o test.i
+compiler.s: cmm test.i
 	./cmm test.i compiler.s
 	
 cmm: $(HASKELL_SRCS)

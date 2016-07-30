@@ -56,6 +56,11 @@ lexeme p = do
     whiteSpace
     return x
 
+cust_whitespace = do
+    spaces
+    skipMany line_directive
+    spaces
+
 data Tree =     Operator OP Tree Tree
             |   UnaryOp OP Tree
             |   Num Int
@@ -215,8 +220,9 @@ declaration_list = do
     eof
     return $ List lst
 declaration = do
-    skipMany line_directive
+    cust_whitespace
     t <- type_specifier
+    
     id <- identifier
     a<- (try $ do
             pars <- parens params
@@ -353,6 +359,7 @@ local_declarations = do
 type_specifier = do
     p <- primitive_type
     ptrs <- many $ char '*'
+    spaces
     return $ buildType p (length ptrs)
     
 buildType t 0 = t

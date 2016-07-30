@@ -126,7 +126,9 @@ check_funcs call@(FCall str (List args)) = do
     case ret of
         (Just expectedTypes) -> do
             let actualTypes = map getType args
-            if actualTypes == expectedTypes then
+            let res = [canAssign t1 t2| (t1,t2) <- (zip expectedTypes actualTypes)]
+            
+            if and res && length res == length expectedTypes && length res == length actualTypes then
                 return call
             else
                 return $ error $ "Function " ++ str ++ " expects types " ++ (show expectedTypes) ++ " got " ++ (show actualTypes)
