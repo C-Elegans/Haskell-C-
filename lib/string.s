@@ -49,3 +49,17 @@ memcpy_2:
 	jmp.ne memcpy_2
 	pop r0
 	ret
+
+strcmp: ;str1 in r0, str1 in r1
+	ld.b r2,[r0]
+	ld.b r3,[r1]
+	test r2,r2
+	jmp.eq strcmp_end
+	add r0,1
+	add r1,1
+	cmp r2,r3
+	jmp.eq strcmp
+	sub r2,r3
+strcmp_end:
+mov r0,r2
+ret
