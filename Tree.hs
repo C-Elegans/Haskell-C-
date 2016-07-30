@@ -47,17 +47,17 @@ m_apply f (Compound left right) b = do
     l <- m_apply f left b
     r <- m_apply f right b
     f (Compound l r)
-m_apply f (FuncDec t str left right) clear =
+m_apply f (FuncDef t str left right) clear =
     if clear then do
         state <- get
         l <- m_apply f left clear
         r <- m_apply f right clear
         put state
-        f (FuncDec t str l r)
+        f (FuncDef t str l r)
     else do
         l <- m_apply f left clear
         r <- m_apply f right clear
-        f (FuncDec t str l r)
+        f (FuncDef t str l r)
 m_apply f (While cond tree) b = do
     c <- m_apply f cond b
     t <- m_apply f tree b
@@ -79,7 +79,7 @@ m_apply f (Cast t expr) b = do
     f (Cast t e)
 
 m_apply f tree _ = f tree
-getFunctions (List lst) = [FuncDec t str decls body | (FuncDec t str decls body) <- lst]
+getFunctions (List lst) = [FuncDef t str decls body | (FuncDef t str decls body) <- lst]
 getGlobals (List lst) = [GlobalDec t str | (GlobalDec t str) <- lst]
 
 type SymTab = M.Map String (Integer,Type)
@@ -97,17 +97,44 @@ addSymbol str val t = do
     return ()
     
 run_tree tree =
-    let tree' = run_passes passes tree
+    let tree' = run_passes [(check_funcs,False)] $ run_passes passes tree
         (tree'',(ss,cnt)) = runState (m_apply getStrings tree' False) ([],0)
     in  (tree'',ss)
-passes = [check_defined,type_check,const_subexpr_simplification, arith_identity_removal, mul_div_reduction]
-run_passes (pass:passes) tree =
-    let (tree',symTab) = runState (m_apply pass tree True ) (M.empty)
+
+passes = [(check_defined,True),(type_check,True),(const_subexpr_simplification,True), (arith_identity_removal,True), (mul_div_reduction, True)]
+run_passes :: [(Tree -> State (M.Map k a) Tree, Bool)] -> Tree -> Tree
+run_passes ((pass,flag):passes) tree =
+    let (tree',symTab) = runState (m_apply pass tree flag ) (M.empty)
     
     in run_passes passes tree'
 run_passes [] tree = tree
 
-
+check_funcs :: Tree -> State (M.Map String [Type]) Tree
+check_funcs func@(FuncDef t str (List pars) blk) = do
+    let types = argTypes pars
+    tab <- get
+    put $ M.insert str types tab
+    return func
+check_funcs func@(FuncDec t str (List pars)) = do
+    let types = argTypes pars
+    tab <- get
+    put $ M.insert str types tab
+    return func
+check_funcs call@(FCall str (List args)) = do
+    tab <- get
+    let ret = M.lookup str tab
+    case ret of
+        (Just expectedTypes) -> do
+            let actualTypes = map getType args
+            if actualTypes == expectedTypes then
+                return call
+            else
+                return $ error $ "Function " ++ str ++ " expects types " ++ (show expectedTypes) ++ " got " ++ (show actualTypes)
+        Nothing -> return $ error $ "Function " ++ str ++ " not defined"
+check_funcs tree = return tree
+argTypes ((VarDec t str):rest) =
+    t:(argTypes rest)
+argTypes [] = []
 check_defined def@(GlobalDec t str) = do
     addSymbol str 2 t
     return def
@@ -178,11 +205,11 @@ mul_div_reduction (Operator Div val (Num x))
 mul_div_reduction x = return x
 
 getStrings :: Tree -> State ([(String,String)],Int) Tree    
-getStrings (Str str) = trace ("Found string: " ++ str) (do
+getStrings (Str str) = do
     (lst,count) <- get
     let label = "str_const_" ++ (show count)
     put $ ((label,str):lst,count+1)
-    return (StrLabel label))
+    return (StrLabel label)
 getStrings x = return x
 isPowerOf2 n = ((.&.) n (n-1)) == 0
 

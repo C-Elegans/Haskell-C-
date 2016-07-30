@@ -1,3 +1,4 @@
+#include <stdio.h>
 int glob;
 void main(int i){
 	int t;

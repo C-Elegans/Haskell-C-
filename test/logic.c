@@ -1,3 +1,4 @@
+#include <stdio.h>
 void main(void){
 	int j;
 	j=5;

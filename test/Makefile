@@ -1,17 +1,21 @@
 LIBSRCS = $(wildcard ../lib/*.s)
 LIBS = $(patsubst %.s,%.o,$(LIBSRCS))
-TESTS = $(wildcard *.cm)
-TEST_BINS = $(patsubst %.cm,%.bin,$(TESTS))
+TESTS = $(wildcard *.c)
+TEST_BINS = $(patsubst %.c,%.bin,$(TESTS))
 GREEN_COLOR='\033[0;32m'
 NO_COLOR='\033[0m'
 CC=../cmm
+CPP=gcc -nostdinc -I../include -E
 test: $(TEST_BINS)
 	@echo "$(GREEN_COLOR)All tests successful$(NO_COLOR)"
 	@rm *.bin
 	
+%.o:%.c 
+%.i: %.c
+	$(CPP) $< -o $@
 
-%.s: %.cm
-	@$(CC) $< $@ >/dev/null
+%.s: %.i
+	@../cmm $< $@ >/dev/null
 %.o: %.s
 	@d16 $< -o $@
 %.bin: ../start.o %.o $(LIBS)

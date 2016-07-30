@@ -112,7 +112,7 @@ codegen_helper (Assign (AnnotatedVarAssign str t) expr) tab = do
             return (code ++ [Inst_R Pop R0, Inst_MemI St R0 R0 (Label str) bf Constant])
         (Nothing) -> return (error $ "Undefined variable: " ++ str)
 
-codegen_helper (FuncDec t str vs stmts) tab = do
+codegen_helper (FuncDef t str vs stmts) tab = do
     let (Just (Local spsub)) = M.lookup " count" tab
         movs = movPars vs 0 tab
     code <- codegen_helper stmts tab
@@ -226,7 +226,7 @@ assignLocal x size = do
             |   Compound Tree Tree
             |   EmptyTree
             |   VarDec Type String
-            |   FuncDec Type String Tree Tree
+            |   FuncDef Type String Tree Tree
             |   FCall String Tree
             |   While Tree Tree
 -}
@@ -246,7 +246,7 @@ localTable (ArrayDec t str size) =
         else
             assignLocal str (size*2)
         return ()
-localTable (FuncDec t str vars tree) = do
+localTable (FuncDef t str vars tree) = do
     localTable vars
     localTable tree
     return ()
@@ -283,6 +283,7 @@ getType :: Tree -> Type
 getType (AnnotatedVar str t) = t
 getType (AnnotatedVarAssign str t) = t
 getType (Addr expr) = Ptr $ getType expr
+getType (Str s) = Ptr $ P_Char
 getType (Deref t) =
     derefType (getType t)
 
@@ -292,6 +293,8 @@ getType (Operator op left right) =
     let t1 = getType left
         t2 = getType right
     in max t1 t2
+getType (UnaryOp op expr) = 
+    getType expr
 getType (Cast t expr) = t 
 getType n = trace ("no definition of getType for " ++ (show n)) (P_Int)
 escape :: String -> String

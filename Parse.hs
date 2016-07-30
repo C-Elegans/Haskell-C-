@@ -13,7 +13,7 @@ lexer  = P.makeTokenParser
          $ haskellDef
          {  P.reservedOpNames = ["*","/","+","-", "<",">","=", "<=",">=","!=","<<",">>","&","|","^"],
             P.reservedNames = ["return", "if", "else", "while", "int", "void", "char"],
-            P.commentLine = "//",
+            P.commentLine = "//", 
             P.commentStart = "/*",
             P.commentEnd = "*/"
          }
@@ -73,7 +73,8 @@ data Tree =     Operator OP Tree Tree
             |   EmptyTree
             |   VarDec Type String
             |   ArrayDec Type String Int
-            |   FuncDec Type String Tree Tree
+            |   FuncDef Type String Tree Tree
+            |   FuncDec Type String Tree
             |   FCall String Tree
             |   FCallRet String Tree
             |   While Tree Tree
@@ -143,7 +144,7 @@ prettyprint_helper col tree =
             (VarDec t str) -> putStrLn ("VarDec " ++ str ++ " = " ++ (show t))
             (GlobalDec t str) -> putStrLn ("Global " ++ str ++ "=" ++ (show t))
             (ArrayDec t str sz) -> putStrLn ("Array (" ++ (show t) ++ ") "++ str ++ " [" ++ (show sz) ++ "]") 
-            (FuncDec t id left right) ->
+            (FuncDef t id left right) ->
                 do
                     putStrLn ("Func " ++ id ++ " -> " ++ (show t))
                     spaceTabs col
@@ -152,6 +153,11 @@ prettyprint_helper col tree =
                     spaceTabs col
                     putStrLn "Body: "
                     prettyprint_helper (col+1) right
+            (FuncDec t id pars) -> do
+                putStrLn ("Func declaration " ++ id ++ " -> " ++ (show t))
+                spaceTabs col
+                putStrLn "Pars: "
+                prettyprint_helper (col+1) pars
             (FCall id args) ->
                 do
                     putStrLn ("Call " ++ id ++ "()")
@@ -209,12 +215,20 @@ declaration_list = do
     eof
     return $ List lst
 declaration = do
+    skipMany line_directive
     t <- type_specifier
     id <- identifier
     a<- (try $ do
             pars <- parens params
-            stmt <- compound_statement
-            return $ FuncDec t id pars stmt
+            b <- (
+                do
+                    stmt <- compound_statement
+                    return $ FuncDef t id pars stmt
+                <|>
+                do
+                    semi
+                    return $ FuncDec t id pars)
+            return b
         <|>
         do
             semi
@@ -227,7 +241,11 @@ declaration = do
     return a
     <?> "declaration"
 
-
+line_directive = do
+    lexeme $ char '#'
+    skipMany (noneOf "\n")
+    char '\n'
+    return ()
 var_declaration = 
     try(do
         t <- lexeme $ type_specifier
@@ -443,6 +461,6 @@ run p input
             Right x  -> print x 
 
 parse :: Parser Tree -> String -> String -> Either ParseError Tree
-parse p filename input = Parsec.parse p filename input
+parse p filename input = Parsec.parse (do { spaces; p;}) filename input
             
 
