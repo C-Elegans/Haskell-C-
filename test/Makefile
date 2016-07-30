@@ -7,14 +7,14 @@ NO_COLOR='\033[0m'
 CC=../cmm
 test: $(TEST_BINS)
 	@echo "$(GREEN_COLOR)All tests successful$(NO_COLOR)"
-	rm *.bin
+	@rm *.bin
 	
 
 %.s: %.cm
-	$(CC) $< $@ >/dev/null
+	@$(CC) $< $@ >/dev/null
 %.o: %.s
-	d16 $< -o $@
+	@d16 $< -o $@
 %.bin: ../start.o %.o $(LIBS)
-	d16-ld $^ -o $@
-	python run_test.py $@ $*.output
-	@echo "$(GREEN_COLOR)Test of $(*).cm successful"
+	@d16-ld $^ -o $@
+	@python run_test.py $@ $*.output
+	@echo "$(GREEN_COLOR)Test of $(*).cm successful$(NO_COLOR)"

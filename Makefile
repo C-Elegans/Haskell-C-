@@ -28,5 +28,5 @@ clean:
 	-rm -f compiler.s
 	-rm -f out.s
 
-check:
+check: cmm
 	-$(MAKE) -C test

@@ -286,9 +286,13 @@ fun_declaration =
     stmt <- compound_statement
     return $ FuncDec t id pars stmt
     <?> "Function Declaration"
-params = do
+params = try(do
     lst <- commaSep param
-    return $ List lst
+    return $ List lst)
+    <|>
+    do
+        reserved "void"
+        return $ List []
 param = 
     do
         t <- type_specifier
