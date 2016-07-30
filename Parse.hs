@@ -442,11 +442,7 @@ run p input
                           }
             Right x  -> print x 
 
-parse :: Parser Tree -> String -> IO ( Tree)
-parse p input =
-    case (Parsec.parse p "" input) of
-            Left err -> do
-                return $ error $ "Parse error: " ++ (show err)
-            Right x  -> return (x)
+parse :: Parser Tree -> String -> String -> Either ParseError Tree
+parse p filename input = Parsec.parse p filename input
             
 
