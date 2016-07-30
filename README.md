@@ -14,10 +14,16 @@ d16i -q file
 
 ## Dependencies:
 Ghc
+
 cmake
+
 gcc/clang
+
 [d16 assembler](https://www.github.com/C-Elegans/d16)
+
 [d16 linker](https://www.github.com/C-Elegans/d16-ld)
+
 [d16 emulator](https://www.github.com/flaviut/d16i)
+
 
 To compile the compiler, run `cabal configure` and `cabal build`.
