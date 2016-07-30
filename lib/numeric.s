@@ -14,4 +14,10 @@ mul_skip:
 	jmp mul_loop
 mul_end:
 ret
+abs:
+	cmp r0,0
+	jmp.p abs_end
+	neg r0
+abs_end:
+	ret
 

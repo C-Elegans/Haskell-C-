@@ -76,3 +76,4 @@ strchr_loop:
 	sub r0,1
 strchr_end:
 	ret
+

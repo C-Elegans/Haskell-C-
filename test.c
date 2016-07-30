@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <string.h>
-
+#include <stdlib.h>
 int glob2;
 
 void main(int i){
-	puts(strchr("testing\n",'e'));
+	print_hex(abs(-4));
+	
 }
 
