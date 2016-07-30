@@ -109,23 +109,23 @@ run_passes ((pass,flag):passes) tree =
     in run_passes passes tree'
 run_passes [] tree = tree
 
-check_funcs :: Tree -> State (M.Map String [Type]) Tree
+check_funcs :: Tree -> State (M.Map String (Type,[Type])) Tree
 check_funcs func@(FuncDef t str (List pars) blk) = do
     let types = argTypes pars
     tab <- get
-    put $ M.insert str types tab
+    put $ M.insert str (t,types) tab
     return func
 check_funcs func@(FuncDec t str (List pars)) = do
     let types = argTypes pars
     tab <- get
-    put $ M.insert str types tab
+    put $ M.insert str (t,types) tab
     return func
 check_funcs call@(FCall str (List args)) = do
     tab <- get
     let ret = M.lookup str tab
     case ret of
-        (Just expectedTypes) -> do
-            let actualTypes = map getType args
+        (Just (ret,expectedTypes)) -> do
+            let actualTypes = map (getTypeFuncs tab) args
             let res = [canAssign t1 t2| (t1,t2) <- (zip expectedTypes actualTypes)]
             
             if and res && length res == length expectedTypes && length res == length actualTypes then
@@ -137,6 +137,13 @@ check_funcs tree = return tree
 argTypes ((VarDec t str):rest) =
     t:(argTypes rest)
 argTypes [] = []
+
+getTypeFuncs tab (FCallRet str args) =
+    let ret = M.lookup str tab
+    in case ret of
+        (Just (t,args)) -> t
+        Nothing -> error $ "No definition found for function " ++ str
+getTypeFuncs tab expr = getType expr
 check_defined def@(GlobalDec t str) = do
     addSymbol str 2 t
     return def

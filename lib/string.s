@@ -63,3 +63,16 @@ strcmp: ;str1 in r0, str1 in r1
 strcmp_end:
 mov r0,r2
 ret
+
+strchr:
+	and r1,0xff
+strchr_loop:
+	ld.b r2,[r0]
+	test r2,r2
+	jmp.eq strchr_end
+	add r0,1
+	cmp r2,r1
+	jmp.ne strchr_loop
+	sub r0,1
+strchr_end:
+	ret
