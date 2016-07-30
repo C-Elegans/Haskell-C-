@@ -32,3 +32,7 @@ derefType t = error $ "Cannot derefrence an expression of type " ++ (show t)
 canAssign (P_Int) P_Char = True
 canAssign P_Char P_Int = True
 canAssign t2 t1 = t2 == t1
+
+sizeof (P_Char) = 1
+sizeof x = 2
+

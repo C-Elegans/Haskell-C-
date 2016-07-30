@@ -27,3 +27,6 @@ clean:
 	-rm -f lib/*.o
 	-rm -f compiler.s
 	-rm -f out.s
+
+check:
+	-$(MAKE) -C test
