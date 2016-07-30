@@ -1,4 +1,4 @@
-HASKELL_SRCS = $(wildcard *.hs)
+HASKELL_SRCS = $(wildcard src/*.hs)
 LIBSRCS = $(wildcard lib/*.s)
 LIBS = $(patsubst %.s,%.o,$(LIBSRCS))
 INCLUDEDIR=include/
@@ -19,7 +19,7 @@ compiler.s: cmm test.i
 	./cmm test.i compiler.s
 	
 cmm: $(HASKELL_SRCS)
-	ghc --make Main.hs -o cmm
+	$(MAKE) -C src
 
 clean-all: clean
 	-rm -f cmm

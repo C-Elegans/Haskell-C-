@@ -368,3 +368,4 @@ cmm
 *.s
 !lib/*.s
 out
+*.i
