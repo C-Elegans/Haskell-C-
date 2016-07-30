@@ -208,16 +208,42 @@ declaration_list = do
     spaces
     eof
     return $ List lst
-declaration =
-    try(do
-        (VarDec t str) <- var_declaration
-        return (GlobalDec t str))
-    <|>
-        fun_declaration
-    
-    
+declaration = do
+    t <- type_specifier
+    id <- identifier
+    a<- (try $ do
+            pars <- parens params
+            stmt <- compound_statement
+            return $ FuncDec t id pars stmt
+        <|>
+        do
+            semi
+            return $ VarDec t id
+        <|>
+        do
+            size <- squares integer
+            semi
+            return $ ArrayDec t id (fromIntegral size))
+    return a
     <?> "declaration"
 
+
+var_declaration = 
+    try(do
+        t <- lexeme $ type_specifier
+        name <- lexeme $ identifier
+        semi
+        return $ VarDec t name)
+    <|>
+    do
+        t <- type_specifier
+        name <- identifier
+        
+        size <- squares integer
+        
+        semi
+        return $ ArrayDec t name (fromIntegral size)
+    <?> "Var declaration"
 factor :: Parser Tree
 factor = do
             x <- integer
@@ -274,16 +300,7 @@ varAssign = try(do
 statement = try(call_stmt) <|> expression_statement <|> return_statement <|> selection_statement 
     <|> compound_statement <|> iteration_statement
     <?> "statement"
-fun_declaration = 
-    do
-    t <- type_specifier
-    id <- identifier
-    pars <- parens params
-    
-    
-    stmt <- compound_statement
-    return $ FuncDec t id pars stmt
-    <?> "Function Declaration"
+
 params = try(do
     lst <- commaSep param
     return $ List lst)
@@ -314,22 +331,7 @@ local_declarations = do
     lst <- many var_declaration
     return $ List lst
     
-var_declaration = 
-    try(do
-        t <- lexeme $ type_specifier
-        name <- lexeme $ identifier
-        semi
-        return $ VarDec t name)
-    <|>
-    do
-        t <- type_specifier
-        name <- identifier
-        
-        size <- squares integer
-        
-        semi
-        return $ ArrayDec t name (fromIntegral size)
-    <?> "Var declaration"
+
 type_specifier = do
     p <- primitive_type
     ptrs <- many $ char '*'

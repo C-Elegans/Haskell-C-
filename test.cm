@@ -1,7 +1,14 @@
 int glob2;
 void main(int i){
-	char c;
-	c = 'a';
-	print_hex(c);
+	test_print("testing\n");
 }
 
+void test_print(char* str){
+	char* output_ptr;
+	output_ptr = (char*) 0xff02;
+	while(*str != 0){
+		*output_ptr = *str;
+		str = str+1;
+	
+	}
+}
