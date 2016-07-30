@@ -209,15 +209,13 @@ declaration_list = do
     eof
     return $ List lst
 declaration =
-    try(
-        do
-            f <- fun_declaration
-            return f
-        )
-    <|>
-    do
+    try(do
         (VarDec t str) <- var_declaration
-        return (GlobalDec t str)
+        return (GlobalDec t str))
+    <|>
+        fun_declaration
+    
+    
     <?> "declaration"
 
 factor :: Parser Tree
@@ -245,6 +243,7 @@ cast = do
     t <- parens type_specifier
     exp <- simple_expression
     return $ Cast t exp
+    <?> "Cast"
 strLiteral = do
     str <- stringLiteral
     return $ Str str
@@ -279,7 +278,6 @@ fun_declaration =
     do
     t <- type_specifier
     id <- identifier
-    
     pars <- parens params
     
     
@@ -354,7 +352,7 @@ primitive_type = do
 
 expression_statement =
     do
-        expr <- expression
+        expr <- (expression <?> "expression")
         semi
         return expr
 selection_statement :: Parser Tree
