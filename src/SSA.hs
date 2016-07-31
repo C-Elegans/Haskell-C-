@@ -15,17 +15,17 @@ print_SSAAssignmentList level (l:lst) = do
     print_SSAAssignmentList level lst
 print_SSAAssignmentList _ [] = return ()
 
-newSVar :: String -> SSAState (SSAVar)
-newSVar str = do
+newSVar :: String -> SSA_Attr -> SSAState (SSAVar)
+newSVar str attr = do
     tab <- get
     let val = M.lookup str tab
     case val of
         (Just x) -> do
             put $ M.insert str (x+1) tab    
-            return (SSAVar str x)
+            return (SSAVar str x attr)
         (Nothing) -> do
             put $ M.insert str 1 tab
-            return (SSAVar str 0)
+            return (SSAVar str 0 attr)
 
 getVar :: SSAAssignment -> SSAVar
 getVar (AssignOp var _ _ _) = var
@@ -33,7 +33,7 @@ getVar (AssignVal var _) = var
 
 toSSA :: [Parse.Tree] -> SSAState [SSAAssignment]
 toSSA ((Parse.Num x):tree) = do
-    v <- newSVar "_tmp"
+    v <- newSVar "_tmp" None
     rest <- toSSA tree
     return ((AssignVal v (Num x)):rest)
 
@@ -42,17 +42,17 @@ toSSA ((Parse.Operator op left right):tree) = do
     rgt <- toSSA [right]
     let lvar = getVar $ last lft
     let rvar = getVar $ last rgt
-    res <- newSVar "_tmp"
+    res <- newSVar "_tmp" None
     rest <- toSSA tree
     return (lft ++ rgt ++ ((AssignOp res op (Var lvar) (Var rvar)):(rest)))
 toSSA ((Parse.Assign (Parse.VarAssign str) right):tree) = do
     rgt <- toSSA [right]
-    res <- newSVar str
+    res <- newSVar str None
     let rvar = getVar $ last rgt
     rest <- toSSA tree
     return (rgt ++ ((AssignVal res (Var rvar)):rest))
 toSSA ((Parse.Var str):tree) = do
-    v <- newSVar str
+    v <- newSVar str None
     rest <- toSSA tree
     return ((AssignVal v (Var v)):rest)
 toSSA ((Parse.Return expr):tree) = do
@@ -109,3 +109,35 @@ blk2SSA (x:xs) = trace (show x) (do
     return (x:rest)
     )
 blk2SSA [] = return []
+
+test_s = [AssignVal (SSAVar "_tmp" 0 None) (Num 3),AssignVal (SSAVar "_tmp" 1 None) (Num 5),
+    AssignOp (SSAVar "x" 0 None) Plus (Var (SSAVar "_tmp" 0 None)) (Var (SSAVar "_tmp" 1 None))]
+    
+    
+annotateOperand :: SSAVar -> State (M.Map (String,Int) Int) SSAVar
+annotateOperand var@(SSAVar str n attr) = do
+    tab <- get
+    let res = M.lookup (str,n) tab
+    case res of
+        (Just v) ->
+            return var
+        (Nothing) -> do
+            put $ M.insert (str,n) 1 tab
+            return (SSAVar str n Kill)
+annotate :: [SSAAssignment] -> State (M.Map (String,Int) Int) [SSAAssignment]
+annotate ((AssignOp (SSAVar str n attr) op (Var a1) (Var a2)):rest) = do
+    result <- annotate rest
+    r2 <- annotateOperand a2
+    r1 <- annotateOperand a1
+    return $ (AssignOp (SSAVar str n Gen) op (Var r1) (Var r2)):result
+annotate ((AssignVal (SSAVar str n attr) (Var var)):rest) = do
+    result <- annotate rest
+    v1 <- annotateOperand var
+    return $ (AssignVal (SSAVar str n Gen) (Var v1)):rest
+annotate ((AssignVal (SSAVar str n attr) (Num x)):rest) = do
+    result <- annotate rest
+    return $ (AssignVal (SSAVar str n Gen) (Num x)):result
+annotate (a:rest) = do
+    result <- annotate rest
+    return $ a:result
+annotate [] = return []
