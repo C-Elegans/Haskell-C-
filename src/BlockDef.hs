@@ -1,5 +1,6 @@
 module BlockDef where
 import Parse(Tree,OP(..))
+import Instructions(Register(..))
 import Type
 data BVar = BVar Type String
     deriving (Show)
@@ -20,12 +21,13 @@ instance Show SSA_Attr where
     show Gen = "Gen"
     show Kill = "Kill"
     show None = ""
-data SSAVar = SSAVar String Int SSA_Attr
+data SSAVar = SSAVar String Int SSA_Attr | Reg Register
 data Val = Var SSAVar | Num Int 
     deriving (Show)
 
 instance Show SSAVar where
     show (SSAVar str x attr) = str ++ "_" ++ (show x) ++ " " ++ (show attr)
+    show (Reg r) = show r
 instance Show SSAAssignment where
     show (AssignOp var op l r) =
         (show var) ++ " <- " ++ (show op) ++ " " ++ (show l) ++ " " ++ (show r)

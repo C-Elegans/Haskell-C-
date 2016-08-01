@@ -2,6 +2,7 @@ module SSA where
 import qualified Data.Map as M
 import qualified Parse
 import BlockDef
+import Instructions(Register(..))
 import Parse (OP(..),spaceTabs)
 import Control.Monad
 import Control.Monad.State
@@ -113,6 +114,7 @@ blk2SSA [] = return []
 test_s = [AssignVal (SSAVar "_tmp" 0 None) (Num 3),AssignVal (SSAVar "_tmp" 1 None) (Num 5),
     AssignOp (SSAVar "x" 0 None) Plus (Var (SSAVar "_tmp" 0 None)) (Var (SSAVar "_tmp" 1 None))]
     
+test_a = fst $ runState (annotate test_s) M.empty
     
 annotateOperand :: SSAVar -> State (M.Map (String,Int) Int) SSAVar
 annotateOperand var@(SSAVar str n attr) = do
@@ -141,3 +143,55 @@ annotate (a:rest) = do
     result <- annotate rest
     return $ a:result
 annotate [] = return []
+
+allocateVar :: SSAVar -> State ([Register],M.Map (String,Int) Register) SSAVar
+allocateVar v@(SSAVar str n Gen) = do
+    (regs,tab) <- get
+    case regs of
+        (r:rest) -> do
+            put $ (rest,M.insert (str,n) r tab)
+            return (Reg r)
+        ([]) -> return v
+allocateVar v@(SSAVar str n None) = do
+    (regs,tab) <- get
+    let res = M.lookup (str,n) tab
+    case res of
+        (Just reg) -> return (Reg reg)
+        (Nothing) -> return v
+
+allocateVar v@(SSAVar str n Kill) = do
+    (regs,tab) <- get
+    let res = M.lookup (str,n) tab
+    case res of
+        (Just reg) -> do
+            let tab' = M.delete (str,n) tab
+            put $ (reg:regs,tab')
+            return $ Reg reg
+        (Nothing) -> return v
+allocate :: [SSAAssignment] -> State ([Register],M.Map (String,Int) Register) [SSAAssignment]
+
+allocate ((AssignVal var (Num x)):rest) = do
+    v1 <- allocateVar var
+    result <- allocate rest
+    return $ (AssignVal v1 (Num x)):result
+
+allocate (a@(AssignVal var (Var v)):rest) = do
+    v2 <- allocateVar v
+    v1 <- allocateVar var
+    
+    result <- allocate rest
+    return $ (AssignVal v1 (Var v2)):result
+allocate ((AssignOp dest op (Var src1) (Var src2)):rest) = do
+    s1 <- allocateVar src1
+    s2 <- allocateVar src2
+    d <- allocateVar dest
+    result <- allocate rest
+    return $ (AssignOp d op (Var s1) (Var s2)):result
+allocate (x:rest) = do
+    result <- allocate rest
+    return $ x:result
+allocate [] = return []
+
+
+
+
