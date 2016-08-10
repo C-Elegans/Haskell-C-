@@ -4,7 +4,5 @@
 int glob2;
 
 void main(int i){
-	char str[16];
-	memset(str,'b',5);
-	puts(str);
+		print_hex(memcmp("test1","test2",5));
 }

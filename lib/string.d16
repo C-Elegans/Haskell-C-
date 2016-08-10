@@ -85,3 +85,32 @@ memset_loop:
 	jmp.ne memset_loop
 	pop r0
 	ret
+
+memchr: ;ptr in r0, char in r1, count in r2
+	ld.b r3,[r0]
+	add r0,1
+	sub r2,1
+	jmp.eq memchr_end
+	cmp r3,r1
+	jmp.ne memchr
+memchr_end:
+	ret
+memcmp: ;ptr1 in r0, ptr2 in r1, count in r2
+	push r4	
+memcmp_loop:
+	ld.b r3,[r0]
+	ld.b r4,[r1]
+	sub r2,1
+	jmp.n memcmp_end
+	add r0,1
+	add r1,1
+	cmp r3,r4
+	jmp.eq memcmp_loop
+	sub r3,r4
+	mov r0,r3
+	pop r4
+	ret
+memcmp_end:
+	mov r0,0
+	pop r4
+	ret
