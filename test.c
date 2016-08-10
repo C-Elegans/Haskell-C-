@@ -7,4 +7,3 @@ void main(int i){
 	print_hex(abs(-4));
 	
 }
-

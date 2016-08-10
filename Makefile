@@ -1,15 +1,16 @@
 HASKELL_SRCS = $(wildcard src/*.hs)
-LIBSRCS = $(wildcard lib/*.s)
-LIBS = $(patsubst %.s,%.o,$(LIBSRCS))
+LIBSRCS = $(wildcard lib/*.d16)
+LIBS = $(patsubst %.d16,%.o,$(LIBSRCS))
 INCLUDEDIR=include/
 CPP=gcc -nostdinc -I $(INCLUDEDIR) -E
 run: out
 	@echo "Emulator output:"
-	@python3 ~/programming/d16i/run_d16i.py -q out
+	@d16i -q out
 	
 %.o: %.s
 	d16 $< -o $@
-
+%.o: %.d16
+	d16 $< -o $@
 out: start.o $(LIBS) compiler.o
 	d16-ld $^ -o out
 

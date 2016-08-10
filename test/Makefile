@@ -1,5 +1,5 @@
-LIBSRCS = $(wildcard ../lib/*.s)
-LIBS = $(patsubst %.s,%.o,$(LIBSRCS))
+LIBSRCS = $(wildcard ../lib/*.d16)
+LIBS = $(patsubst %.d16,%.o,$(LIBSRCS))
 TESTS = $(wildcard *.c)
 TEST_BINS = $(patsubst %.c,%.bin,$(TESTS))
 GREEN_COLOR='\033[0;32m'
@@ -17,6 +17,8 @@ test: $(TEST_BINS)
 %.s: %.i
 	@../cmm $< $@ >/dev/null
 %.o: %.s
+	@d16 $< -o $@
+%.o: %.d16
 	@d16 $< -o $@
 %.bin: ../start.o %.o $(LIBS)
 	@d16-ld $^ -o $@
