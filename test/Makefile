@@ -24,3 +24,8 @@ test: $(TEST_BINS)
 	@d16-ld $^ -o $@
 	@python run_test.py $@ $*.output
 	@echo "$(GREEN_COLOR)Test of $(*).cm successful$(NO_COLOR)"
+
+clean:
+	-rm -f *.s
+	-rm -f *.o
+	-rm -f *.bin

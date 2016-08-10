@@ -113,8 +113,11 @@ codegen_helper (Assign (AnnotatedVarAssign str t) expr) tab = do
         (Nothing) -> return (error $ "Undefined variable: " ++ str)
 
 codegen_helper (FuncDef t str vs stmts) tab = do
-    let (Just (Local spsub)) = M.lookup " count" tab
+    let count = M.lookup " count" tab
         movs = movPars vs 0 tab
+        spsub = case count of
+            (Just (Local sp)) -> sp
+            _ -> 2
     code <- codegen_helper stmts tab
     return ([Inst_Label str,Inst PushLR, Inst_R Push R6, Inst_RR Mov R6 R7, Inst_RI Sub R7 (Const spsub)]++ movs ++ code ++ [Inst_RR Mov R7 R6, Inst_R Pop R6, Inst_R Pop R1, Inst_Jmp Jmp Al R1])
 codegen_helper (List (x:xs)) tab = do
@@ -147,7 +150,7 @@ codegen_helper (While cond tree) tab = do
         code ++ [Inst_JmpI Jmp Al (Label ("while_begin" ++ suffix)),Inst_Label ("while_end" ++ suffix)])
 codegen_helper (Return tree) tab = do
     code <- codegen_helper tree tab
-    return (code ++ [Inst_R Pop R0, Inst_RR Mov R7 R6, Inst_R Pop R6,Inst Ret])
+    return (code ++ [Inst_R Pop R0, Inst_RR Mov R7 R6, Inst_R Pop R6, Inst_R Pop R1, Inst_Jmp Jmp Al R1])
 codegen_helper (Deref tree) tab = do
     let t = getType tree
     let bf = if t == (Ptr P_Char) || t == (Arr P_Char) then Byte else Word
