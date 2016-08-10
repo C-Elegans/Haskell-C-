@@ -76,4 +76,12 @@ strchr_loop:
 	sub r0,1
 strchr_end:
 	ret
-
+memset: ; r0 - dest, r1 - val, r2 - nbytes
+	push r0
+memset_loop:
+	st.b [r0],r1
+	add r0,1
+	sub r2,1
+	jmp.ne memset_loop
+	pop r0
+	ret

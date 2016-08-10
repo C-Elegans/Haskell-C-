@@ -4,6 +4,7 @@
 int glob2;
 
 void main(int i){
-	print_hex(abs(-4));
-	
+	char str[16];
+	memset(str,'b',5);
+	puts(str);
 }
