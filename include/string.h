@@ -10,4 +10,4 @@ char* strcpy(char* dest, char* source);
 size_t strlen(char* str);
 int strcmp(char* str1, char* str2);
 char* strchr(char* string, int chr);
-
+char* strcat(char* str1, char* str2);
