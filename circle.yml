@@ -1,0 +1,6 @@
+machine:
+  ghc: 8.0.1
+
+test:
+  post:
+    - mv ./dist/build/cmm/cmm $CIRCLE_ARTIFACTS/
