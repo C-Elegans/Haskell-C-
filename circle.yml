@@ -1,5 +1,6 @@
 machine:
-  ghc: 8.0.1
+  ghc: 
+    version: 8.0.1
 
 test:
   post:

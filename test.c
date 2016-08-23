@@ -4,8 +4,12 @@
 int glob2;
 
 void main(int i){
-		char str[16];
-		strcpy(str,"hello ");
-		strcat(str,"world\n");
-		puts(str);
+    int i;
+    i=0;
+    puts("hello\n");
+    while(i<15){
+        print_hex(i);
+        i=i+1;
+    }
 }
+

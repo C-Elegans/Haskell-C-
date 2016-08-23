@@ -5,7 +5,7 @@ INCLUDEDIR=include/
 CPP=gcc -nostdinc -I $(INCLUDEDIR) -E
 run: out
 	@echo "Emulator output:"
-	@d16i -q out
+	@d16-emu out
 	
 %.o: %.s
 	d16 $< -o $@
