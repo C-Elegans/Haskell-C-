@@ -37,4 +37,4 @@ clean:
 check: cmm
 	export INCLUDEDIR
 	export CPP
-	-$(MAKE) -C test
+	$(MAKE) -C test
