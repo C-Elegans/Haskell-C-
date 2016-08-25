@@ -1,3 +1,4 @@
+.global
 strcpy: ;r0 = dest r1 = src
 	ld.b r2,[r1]
 	st.b [r0],r2
@@ -9,6 +10,7 @@ strcpy: ;r0 = dest r1 = src
 1:
 	ret
 
+.global
 strlen: ;ptr in r0
 	xor r2,r2
 1:
@@ -22,6 +24,7 @@ strlen: ;ptr in r0
 	mov r0,r2
 	ret
 
+.global
 memcpy: ;r0 - dest, r1 - source, r3 count
 	push r0
 	xor r3,r3
@@ -50,6 +53,7 @@ memcpy: ;r0 - dest, r1 - source, r3 count
 	pop r0
 	ret
 
+.global
 strcmp: ;str1 in r0, str1 in r1
 	ld.b r2,[r0]
 	ld.b r3,[r1]
@@ -64,6 +68,7 @@ strcmp: ;str1 in r0, str1 in r1
 mov r0,r2
 ret
 
+.global
 strchr:
 	and r1,0xff
 1:
@@ -76,6 +81,7 @@ strchr:
 	sub r0,1
 2:
 	ret
+.global
 memset: ; r0 - dest, r1 - val, r2 - nbytes
 	push r0
 1:
@@ -86,6 +92,7 @@ memset: ; r0 - dest, r1 - val, r2 - nbytes
 	pop r0
 	ret
 
+.global
 memchr: ;ptr in r0, char in r1, count in r2
 	ld.b r3,[r0]
 	add r0,1
@@ -95,6 +102,7 @@ memchr: ;ptr in r0, char in r1, count in r2
 	jmp.ne memchr
 1:
 	ret
+.global
 memcmp: ;ptr1 in r0, ptr2 in r1, count in r2
 	push r4	
 1:
@@ -115,6 +123,7 @@ memcmp: ;ptr1 in r0, ptr2 in r1, count in r2
 	pop r4
 	ret
 
+.global
 strcat: ;str1 in r0, str2 in r1
 	push r0
 1:

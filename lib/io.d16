@@ -1,3 +1,4 @@
+.global
 print_hex:
 	mov r1,0x30 ;0
 	st.b [0xff02],r1
@@ -32,9 +33,11 @@ print_hex:
 hexdata: ;ascii hex constants
 	.ascii "0123456789ABCDEF"
 
+.global
 putc:
 	st.b [0xff02],r0
 	ret
+.global
 puts:
 	ld.b r1,[r0]
 	test r1,r1

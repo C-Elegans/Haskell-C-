@@ -33,7 +33,7 @@ labelSuffix = do
 
 codegen_helper :: Tree -> SymTab -> State (String,Int) [Instruction]
 codegen_helper (GlobalDec t nam) tab =
-    return [Inst_Label nam, Inst_Directive Dw 0]
+    return [Inst_Directive Globl 0, Inst_Label nam, Inst_Directive Dw 0]
 
 codegen_helper (Num x) _ =
     return [Inst_I Push (Const x)]
@@ -119,7 +119,7 @@ codegen_helper (FuncDef t str vs stmts) tab = do
             (Just (Local sp)) -> sp
             _ -> 2
     code <- codegen_helper stmts tab
-    return ([Inst_Label str,Inst PushLR, Inst_R Push R6, Inst_RR Mov R6 R7, Inst_RI Sub R7 (Const spsub)]++ movs ++ code ++ [Inst_RR Mov R7 R6, Inst_R Pop R6, Inst_R Pop R1, Inst_Jmp Jmp Al R1])
+    return ([Inst_Directive Globl 0, Inst_Label str,Inst PushLR, Inst_R Push R6, Inst_RR Mov R6 R7, Inst_RI Sub R7 (Const spsub)]++ movs ++ code ++ [Inst_RR Mov R7 R6, Inst_R Pop R6, Inst_R Pop R1, Inst_Jmp Jmp Al R1])
 codegen_helper (List (x:xs)) tab = do
     res <- codegen_helper x tab
     code <- codegen_helper (List (xs)) tab

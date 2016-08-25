@@ -6,7 +6,7 @@ import Data.Data
 import Data.Typeable
 data Opcode = Nop | Add | Sub | Push | Pop | Mov | And | Or | Xor | Not | Neg | Ld | St |
     Cmp | Jmp | Call | Ret | Shl | Shr | Rol | Rcl | Ldcp | Stcp | Adc | Sbb | Set | Test|
-    Dw | PushLR
+    Dw | PushLR | Globl 
     deriving (Data, Typeable,Eq)
 data Instruction = 
     Inst_RR Opcode Register Register | 
@@ -101,6 +101,8 @@ instance Show Instruction where
     show (Inst_Label str) = str ++ ":"
     show (Inst_I op address) =
         (show op) ++ " " ++ (show address)
+    show (Inst_Directive Globl _) = 
+        ".global"
     show (Inst_Directive op val) =
         (show op) ++ " " ++ (showHex val "" )
     show (Inst_Mem op rD rS bf) =
