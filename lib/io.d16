@@ -38,9 +38,9 @@ putc:
 puts:
 	ld.b r1,[r0]
 	test r1,r1
-	jmp.eq puts_end
+	jmp.eq 1f
 	st.b [0xff02],r1
 	add r0,1
 	jmp puts
-puts_end:
+1:
 	ret

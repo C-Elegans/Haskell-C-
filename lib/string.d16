@@ -29,24 +29,24 @@ memcpy: ;r0 - dest, r1 - source, r3 count
 	or r3,r1
 	or r3,r2
 	test r3,1
-	jmp.eq memcpy_2
-memcpy_loop:
+	jmp.eq 2f
+1:
 	ld.b r3,[r1]
 	st.b [r0],r3
 	add r0,1
 	add r1,1
 	sub r2,1
-	jmp.ne memcpy_loop
+	jmp.ne 1b
 	pop r0
 	ret
 	
-memcpy_2:
+2:
 	ld r3,[r1]
 	st [r0],r3
 	add r0,2
 	add r1,2
 	sub r2,2
-	jmp.ne memcpy_2
+	jmp.ne 2b
 	pop r0
 	ret
 
@@ -54,35 +54,35 @@ strcmp: ;str1 in r0, str1 in r1
 	ld.b r2,[r0]
 	ld.b r3,[r1]
 	test r2,r2
-	jmp.eq strcmp_end
+	jmp.eq 1f
 	add r0,1
 	add r1,1
 	cmp r2,r3
 	jmp.eq strcmp
 	sub r2,r3
-strcmp_end:
+1:
 mov r0,r2
 ret
 
 strchr:
 	and r1,0xff
-strchr_loop:
+1:
 	ld.b r2,[r0]
 	test r2,r2
-	jmp.eq strchr_end
+	jmp.eq 2f
 	add r0,1
 	cmp r2,r1
-	jmp.ne strchr_loop
+	jmp.ne 1b
 	sub r0,1
-strchr_end:
+2:
 	ret
 memset: ; r0 - dest, r1 - val, r2 - nbytes
 	push r0
-memset_loop:
+1:
 	st.b [r0],r1
 	add r0,1
 	sub r2,1
-	jmp.ne memset_loop
+	jmp.ne 1b
 	pop r0
 	ret
 
@@ -90,45 +90,45 @@ memchr: ;ptr in r0, char in r1, count in r2
 	ld.b r3,[r0]
 	add r0,1
 	sub r2,1
-	jmp.eq memchr_end
+	jmp.eq 1f
 	cmp r3,r1
 	jmp.ne memchr
-memchr_end:
+1:
 	ret
 memcmp: ;ptr1 in r0, ptr2 in r1, count in r2
 	push r4	
-memcmp_loop:
+1:
 	ld.b r3,[r0]
 	ld.b r4,[r1]
 	sub r2,1
-	jmp.n memcmp_end
+	jmp.n 2f
 	add r0,1
 	add r1,1
 	cmp r3,r4
-	jmp.eq memcmp_loop
+	jmp.eq 1b
 	sub r3,r4
 	mov r0,r3
 	pop r4
 	ret
-memcmp_end:
+2:
 	mov r0,0
 	pop r4
 	ret
 
 strcat: ;str1 in r0, str2 in r1
 	push r0
-strcat_start:
+1:
 	ld.b r2,[r0]
 	add r0,1
 	test r2,r2
-	jmp.ne strcat_start
+	jmp.ne 1b
 	sub r0,1
-strcat_loop:
+2:
 	ld.b r2,[r1]
 	st.b [r0],r2
 	add r0,1
 	add r1,1
 	test r2,r2
-	jmp.ne strcat_loop
+	jmp.ne 2b
 	pop r0
 	ret
