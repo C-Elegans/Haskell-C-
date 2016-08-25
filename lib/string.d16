@@ -2,23 +2,23 @@ strcpy: ;r0 = dest r1 = src
 	ld.b r2,[r1]
 	st.b [r0],r2
 	test r2,r2
-	jmp.eq strcpy_end
+	jmp.eq 1f
 	add r0,1
 	add r1,1
 	jmp strcpy
-strcpy_end:
+1:
 	ret
 
 strlen: ;ptr in r0
 	xor r2,r2
-strlen_loop:
+1:
 	ld.b r1,[r0]
 	test r1,r1
-	jmp.eq strlen_end
+	jmp.eq 2f
 	add r0,1
 	add r2,1
-	jmp strlen_loop
-strlen_end:
+	jmp 1b
+2:
 	mov r0,r2
 	ret
 
