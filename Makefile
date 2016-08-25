@@ -20,7 +20,8 @@ compiler.s: cmm test.i
 	./cmm test.i compiler.s
 	
 cmm: $(HASKELL_SRCS)
-	$(MAKE) -C src
+	cabal build
+	ln -s dist/build/cmm/cmm cmm
 
 clean-all: clean
 	-rm -f cmm
