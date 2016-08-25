@@ -7,7 +7,9 @@ test:
     - sudo wget 'https://circleci.com/api/v1/project/d16-processor/d16/latest/artifacts/0/$CIRCLE_ARTIFACTS/d16?filter=successful&branch=master' -O /usr/bin/d16
     - sudo chmod +x /usr/bin/d16
     - git clone https://github.com/d16-processor/d16-ld.git
-    - cd d16-ld && mkdir -p build && cd build  && cmake => && make && make install
+    - cd d16-ld && mkdir -p build && cd build  && cmake => && make && sudo make install
+    - git clone https://github.com/d16-processor/d16i.git
+    - cd d16i && sudo python setup.py install
   override:
     - cabal build
     - make
