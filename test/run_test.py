@@ -8,7 +8,7 @@ if len(sys.argv) != 3:
 expected = open(sys.argv[2]).read().strip()
 
 
-p = Popen(["d16-emu",sys.argv[1]], 
+p = Popen(["d16i","-q",sys.argv[1]], 
     stdin=PIPE, stdout=PIPE, stderr=PIPE)
 output, err = p.communicate()
 output = output.strip()
