@@ -3,5 +3,9 @@ machine:
     version: 7.10.2
 
 test:
+  override:
+    - cabal build
+    - make
+    - make check
   post:
     - mv ./dist/build/cmm/cmm $CIRCLE_ARTIFACTS/
