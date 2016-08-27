@@ -21,7 +21,8 @@ compiler.s: cmm test.i
 
 cmm: $(HASKELL_SRCS)
 	cabal build
-	#ln -s dist/build/cmm/cmm cmm
+	-rm -f cmm
+	ln -s dist/build/cmm/cmm cmm
 
 clean-all: clean
 	-rm -f cmm
