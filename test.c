@@ -4,10 +4,10 @@ int glob2;
 
 void main(int i){
     int i;
-    i=4;
-    while(i<32){
-      print_hex(i/3);
-      i=i+1;
-    }
+    i=8;
+    //print_hex(i/2);
+    //print_hex(-i/(-2));
+    print_hex((-i)/2);
+    //print_hex(i/(-2));
 
 }

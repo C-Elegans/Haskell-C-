@@ -50,6 +50,7 @@ codegen_helper (Operator op left right) t = do
             Parse.Shl ->
                 [Inst_RR Shl R0 R1]
             Parse.Shr -> [Inst_RR Shr R0 R1]
+            Parse.Sar -> [Inst_RR Sar R0 R1]
             Parse.Mul -> [Inst_JmpI Call Al (Label "mul")]
             Parse.Div -> [Inst_JmpI Call Al (Label "div")]
             Parse.Eq -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Eq R0]

@@ -216,7 +216,7 @@ mul_div_reduction (Operator Mul (Num x) val)
 mul_div_reduction (Operator Div val (Num x))
     | isPowerOf2 x = do
         let shifter = countTrailingZeros x
-        return (Operator Shr val (Num shifter))
+        return (Operator Sar val (Num shifter))
 mul_div_reduction x = return x
 
 getStrings :: Tree -> State ([(String,String)],Int) Tree

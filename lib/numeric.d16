@@ -60,7 +60,7 @@ div_next:
 	test r3,1
 	jmp.ne div_end
 	shr r3,1
-	shr r2,1
+	sar r2,1
 	jmp div_next
 
 div_end:

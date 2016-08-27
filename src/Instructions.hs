@@ -6,40 +6,40 @@ import Data.Data
 import Data.Typeable
 data Opcode = Nop | Add | Sub | Push | Pop | Mov | And | Or | Xor | Not | Neg | Ld | St |
     Cmp | Jmp | Call | Ret | Shl | Shr | Rol | Rcl | Ldcp | Stcp | Adc | Sbb | Set | Test|
-    Dw | PushLR | Globl 
+    Dw | PushLR | Globl | Sar
     deriving (Data, Typeable,Eq)
-data Instruction = 
-    Inst_RR Opcode Register Register | 
-    Inst_RI Opcode Register Address | 
-    Inst_R Opcode Register   |  
+data Instruction =
+    Inst_RR Opcode Register Register |
+    Inst_RI Opcode Register Address |
+    Inst_R Opcode Register   |
     Inst_I Opcode Address |
-    Inst Opcode   |   
-    Inst_Mem Opcode Register Register ByteFlag  |   
-    Inst_MemI Opcode Register Register Address ByteFlag DispFlag   |   
-    Inst_Jmp Opcode Condition Register   |   
+    Inst Opcode   |
+    Inst_Mem Opcode Register Register ByteFlag  |
+    Inst_MemI Opcode Register Register Address ByteFlag DispFlag   |
+    Inst_Jmp Opcode Condition Register   |
     Inst_JmpI Opcode Condition Address  |
     Inst_Label String   |
     Inst_Directive Opcode Int
-    
+
 data Address = Label String | Const Int
     deriving (Eq)
 
 data Condition = Nv | Eq | Ne | Os | Oc | Hi | Ls | P | N | Cs | Cc | Ge | G | Le | L | Al
     deriving (Enum, Data, Typeable)
-data Register = R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7 
+data Register = R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7
     deriving (Enum,Eq,Ord)
 data ByteFlag = Byte | Word
     deriving (Show, Eq)
 data DispFlag = Displacement | Constant
     deriving (Show, Eq)
-    
+
 instance Show Condition where
-    show x  = 
+    show x  =
         let upper = showConstr $ toConstr x
         in map toLower upper
 instance Show Opcode where
     show Dw = ".dw"
-    show x  = 
+    show x  =
         let upper = showConstr $ toConstr x
         in map toLower upper
 instance Show Address where
@@ -101,7 +101,7 @@ instance Show Instruction where
     show (Inst_Label str) = str ++ ":"
     show (Inst_I op address) =
         (show op) ++ " " ++ (show address)
-    show (Inst_Directive Globl _) = 
+    show (Inst_Directive Globl _) =
         ".global"
     show (Inst_Directive op val) =
         (show op) ++ " " ++ (showHex val "" )
@@ -120,13 +120,13 @@ instance Show Instruction where
        let opString = case bf of
                 Byte -> (show op) ++ ".b"
                 Word -> (show op)
-        
+
         in case df of
             Displacement ->
                 case op of
                     Ld ->
                         opString ++ " " ++ (show rD) ++ ", [" ++ (show rS) ++ "+" ++ (show num) ++ "]"
-                    St -> 
+                    St ->
                         opString ++ " [" ++ (show rD) ++ "+" ++ (show num) ++ "], " ++ (show rS)
             Constant ->
                 case op of

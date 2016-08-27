@@ -34,7 +34,7 @@ postfix name fun = Postfix (do reservedOp name; return fun;)
 binary name fun assoc = Infix (do reservedOp name; return fun;) assoc
 expr = buildExpressionParser table factor
 data OP = Plus | Minus | Mul | Div | Shl | Shr | And | Or | Xor | Not | Neg |
-    Lt | Gt | Eq | Ge | Le | Ne
+    Lt | Gt | Eq | Ge | Le | Ne | Sar
     deriving (Show, Eq)
 
 whiteSpace = P.whiteSpace lexer
