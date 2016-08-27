@@ -13,7 +13,7 @@ lexer  = P.makeTokenParser
          $ haskellDef
          {  P.reservedOpNames = ["*","/","+","-", "<",">","=", "<=",">=","!=","<<",">>","&","|","^"],
             P.reservedNames = ["return", "if", "else", "while", "int", "void", "char"],
-            P.commentLine = "//", 
+            P.commentLine = "//",
             P.commentStart = "/*",
             P.commentEnd = "*/"
          }
@@ -27,15 +27,15 @@ table = [   [prefix "~" (UnaryOp Not), prefix "-" (UnaryOp Neg), prefix "*" (Der
             [binary "&" (Operator And) AssocRight],
             [binary "^" (Operator Xor) AssocRight],
             [binary "|" (Operator Or) AssocRight]
-            
+
         ]
 prefix name fun = Prefix (do reservedOp name; return fun;)
 postfix name fun = Postfix (do reservedOp name; return fun;)
 binary name fun assoc = Infix (do reservedOp name; return fun;) assoc
 expr = buildExpressionParser table factor
 data OP = Plus | Minus | Mul | Div | Shl | Shr | And | Or | Xor | Not | Neg |
-    Lt | Gt | Eq | Ge | Le | Ne 
-    deriving (Show)
+    Lt | Gt | Eq | Ge | Le | Ne
+    deriving (Show, Eq)
 
 whiteSpace = P.whiteSpace lexer
 
@@ -51,7 +51,7 @@ charLiteral = P.charLiteral lexer
 squares = P.brackets lexer
 commaSep1 = P.commaSep1 lexer
 commaSep = P.commaSep lexer
-lexeme p = do 
+lexeme p = do
     x <- p
     whiteSpace
     return x
@@ -93,7 +93,7 @@ spaceTabs n = replicateM_ n (putStr "    ")
 
 prettyprint_tree tree =
     prettyprint_helper 0 tree
-    
+
 prettyprint_helper col tree =
     do
         spaceTabs col
@@ -148,7 +148,7 @@ prettyprint_helper col tree =
             (EmptyTree) -> putStrLn "Empty"
             (VarDec t str) -> putStrLn ("VarDec " ++ str ++ " = " ++ (show t))
             (GlobalDec t str) -> putStrLn ("Global " ++ str ++ "=" ++ (show t))
-            (ArrayDec t str sz) -> putStrLn ("Array (" ++ (show t) ++ ") "++ str ++ " [" ++ (show sz) ++ "]") 
+            (ArrayDec t str sz) -> putStrLn ("Array (" ++ (show t) ++ ") "++ str ++ " [" ++ (show sz) ++ "]")
             (FuncDef t id left right) ->
                 do
                     putStrLn ("Func " ++ id ++ " -> " ++ (show t))
@@ -176,7 +176,7 @@ prettyprint_helper col tree =
                     putStrLn "args: "
                     prettyprint_helper (col+1) args
             (While cond tree) ->
-                do 
+                do
                     putStrLn "While:"
                     prettyprint_helper (col+1) cond
                     spaceTabs col
@@ -185,9 +185,9 @@ prettyprint_helper col tree =
             (Str str) -> putStrLn $ "String: " ++ str
             (StrLabel str) -> putStrLn $ "String at: " ++ str
             (AnnotatedVar str t) ->
-                putStrLn $ "Var: " ++ str ++ " (" ++ (show t) ++ ")" 
+                putStrLn $ "Var: " ++ str ++ " (" ++ (show t) ++ ")"
             (AnnotatedVarAssign str t) ->
-                putStrLn $ "Var: " ++ str ++ " (" ++ (show t) ++ ")" 
+                putStrLn $ "Var: " ++ str ++ " (" ++ (show t) ++ ")"
             (Deref tree) -> do
                 putStrLn "Deref:"
                 prettyprint_helper (col+1) tree
@@ -198,10 +198,10 @@ prettyprint_helper col tree =
                 putStrLn $ "Cast (" ++ (show t) ++ ")"
                 prettyprint_helper (col+1) exp
 
-    
+
 
 op :: String -> OP
-op c 
+op c
     | c == "+" = Plus
     | c == "-" = Minus
     | c == "*" = Mul
@@ -213,7 +213,7 @@ op c
     | c == "<=" = Le
     | c == ">=" = Ge
     | otherwise = error $ "Invalid operator: " ++ c
-    
+
 declaration_list = do
     lst <- many declaration
     spaces
@@ -222,7 +222,7 @@ declaration_list = do
 declaration = do
     cust_whitespace
     t <- type_specifier
-    
+
     id <- identifier
     a<- (try $ do
             pars <- parens params
@@ -252,7 +252,7 @@ line_directive = do
     skipMany (noneOf "\n")
     char '\n'
     return ()
-var_declaration = 
+var_declaration =
     try(do
         t <- lexeme $ type_specifier
         name <- lexeme $ identifier
@@ -262,9 +262,9 @@ var_declaration =
     do
         t <- type_specifier
         name <- identifier
-        
+
         size <- squares integer
-        
+
         semi
         return $ ArrayDec t name (fromIntegral size)
     <?> "Var declaration"
@@ -273,21 +273,22 @@ factor = do
             x <- integer
             return $ Num $ fromIntegral x
     <|>
-        cast
-    <|> 
         do
             c <- charLiteral
             return $ Num $ ord c
-    <|> do 
-            x <- parens simple_expression
-            return x
+
     <|> try(do
         (FCall name pars) <- call
         return (FCallRet name pars))
     <|> var
-    
-    
-    
+    <|> try cast
+    <|> try (do
+            x <- parens simple_expression
+            return x)
+
+
+
+
     <?> "factor"
 cast = do
     t <- parens type_specifier
@@ -318,10 +319,10 @@ var = try(do
 varAssign :: Parser Tree
 varAssign = try(do
         str <- identifier
-        return $ VarAssign str) 
+        return $ VarAssign str)
         <?> "Assignment var"
 
-statement = try(call_stmt) <|> expression_statement <|> return_statement <|> selection_statement 
+statement = try(call_stmt) <|> expression_statement <|> return_statement <|> selection_statement
     <|> compound_statement <|> iteration_statement
     <?> "statement"
 
@@ -332,7 +333,7 @@ params = try(do
     do
         reserved "void"
         return $ List []
-param = 
+param =
     do
         t <- type_specifier
         spaces
@@ -354,14 +355,14 @@ local_declarations :: Parser Tree
 local_declarations = do
     lst <- many var_declaration
     return $ List lst
-    
+
 
 type_specifier = do
     p <- primitive_type
     ptrs <- many $ char '*'
     spaces
     return $ buildType p (length ptrs)
-    
+
 buildType t 0 = t
 buildType t n = Ptr (buildType t (n-1))
 
@@ -383,13 +384,13 @@ expression_statement =
         semi
         return expr
 selection_statement :: Parser Tree
-selection_statement = 
+selection_statement =
     try(do
             lexeme $ reserved "if"
-            
-            
+
+
             condition <- parens expression
-            
+
             stmt <- statement
             lexeme $ reserved "else"
             stmt2 <- statement
@@ -397,9 +398,9 @@ selection_statement =
     <|>
         do
             lexeme $ reserved "if"
-            
+
             condition <- parens expression
-            
+
             stmt <- statement
             return $ If condition stmt
     <?> "Conditional statement"
@@ -408,27 +409,27 @@ iteration_statement :: Parser Tree
 iteration_statement =
     do
         lexeme $ reserved "while"
-        
+
         cond <- parens expression
-        
+
         stmt <- statement
         return $ While cond stmt
 return_statement :: Parser Tree
-return_statement = 
+return_statement =
     do
         lexeme $ reserved "return"
         tree <- expression
         semi
         return $ Return tree
     <?> "return"
-    
+
 simple_expression :: Parser Tree
 simple_expression =
         expr
-    <|> 
+    <|>
         strLiteral
 expression :: Parser Tree
-expression = 
+expression =
     try (do
         left <- varAssign
         lexeme $ char '='
@@ -450,9 +451,9 @@ call_stmt =
 call =
     do
         id <- identifier
-        
+
         a <- parens args
-        
+
         return $ FCall id a
     <?> "Function call"
 args = do
@@ -465,9 +466,7 @@ run p input
             Left err -> do{ putStr "parse error at "
 ; print err
                           }
-            Right x  -> print x 
+            Right x  -> print x
 
 parse :: Parser Tree -> String -> String -> Either ParseError Tree
 parse p filename input = Parsec.parse (do { spaces; p;}) filename input
-            
-
