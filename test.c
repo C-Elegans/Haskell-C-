@@ -3,9 +3,11 @@
 int glob2;
 
 void main(int i){
-    int arr[2];
-    *arr = 0xbeef;
-    *(arr + 1) = 0xa5a5;
-    print_hex(*arr);
-    print_hex(*(arr+1));
+    int i;
+    i=4;
+    while(i<32){
+      print_hex(i/3);
+      i=i+1;
+    }
+
 }

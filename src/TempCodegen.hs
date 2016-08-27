@@ -18,7 +18,7 @@ codegen trees globals filename =
 doCodegen :: [(Tree,SymTab)] -> [(String,Location)] -> State (String,Int) [Instruction]
 doCodegen (pair:rest) globals = do
     let (func,tab) = pair
-    let newTab = M.union tab (M.fromList globals) 
+    let newTab = M.union tab (M.fromList globals)
     res <- codegen_helper func newTab
     code <- doCodegen (rest) globals
     return (res ++ code)
@@ -40,7 +40,7 @@ codegen_helper (Num x) _ =
 
 codegen_helper (Operator op left right) t = do
     lft <- codegen_helper left t
-    
+
     rgt <- codegen_helper right t
     let operation = case op of
             Parse.Plus ->
@@ -51,7 +51,7 @@ codegen_helper (Operator op left right) t = do
                 [Inst_RR Shl R0 R1]
             Parse.Shr -> [Inst_RR Shr R0 R1]
             Parse.Mul -> [Inst_JmpI Call Al (Label "mul")]
-            Parse.Div -> error "Div unsupported"
+            Parse.Div -> [Inst_JmpI Call Al (Label "div")]
             Parse.Eq -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Eq R0]
             Parse.Ne -> [Inst_RR Cmp R0 R1, Inst_Jmp Set Ne R0]
             Parse.Gt -> [Inst_RR Cmp R0 R1, Inst_Jmp Set G R0]
@@ -61,7 +61,7 @@ codegen_helper (Operator op left right) t = do
             Parse.And -> [Inst_RR And R0 R1]
             Parse.Or -> [Inst_RR Or R0 R1]
             Parse.Xor -> [Inst_RR Xor R0 R1]
-            
+
     return (lft ++ rgt ++ [Inst_R Pop R1, Inst_R Pop R0] ++ operation ++ [Inst_R Push R0])
 codegen_helper (Cast t expr) tab = do
     e <- codegen_helper expr tab
@@ -75,7 +75,7 @@ codegen_helper (UnaryOp op tree) tab = do
             Parse.Neg -> [Inst_R Neg R0]
     return (lft ++ [Inst_R Pop R0] ++ operation ++ [Inst_R Push R0])
 codegen_helper (AnnotatedVar str t) tab
-    | isArr t = 
+    | isArr t =
     let loc = M.lookup str tab
     in case loc of
         (Just (Local loc)) ->
@@ -83,21 +83,21 @@ codegen_helper (AnnotatedVar str t) tab
         (Just Global) ->
             return [Inst_RI Mov R0 (Label str), Inst_R Push R0]
         Nothing -> return $ error $ "Undefined vairable: " ++ str
-codegen_helper (AnnotatedVar str t) tab = 
+codegen_helper (AnnotatedVar str t) tab =
     let loc = M.lookup str tab
         bf = if t == P_Char then Byte else Word
     in case loc of
         (Just (Local loc)) ->
             return [Inst_MemI Ld R0 R6 (Const (-loc)) bf Displacement, Inst_R Push R0]
         (Just Global) ->
-            return [Inst_MemI Ld R0 R0 (Label str) bf Constant, Inst_R Push R0] 
+            return [Inst_MemI Ld R0 R0 (Label str) bf Constant, Inst_R Push R0]
         Nothing ->
             return (error $ "Undefined variable: " ++ str)
 
 codegen_helper (Assign (Deref left) right) tab = do
     let t = getType left
     let bf = if t == (Ptr P_Char) || t == (Arr P_Char) then Byte else Word
-        
+
     lft <- codegen_helper left tab
     rgt <- codegen_helper right tab
     return (lft ++rgt++[Inst_R Pop R1, Inst_R Pop R0, Inst_Mem St R0 R1 bf])
@@ -141,7 +141,7 @@ codegen_helper (IfElse cond left right) tab = do
     rgt <- codegen_helper right tab
     let prologue = [Inst_R Pop R0, Inst_RI Cmp R0 (Const 0), Inst_JmpI Jmp Eq (Label ("ifElse" ++ suffix))]
     return (condition ++ prologue ++  lft ++ [Inst_JmpI Jmp Al (Label ("ifEnd" ++ suffix)),
-        Inst_Label ("ifElse" ++ suffix)] ++ rgt ++ [Inst_Label ("ifEnd" ++ suffix)]) 
+        Inst_Label ("ifElse" ++ suffix)] ++ rgt ++ [Inst_Label ("ifEnd" ++ suffix)])
 codegen_helper (While cond tree) tab = do
     suffix <- labelSuffix
     condition <- codegen_helper cond tab
@@ -179,7 +179,7 @@ codegen_helper (StrLabel str) tab = do
 codegen_helper x tab = trace ("Defaulting to empty on: " ++ (show x)) (return [])
 
 genPars :: Tree -> Int -> SymTab -> State (String,Int) [Instruction]
-genPars (List (x:xs)) parNum tab 
+genPars (List (x:xs)) parNum tab
     | parNum < 4
     = do
         par <- codegen_helper x tab
@@ -191,9 +191,9 @@ genPars (List []) _ _ = return []
 
 movPars :: Tree -> Int -> SymTab -> [Instruction]
 movPars (List ((VarDec t str):rest)) x tab
-    | x < 4 = 
+    | x < 4 =
         let (Just (Local loc)) = M.lookup str tab
-        in 
+        in
             if t == P_Char then
                 ((Inst_MemI St R6 (intToReg x) (Const (-loc)) Byte Displacement):(movPars (List rest) (x+1) tab))
             else
@@ -215,7 +215,7 @@ assignLocal x size = do
             let tab'' = M.insert x (Local size) tab'
             put tab''
             return size
-            
+
 {-
     data Tree =     Operator OP Tree Tree
             |   Num Integer
@@ -296,9 +296,9 @@ getType (Operator op left right) =
     let t1 = getType left
         t2 = getType right
     in max t1 t2
-getType (UnaryOp op expr) = 
+getType (UnaryOp op expr) =
     getType expr
-getType (Cast t expr) = t 
+getType (Cast t expr) = t
 getType n = trace ("no definition of getType for " ++ (show n)) (P_Int)
 escape :: String -> String
 escape ('\n':cs) = '\\':'n':(escape cs)
@@ -306,4 +306,3 @@ escape ('\0':cs) = '\\':'0':(escape cs)
 escape ('\r':cs) = '\\':'r':(escape cs)
 escape (c:cs) = c:(escape cs)
 escape [] = []
-    

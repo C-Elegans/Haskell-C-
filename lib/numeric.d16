@@ -22,4 +22,53 @@ abs:
 	neg r0
 1:
 	ret
+.global
+div: ; divide r0 by r1
+		test r1,r1
+		jmp.eq div_end
+		xor r2,r2
+		test r0,0x8000
+		jmp.eq 1f
+		xor r2,1
+		neg r0
+1:
+		test r1,0x8000
+		jmp.eq 1f
+		xor r2,1
+		neg r1
+1:
+		st [div_sign],r2
 
+
+		mov r2,r1
+		mov r1,r0
+		xor r0,r0
+		mov r3,1
+div_start:
+	cmp r1,r2
+	jmp.l div_next
+	shl r2,1
+	shl r3,1
+	jmp div_start
+
+div_next:
+	cmp r1,r2
+	jmp.l 1f
+	sub r1,r2
+	add r0,r3
+1:
+	test r3,1
+	jmp.ne div_end
+	shr r3,1
+	shr r2,1
+	jmp div_next
+
+div_end:
+	ld r2,div_sign
+	test r2,r2
+	jmp.eq 1f
+	neg r0
+1:
+	ret
+
+div_sign: .dw 0
