@@ -25,7 +25,7 @@ strlen: ;ptr in r0
 	ret
 
 .global
-memcpy: ;r0 - dest, r1 - source, r3 count
+memcpy: ;r0 - dest, r1 - source, r2 count
 	push r0
 	xor r3,r3
 	or r3,r0

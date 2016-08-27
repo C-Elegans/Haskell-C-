@@ -1,15 +1,11 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 int glob2;
 
 void main(int i){
-    int i;
-    i=0;
-    puts("hello\n");
-    while(i<15){
-        print_hex(i);
-        i=i+1;
-    }
+    int arr[2];
+    *arr = 0xbeef;
+    *(arr + 1) = 0xa5a5;
+    print_hex(*arr);
+    print_hex(*(arr+1));
 }
-

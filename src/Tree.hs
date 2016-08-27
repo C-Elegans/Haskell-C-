@@ -10,7 +10,7 @@ import Data.Map (Map)
 import Data.Bits
 import qualified Data.Map as M
 
-m_apply :: (Tree -> (State a) Tree) -> Tree -> Bool -> (State a) Tree 
+m_apply :: (Tree -> (State a) Tree) -> Tree -> Bool -> (State a) Tree
 
 m_apply f (Operator op left right) b = do
     l <- m_apply f left b
@@ -32,7 +32,7 @@ m_apply f (List []) _ = f (List [])
 m_apply f (Return tree) b = do
     tree' <- m_apply f tree b
     f (Return tree')
-m_apply f (If cond tree) b = 
+m_apply f (If cond tree) b =
     do
         cond' <- m_apply f cond b
         tree' <- m_apply f tree b
@@ -95,19 +95,25 @@ addSymbol str val t = do
     symTab <- get
     put $ M.insert str (val,t) symTab
     return ()
-    
+
 run_tree tree =
     let tree' = run_passes [(check_funcs,False)] $ run_passes passes tree
         (tree'',(ss,cnt)) = runState (m_apply getStrings tree' False) ([],0)
     in  (tree'',ss)
 
-passes = [(check_defined,True),(type_check,True),(const_subexpr_simplification,True), (arith_identity_removal,True), (mul_div_reduction, True)]
+passes = [(check_defined,True),(type_check,True),(fix_ptr_arith,True),(const_subexpr_simplification,True), (arith_identity_removal,True), (mul_div_reduction, True)]
 run_passes :: [(Tree -> State (M.Map k a) Tree, Bool)] -> Tree -> Tree
 run_passes ((pass,flag):passes) tree =
     let (tree',symTab) = runState (m_apply pass tree flag ) (M.empty)
-    
+
     in run_passes passes tree'
 run_passes [] tree = tree
+
+fix_ptr_arith all@(Operator op p1 p2)
+    |((isPtr $getType p1) || (isArr $ getType p1)) && (op `elem` [Plus,Minus]) =
+        return (Operator op p1 (Operator Shl p2 (Num 1)))
+
+fix_ptr_arith x = return x
 
 check_funcs :: Tree -> State (M.Map String (Type,[Type])) Tree
 check_funcs func@(FuncDef t str (List pars) blk) = do
@@ -127,7 +133,7 @@ check_funcs call@(FCall str (List args)) = do
         (Just (ret,expectedTypes)) -> do
             let actualTypes = map (getTypeFuncs tab) args
             let res = [canAssign t1 t2| (t1,t2) <- (zip expectedTypes actualTypes)]
-            
+
             if and res && length res == length expectedTypes && length res == length actualTypes then
                 return call
             else
@@ -176,8 +182,8 @@ type_check expr@(Assign left right) = do
 type_check tree = return tree
 const_subexpr_simplification :: Tree -> EV Tree
 const_subexpr_simplification (Operator op (Num l) (Num r)) =
-    do 
-    return (Num ((funcop op) l r))
+    do
+    return (Num (funcop op l r))
 const_subexpr_simplification tree = return tree
 
 
@@ -199,21 +205,21 @@ arith_identity_removal (Operator Mul (Num 1) x) = return x
 arith_identity_removal x = return x
 
 mul_div_reduction :: Tree -> EV Tree
-mul_div_reduction (Operator Mul val (Num x)) 
+mul_div_reduction (Operator Mul val (Num x))
     | isPowerOf2 x = do
         let shifter = countTrailingZeros x
         return (Operator Shl val (Num shifter))
-mul_div_reduction (Operator Mul (Num x) val) 
+mul_div_reduction (Operator Mul (Num x) val)
     | isPowerOf2 x = do
         let shifter = countTrailingZeros x
         return (Operator Shl val (Num shifter))
-mul_div_reduction (Operator Div val (Num x)) 
+mul_div_reduction (Operator Div val (Num x))
     | isPowerOf2 x = do
         let shifter = countTrailingZeros x
         return (Operator Shr val (Num shifter))
 mul_div_reduction x = return x
 
-getStrings :: Tree -> State ([(String,String)],Int) Tree    
+getStrings :: Tree -> State ([(String,String)],Int) Tree
 getStrings (Str str) = do
     (lst,count) <- get
     let label = "str_const_" ++ (show count)
@@ -221,7 +227,3 @@ getStrings (Str str) = do
     return (StrLabel label)
 getStrings x = return x
 isPowerOf2 n = ((.&.) n (n-1)) == 0
-
-
-
-

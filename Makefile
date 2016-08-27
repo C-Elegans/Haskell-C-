@@ -6,7 +6,7 @@ CPP=gcc -nostdinc -I $(INCLUDEDIR) -E
 run: out
 	@echo "Emulator output:"
 	@d16i -q out
-	
+
 %.o: %.s
 	d16 $< -o $@
 %.o: %.d16
@@ -18,10 +18,10 @@ out: start.o $(LIBS) compiler.o
 	$(CPP) test.c -o test.i
 compiler.s: cmm test.i
 	./cmm test.i compiler.s
-	
+
 cmm: $(HASKELL_SRCS)
 	cabal build
-	ln -s dist/build/cmm/cmm cmm
+	#ln -s dist/build/cmm/cmm cmm
 
 clean-all: clean
 	-rm -f cmm

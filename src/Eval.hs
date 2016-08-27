@@ -1,5 +1,6 @@
 module Eval where
-import Parse 
+import Parse
+import Data.Bits
 
 funcop ::  OP -> Int -> Int -> Int
 funcop Plus = (+)
@@ -12,7 +13,11 @@ funcop Gt = apply (>)
 funcop Lt = apply (<)
 funcop Le = apply (<=)
 funcop Ge = apply (>=)
-
+funcop Shl = shiftL
+funcop Shr = shiftR
+funcop And = (.&.)
+funcop Or = (.|.)
+funcop Xor = xor
 apply f l r =
     let b = f l r
     in boolToInt b
