@@ -1,40 +1,31 @@
 .global
-print_hex:
-	mov r1,0x30 ;0
-	st.b [0xff02],r1
-	mov r1,0x78 ;x
-	st.b [0xff02],r1
-	mov r3,r0
-	shr r3,12
-	and r3,0x0f
-	ld.b r1,[r3+hexdata]
-	st.b [0xff02],r1
-	
-	mov r3,r0
-	shr r3,8
-	and r3,0x0f
-	ld.b r1,[r3+hexdata]
-	st.b [0xff02],r1
-	
-	mov r3,r0
-	shr r3,4
-	and r3,0x0f
-	ld.b r1,[r3+hexdata]
-	st.b [0xff02],r1
-	
-	mov r3,r0
-	and r3,0x0f
-	ld.b r1,[r3+hexdata]
-	st.b [0xff02],r1
-	
-	mov r1,10
-	st.b [0xff02],r1
-	ret
+print_hex: ;r0 - int to print
+    mov r1,hex_string
+    mov r3,4
+    add r1,5
+1:
+    mov r2,r0
+    and r2,0xf
+    ld.b r2,[r2+hexdata]
+    st.b [r1],r2
+    sub r1,1
+    shr r0,4
+    sub r3,1
+    jmp.ne 1b
+
+    mov r0,hex_string
+    jmp puts
+
+hex_string:
+    .asciz "0x    \n"
 hexdata: ;ascii hex constants
 	.ascii "0123456789ABCDEF"
 
 .global
 putc:
+    ld.b r1,[0xff03]
+    test r1,1
+    jmp.eq putc
 	st.b [0xff02],r0
 	ret
 .global
@@ -42,6 +33,10 @@ puts:
 	ld.b r1,[r0]
 	test r1,r1
 	jmp.eq 1f
+2:
+    ld.b r2,[0xff03]
+    test r2,1
+    jmp.eq 2b
 	st.b [0xff02],r1
 	add r0,1
 	jmp puts

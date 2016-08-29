@@ -3,11 +3,7 @@
 int glob2;
 
 void main(int i){
-    int i;
-    i=8;
-    //print_hex(i/2);
-    //print_hex(-i/(-2));
-    print_hex((-i)/2);
-    //print_hex(i/(-2));
-
+    print_hex(5);
+    print_hex(0xbeef);
+    print_hex(37);
 }
