@@ -3,5 +3,5 @@
 int glob2;
 
 void main(int i){
-    print_hex(atoi("12"));
+    print_hex(atoi("-12"));
 }

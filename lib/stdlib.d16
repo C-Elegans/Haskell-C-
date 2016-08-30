@@ -1,12 +1,18 @@
 .global
 atoi: ;string in r0
     mov r1,r0
+    push r4
     mov r0,0
 1:
     ld.b r2,[r1]
     add r1,1
     test r2,r2
     jmp.eq atoi_end
+    cmp r2,45 ; '-' character
+    jmp.ne 2f
+    mov r4,1
+    jmp 1b
+2:
     sub r2,48 ;character constant 0
     mov r3,r0
     shl r0,2 ;multiply r0 by 10
@@ -16,5 +22,10 @@ atoi: ;string in r0
     jmp 1b
 
 atoi_end:
+    test r4,r4
+    jmp.eq 1f
+    neg r0
+1:
+    pop r4
     ret
     
