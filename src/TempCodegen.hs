@@ -169,7 +169,7 @@ codegen_helper (Addr (AnnotatedVar str t)) tab =
 codegen_helper (FCall name pars ) tab = do
     parameters <- genPars pars 0 tab
     return (parameters ++ [Inst_JmpI Call Al (Label name)])
-codegen_helper (FCallRet name pars ) tab = do
+codegen_helper (AnnotatedFCallRet name pars t) tab = do
     parameters <- genPars pars 0 tab
     return (parameters ++ [Inst_JmpI Call Al (Label name),Inst_R Push R0])
 codegen_helper (Var v) tab = error $ "Did not annotate var: " ++ v
@@ -290,7 +290,7 @@ getType (Addr expr) = Ptr $ getType expr
 getType (Str s) = Ptr $ P_Char
 getType (Deref t) =
     derefType (getType t)
-
+getType (AnnotatedFCallRet _ _ t) = t
 getType (Num x) = P_Int
 
 getType (Operator op left right) =

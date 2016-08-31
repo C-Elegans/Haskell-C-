@@ -82,6 +82,7 @@ data Tree =     Operator OP Tree Tree
             |   FuncDec Type String Tree
             |   FCall String Tree
             |   FCallRet String Tree
+            |   AnnotatedFCallRet String Tree Type
             |   While Tree Tree
             |   Deref Tree
             |   Addr Tree
@@ -172,6 +173,12 @@ prettyprint_helper col tree =
             (FCallRet id args) ->
                 do
                     putStrLn ("Call_r " ++ id ++ "()")
+                    spaceTabs col
+                    putStrLn "args: "
+                    prettyprint_helper (col+1) args
+            (AnnotatedFCallRet id args t) ->
+                do
+                    putStrLn ("Call_r " ++ id ++ "()" ++ "->" ++ (show t))
                     spaceTabs col
                     putStrLn "args: "
                     prettyprint_helper (col+1) args

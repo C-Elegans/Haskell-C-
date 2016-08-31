@@ -33,6 +33,7 @@ derefType t = error $ "Cannot derefrence an expression of type " ++ (show t)
 canAssign (P_Int) P_Char = True
 canAssign P_Char P_Int = True
 canAssign (Ptr P_Void) (Ptr t) = True
+canAssign (Ptr t) (Ptr P_Void) = True
 canAssign (Ptr t1) (Arr t2) = canAssign (Ptr t1) (Ptr t2)
 canAssign t2 t1 = t2 == t1
 

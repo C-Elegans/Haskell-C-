@@ -68,6 +68,9 @@ m_apply f (FCall str tree) b = do
 m_apply f (FCallRet str tree) b = do
     t <- m_apply f tree b
     f (FCallRet str t)
+m_apply f (AnnotatedFCallRet str tree t) b = do
+    tr <- m_apply f tree b
+    f (AnnotatedFCallRet str tr t)
 m_apply f (Deref tree) b = do
     tree' <- m_apply f tree b
     f (Deref tree')
@@ -97,7 +100,7 @@ addSymbol str val t = do
     return ()
 
 run_tree tree =
-    let tree' = run_passes [(check_funcs,False)] $ run_passes passes tree
+    let tree' = run_passes [(check_funcs,False)] $ run_passes passes $ run_passes [(annotateFuncs,False)] tree
         (tree'',(ss,cnt)) = runState (m_apply getStrings tree' False) ([],0)
     in  (tree'',ss)
 
@@ -139,7 +142,40 @@ check_funcs call@(FCall str (List args)) = do
             else
                 return $ error $ "Function " ++ str ++ " expects types " ++ (show expectedTypes) ++ " got " ++ (show actualTypes)
         Nothing -> return $ error $ "Function " ++ str ++ " not defined"
+check_funcs call@(FCallRet str (List args)) = trace ("FcallRet Annotation") $ do
+    tab <- get
+    let ret = M.lookup str tab
+    case ret of
+        (Just (t,expectedTypes)) -> do
+            let actualTypes = map (getTypeFuncs tab) args
+            let res = [canAssign t1 t2| (t1,t2) <- (zip expectedTypes actualTypes)]
+
+            if and res && length res == length expectedTypes && length res == length actualTypes then
+                return call
+            else
+                return $ error $ "Function " ++ str ++ " expects types " ++ (show expectedTypes) ++ " got " ++ (show actualTypes)
+        Nothing -> return $ error $ "Function " ++ str ++ " not defined"
 check_funcs tree = return tree
+
+annotateFuncs :: Tree -> State (M.Map String Type) Tree
+annotateFuncs f@(FuncDec t str pars) = do
+    tab <- get
+    put $ M.insert str t tab
+    return f
+annotateFuncs f@(FuncDef t str pars blk) = do
+    tab <- get
+    put $ M.insert str t tab
+    return f
+annotateFuncs (FCallRet str pars) = do
+    tab <- get
+    let res = M.lookup str tab
+    case res of
+        (Just t) ->
+            return (AnnotatedFCallRet str pars t)
+        Nothing ->
+            return $ error $ "No function declaration for: " ++ str
+
+annotateFuncs tree = return tree
 argTypes ((VarDec t str):rest) =
     t:(argTypes rest)
 argTypes [] = []
