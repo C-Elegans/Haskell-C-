@@ -20,7 +20,7 @@ test: $(TEST_BINS)
 	@d16 $< -o $@
 %.o: %.d16
 	@d16 $< -o $@
-%.bin: ../start.o %.o $(LIBS)
+%.bin: ../start.o $(LIBS) %.o ../brk.o
 	@d16-ld $^ -o $@
 	@python run_test.py $@ $*.output
 	@echo "$(GREEN_COLOR)Test of $(*).cm successful$(NO_COLOR)"

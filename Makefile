@@ -11,7 +11,7 @@ run: out
 	d16 $< -o $@
 %.o: %.d16
 	d16 $< -o $@
-out: start.o $(LIBS) compiler.o
+out: start.o $(LIBS) compiler.o brk.o
 	d16-ld $^ -o out
 
 %.i: %.c

@@ -1,0 +1,5 @@
+.global
+_program_break:
+    .dw 0
+.global
+_heap_start:
