@@ -105,6 +105,7 @@ run_tree tree =
     in  (tree'',ss)
 
 passes = [(check_defined,True),(type_check,True),(fix_ptr_arith,True),(const_subexpr_simplification,True), (arith_identity_removal,True), (mul_div_reduction, True)]
+
 run_passes :: [(Tree -> State (M.Map k a) Tree, Bool)] -> Tree -> Tree
 run_passes ((pass,flag):passes) tree =
     let (tree',symTab) = runState (m_apply pass tree flag ) (M.empty)
@@ -241,14 +242,18 @@ arith_identity_removal (Operator Mul (Num 1) x) = return x
 arith_identity_removal x = return x
 
 mul_div_reduction :: Tree -> EV Tree
-mul_div_reduction (Operator Mul val (Num x))
-    | isPowerOf2 x = do
+mul_div_reduction (Operator Mul val (Num x)) =
+    if isPowerOf2 x then do
         let shifter = countTrailingZeros x
         return (Operator Shl val (Num shifter))
-mul_div_reduction (Operator Mul (Num x) val)
-    | isPowerOf2 x = do
+    else
+        return (Operator Mul val (Num x))
+mul_div_reduction (Operator Mul (Num x) val) =
+    if isPowerOf2 x then do
         let shifter = countTrailingZeros x
         return (Operator Shl val (Num shifter))
+    else
+        return (Operator Mul val (Num x))
 mul_div_reduction (Operator Div val (Num x))
     | isPowerOf2 x = do
         let shifter = countTrailingZeros x

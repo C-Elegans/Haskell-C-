@@ -2,6 +2,7 @@ module TempCodegen where
 import Instructions
 import Parse hiding (OP(..))
 import qualified Parse
+import qualified Data.Map as M
 import Type
 import Debug.Trace
 import Control.Monad.State
@@ -30,7 +31,14 @@ labelSuffix = do
     put (name,count+1)
     return ("_" ++ (show count) ++ "_" ++ name)
 
-
+multiply_map = M.fromList [
+  (3,[Inst_RR Mov R1 R0, Inst_RI Shl R0 (Const 1), Inst_RR Add R0 R1]),
+  (5,[Inst_RR Mov R1 R0, Inst_RI Shl R0 (Const 2), Inst_RR Add R0 R1]),
+  (7,[Inst_RR Mov R1 R0, Inst_RI Shl R0 (Const 3), Inst_RR Sub R0 R1]),
+  (9,[Inst_RR Mov R1 R0, Inst_RI Shl R0 (Const 3), Inst_RR Add R0 R1]),
+  (15, [Inst_RR Mov R1 R0, Inst_RI Shl R0 (Const 4), Inst_RR Sub R0 R1]),
+  (17, [Inst_RR Mov R1 R0, Inst_RI Shl R0 (Const 4), Inst_RR Add R0 R1])
+  ]
 codegen_helper :: Tree -> SymTab -> State (String,Int) [Instruction]
 codegen_helper (GlobalDec t nam) tab =
     return [Inst_Directive Globl 0, Inst_Label nam, Inst_Directive Dw 0]
@@ -38,6 +46,15 @@ codegen_helper (GlobalDec t nam) tab =
 codegen_helper (Num x) _ =
     return [Inst_I Push (Const x)]
 
+codegen_helper  (Operator Parse.Mul left (Num r)) t
+  | M.member r multiply_map  = do
+      lft <- codegen_helper left t
+      let insns = M.lookup r multiply_map
+      case insns of
+          Just insn ->
+              return ([Inst_R Pop R0] ++ insn ++ [Inst_R Push R0])
+          Nothing ->
+              return $ error $ "Invalid Mul Constant"
 codegen_helper (Operator op left right) t = do
     lft <- codegen_helper left t
 
