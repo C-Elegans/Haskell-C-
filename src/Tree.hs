@@ -260,12 +260,20 @@ mul_div_reduction (Operator Mul val (Num x)) =
     if isPowerOf2 x then do
         let shifter = countTrailingZeros x
         return (Operator Shl val (Num shifter))
+    else if countTrailingZeros x > 0 then do
+        let shifter = countTrailingZeros x
+        let x' = shiftR x shifter
+        return (Operator Shl (Operator Mul val (Num x'))(Num shifter))
     else
         return (Operator Mul val (Num x))
 mul_div_reduction (Operator Mul (Num x) val) =
     if isPowerOf2 x then do
         let shifter = countTrailingZeros x
         return (Operator Shl val (Num shifter))
+    else if countTrailingZeros x > 0 then do
+        let shifter = countTrailingZeros x
+        let x' = shiftR x shifter
+        return (Operator Shl (Operator Mul val (Num x'))(Num shifter))
     else
         return (Operator Mul val (Num x))
 mul_div_reduction (Operator Div val (Num x))

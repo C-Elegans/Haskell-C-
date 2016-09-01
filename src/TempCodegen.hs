@@ -7,7 +7,6 @@ import Type
 import Debug.Trace
 import Control.Monad.State
 
-import qualified Data.Map as M
 type SymTab = M.Map String Location
 
 data Location = Global | Local Int
@@ -29,9 +28,9 @@ labelSuffix :: State (String,Int) String
 labelSuffix = do
     (name,count) <- get
     put (name,count+1)
-    return ("_" ++ (show count) ++ "_" ++ name)
+    return ("_" ++ show count ++ "_" ++ name)
 
-multiply_map = M.fromList [
+multiplyMap = M.fromList [
   (3,[Inst_RR Mov R1 R0, Inst_RI Shl R0 (Const 1), Inst_RR Add R0 R1]),
   (5,[Inst_RR Mov R1 R0, Inst_RI Shl R0 (Const 2), Inst_RR Add R0 R1]),
   (7,[Inst_RR Mov R1 R0, Inst_RI Shl R0 (Const 3), Inst_RR Sub R0 R1]),
@@ -47,9 +46,9 @@ codegen_helper (Num x) _ =
     return [Inst_I Push (Const x)]
 
 codegen_helper  (Operator Parse.Mul left (Num r)) t
-  | M.member r multiply_map  = do
+  | M.member r multiplyMap  = do
       lft <- codegen_helper left t
-      let insns = M.lookup r multiply_map
+      let insns = M.lookup r multiplyMap
       case insns of
           Just insn ->
               return (lft ++ [Inst_R Pop R0] ++ insn ++ [Inst_R Push R0])
