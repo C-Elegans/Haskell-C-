@@ -41,3 +41,20 @@ sbrk: ;increment in r0, returns old system break
     st [_program_break], r0
     mov r0,r1
     ret
+.global
+srand:
+    test r0,r0
+    jmp.eq 1f
+    st [rand_state],r0
+1:
+    ret
+.global
+rand:
+    ld r0,[rand_state]
+    rol r0,1
+    xor r0,0xAce1
+    sub r0,1
+    st [rand_state],r0
+    ret
+rand_state:
+.dw 0xb400
