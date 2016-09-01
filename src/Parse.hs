@@ -438,6 +438,15 @@ return_statement =
         return $ Return tree
     <?> "return"
 
+operation_assignment :: Parser Tree
+operation_assignment = do
+  (VarAssign str) <- varAssign
+  c <- lexeme $ oneOf "+-*/"
+  lexeme $ char '='
+  right <- simple_expression
+  let o = op [c]
+  return (Assign (VarAssign str) (Operator o (Var str) right))
+
 simple_expression :: Parser Tree
 simple_expression =
         expr
@@ -445,6 +454,8 @@ simple_expression =
         strLiteral
 expression :: Parser Tree
 expression =
+    try operation_assignment
+    <|>
     try (do
         left <- varAssign
         lexeme $ char '='
