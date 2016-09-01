@@ -52,7 +52,7 @@ codegen_helper  (Operator Parse.Mul left (Num r)) t
       let insns = M.lookup r multiply_map
       case insns of
           Just insn ->
-              return ([Inst_R Pop R0] ++ insn ++ [Inst_R Push R0])
+              return (lft ++ [Inst_R Pop R0] ++ insn ++ [Inst_R Push R0])
           Nothing ->
               return $ error $ "Invalid Mul Constant"
 codegen_helper (Operator op left right) t = do
