@@ -8,7 +8,7 @@ import Debug.Trace (trace)
 type Stack = ([(StackEntry,Int)],Set Register)
 data StackEntry = Undefined | Unknown Register | Known Int
     deriving (Show)
- 
+
 optimize :: [Instruction] -> [Instruction]
 optimize i = i
 
@@ -31,9 +31,9 @@ push a = do
             put $ (a:stack,(Set.insert reg regs))
         _ ->
             put $ (a:stack,regs)
-            
-    
-    
+
+
+
     return ()
 clear :: State Stack ()
 clear = put ([],Set.empty)
@@ -76,11 +76,11 @@ stack_analysis ((Inst_R Pop reg):rest) x = do
         Undefined -> do
             (instructions,indices) <- stack_analysis rest (x+1)
             return ((Inst_R Pop reg):instructions,indices)
-        Unknown reg2 -> do 
+        Unknown reg2 -> do
             if reg == reg2 && valid && (line+3) >= x then do
                 (instructions,indices) <- stack_analysis rest (x)
                 return (instructions,line:indices)
-            else do 
+            else do
                 (instructions,indices) <- stack_analysis rest (x+1)
                 return ((Inst_R Pop reg):instructions,indices)
         Known v -> do

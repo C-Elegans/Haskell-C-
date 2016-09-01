@@ -77,6 +77,7 @@ data Tree =     Operator OP Tree Tree
             |   Compound Tree Tree
             |   EmptyTree
             |   VarDec Type String
+            |   VarDecAssign Type String Tree
             |   ArrayDec Type String Int
             |   FuncDef Type String Tree Tree
             |   FuncDec Type String Tree
@@ -148,6 +149,7 @@ prettyprint_helper col tree =
                     prettyprint_helper (col+1) stmts
             (EmptyTree) -> putStrLn "Empty"
             (VarDec t str) -> putStrLn ("VarDec " ++ str ++ " = " ++ (show t))
+            (VarDecAssign t str exp) -> putStrLn ("VarDec " ++ str ++ " " ++ (show t) ++ " = " ++ (show exp))
             (GlobalDec t str) -> putStrLn ("Global " ++ str ++ "=" ++ (show t))
             (ArrayDec t str sz) -> putStrLn ("Array (" ++ (show t) ++ ") "++ str ++ " [" ++ (show sz) ++ "]")
             (FuncDef t id left right) ->
@@ -263,8 +265,14 @@ var_declaration =
     try(do
         t <- lexeme $ type_specifier
         name <- lexeme $ identifier
-        semi
-        return $ VarDec t name)
+        do
+          (try semi)
+          return $ VarDec t name
+          <|>do
+            lexeme $ char '='
+            exp <- expression
+            semi
+            return $ VarDecAssign t name exp)
     <|>
     do
         t <- type_specifier

@@ -104,7 +104,8 @@ run_tree tree =
         (tree'',(ss,cnt)) = runState (m_apply getStrings tree' False) ([],0)
     in  (tree'',ss)
 
-passes = [(check_defined,True),(type_check,True),(fix_ptr_arith,True),(const_subexpr_simplification,True), (arith_identity_removal,True), (mul_div_reduction, True)]
+passes = [(expand_vardec_assign,True),(check_defined,True),(type_check,True),(fix_ptr_arith,True),(const_subexpr_simplification,True), (arith_identity_removal,True), (mul_div_reduction, True)]
+
 
 run_passes :: [(Tree -> State (M.Map k a) Tree, Bool)] -> Tree -> Tree
 run_passes ((pass,flag):passes) tree =
@@ -118,6 +119,19 @@ fix_ptr_arith all@(Operator op p1 p2)
         return (Operator op p1 (Operator Shl p2 (Num 1)))
 
 fix_ptr_arith x = return x
+
+extract_assignments ((VarDecAssign t str expr):xs) =
+    let (decs,assgns) = extract_assignments xs
+    in ((VarDec t str):decs,(Assign (VarAssign str) expr):assgns)
+extract_assignments (x:xs) =
+    let (decs,assgns) = extract_assignments xs
+    in (x:decs,assgns)
+extract_assignments [] = ([],[])
+
+expand_vardec_assign (Compound (List l1) (List l2)) = do
+    let (declarations,assignments) = extract_assignments l1
+    return $ Compound (List declarations) (List (assignments ++ l2))
+expand_vardec_assign tree = return tree
 
 check_funcs :: Tree -> State (M.Map String (Type,[Type])) Tree
 check_funcs func@(FuncDef t str (List pars) blk) = do
