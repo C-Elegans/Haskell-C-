@@ -9,6 +9,8 @@ buildExpr (P.Operator op left right) =
     Binop (opToBinOp op) (buildExpr left) (buildExpr right)
 buildExpr (P.Num n) =
     Lit (Int $ toInteger n)
+buildExpr (P.Addr (P.AnnotatedVar name t)) = 
+    Unop Addr (Var name)
 buildExpr (P.AnnotatedVar name t) =
     Var name
 buildExpr (P.UnaryOp op t) =
@@ -18,6 +20,8 @@ buildExpr t = error $ "No BuildExpr defined for " ++ (show t)
 buildNode :: P.Tree -> LabelMapM (Node O O)
 buildNode (P.Assign (P.AnnotatedVarAssign nam t) (left)) =
     return $ Assign (nam) (buildExpr left)
+buildNode (P.Assign (P.Deref expr) (left)) =
+    return $ Store (buildExpr expr) (buildExpr left)
 buildNode x = error $ "No BuildNode defined for " ++ (show x) 
 
 

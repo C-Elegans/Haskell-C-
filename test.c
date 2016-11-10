@@ -3,13 +3,8 @@
 
 void main(int i){
     int i=3;
-    int j=1;
-    if(i>2){
-    	i=i+j;
-    }else{
-    	i=i+1;
-    }
-    
-    print_hex(i);
-    return 3;
+ 	int* j = &i;
+ 	*(j+2)=4;
+ 	print_hex(i);
+ 	return i;
 }

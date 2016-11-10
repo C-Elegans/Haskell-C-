@@ -11,7 +11,7 @@ data Expr = Lit   Lit
 data BinOp = Add | Sub | Mul | Div | Eq | Ne | Lt | Gt | Lte | Gte | 
     Shl | Shr | And | Or | Xor | Sar
     deriving Eq
-data UnOp = Not | Neg
+data UnOp = Not | Neg | Addr
     deriving Eq
 
 data Lit = Bool Bool | Int Integer deriving Eq
@@ -50,6 +50,7 @@ instance Show BinOp where
 instance Show UnOp where
   show Not = "~"
   show Neg = "-"
+  show Addr = "&"
 
 tuple :: [String] -> String
 tuple []     = "()"
