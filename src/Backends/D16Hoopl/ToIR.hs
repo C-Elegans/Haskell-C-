@@ -11,6 +11,9 @@ buildExpr (P.Num n) =
     Lit (Int $ toInteger n)
 buildExpr (P.AnnotatedVar name t) =
     Var name
+buildExpr (P.UnaryOp op t) =
+    Unop (opToUnOp op) (buildExpr t)
+buildExpr t = error $ "No BuildExpr defined for " ++ (show t)
     
 buildNode :: P.Tree -> LabelMapM (Node O O)
 buildNode (P.Assign (P.AnnotatedVarAssign nam t) (left)) =
@@ -33,6 +36,27 @@ buildGraph (P.FCall name (P.List arglist)) = do
     let call = gUnitOC $ BlockOC BNil (Call [] name exprs lbl)
     let label = gUnitCO $ BlockCO (Label lbl) BNil
     return $ gSplice call label
+buildGraph (P.If con block) = do
+    lblIf <- uniqueLabel
+    lblNext <- uniqueLabel
+    blockGraph <- buildGraph block
+    let blockGraph' = catGraphNodeOC blockGraph (Branch lblNext)
+    let blockGraph'' = catNodeCOGraph (Label lblIf) blockGraph'
+    let cond = gUnitOC $ BlockOC BNil (Cond (buildExpr con) lblIf lblNext)
+    return $ gSplice (gSplice cond blockGraph'') $ gUnitCO $ BlockCO (Label lblNext) BNil
+
+buildGraph (P.IfElse cond i e) = do
+    lblIf <- uniqueLabel
+    lblElse <- uniqueLabel
+    lblNext <- uniqueLabel
+    ifGraph <- buildGraph i 
+    elseGraph <- buildGraph e
+    let ifGraph' = catNodeCOGraph (Label lblIf) (catGraphNodeOC ifGraph (Branch lblNext))
+    let elseGraph' = catNodeCOGraph (Label lblElse) (catGraphNodeOC elseGraph (Branch lblNext))
+    let condGraph = (blockGraph $ BlockOC BNil (Cond (buildExpr cond) lblIf lblElse))
+    return $ gSplice condGraph $ gSplice ifGraph' (gSplice elseGraph' (blockGraph $ BlockCO (Label lblNext) BNil))
+    
+    
 buildGraph x =do
     node <- buildNode x 
     return $ gUnitOO $ BMiddle $ node
