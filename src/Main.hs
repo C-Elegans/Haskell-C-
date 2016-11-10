@@ -12,6 +12,8 @@ import System.FilePath
 import qualified Data.Map
 import Control.Monad.State
 import Debug.Trace (trace)
+import Backends.D16Naive.Backend (runBackend)
+
 import qualified Data.Map as M (empty)
 main =
     do
@@ -36,24 +38,14 @@ main =
                     let (List l) = tree
                     let (tree',strings) = run_tree tree
                     prettyprint_tree tree'
-                    let globals = getGlobals tree'
-                    let globalList = [(str,Global) | (GlobalDec t str) <- globals]
-            
-                    let funcs = getFunctions tree'
-                    let locals = map getLocals funcs
-            
-                    let pairs = zip funcs locals
-                    let globalCode = codegen [((List globals),M.empty)] [] cleanFileName
-                    let code = globalCode ++ (codegen pairs globalList cleanFileName)
-                    --mapM_ print code
-                    putStrLn "\n"
-                    let assembledStrings = assemble_strings strings cleanFileName
-                    let betterCode = optimize code
-                    mapM_ print betterCode
+                    let (code,assembledStrings) = runBackend tree' strings cleanFileName
+                    
+                   
+                    mapM_ print code
                     let outFileName = (args!!1)
-                    let codeString = concat $ intersperse "\n" $ map show betterCode
+                    let codeString = concat $ intersperse "\n" $ map show code
             
-                    putStrLn $ "Reduced code length by: " ++ (show (round $ 100 * (1- ((fromIntegral $ length betterCode) / (fromIntegral $ length code))))) ++ "%"
+                    
                     out_handle <- openFile outFileName WriteMode
                     hPutStr out_handle (codeString ++ "\nend:\n\n" ++ assembledStrings)
             
