@@ -56,6 +56,11 @@ buildGraph (P.IfElse cond i e) = do
     let condGraph = (blockGraph $ BlockOC BNil (Cond (buildExpr cond) lblIf lblElse))
     return $ gSplice condGraph $ gSplice ifGraph' (gSplice elseGraph' (blockGraph $ BlockCO (Label lblNext) BNil))
     
+buildGraph (P.Return expr) = do
+    let ret =blockGraph $ BlockOC BNil (Return [(buildExpr expr)])
+    dummyLabel <- uniqueLabel
+    let dummy = blockGraph $ BlockCO (Label dummyLabel) BNil
+    return $ gSplice ret dummy
     
 buildGraph x =do
     node <- buildNode x 

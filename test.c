@@ -11,4 +11,5 @@ void main(int i){
     }
     
     print_hex(i);
+    return 3;
 }

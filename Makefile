@@ -37,6 +37,7 @@ clean:
 	-rm -f lib/*.o
 	-rm -f compiler.s
 	-rm -f out.s
+	$(MAKE) -C test clean 
 
 check: cmm
 	export INCLUDEDIR
