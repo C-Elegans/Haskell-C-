@@ -65,6 +65,19 @@ buildGraph (P.Return expr) = do
     dummyLabel <- uniqueLabel
     let dummy = blockGraph $ BlockCO (Label dummyLabel) BNil
     return $ gSplice ret dummy
+buildGraph (P.While cond tree) = do
+    lblCond <- uniqueLabel
+    lblWhile <- uniqueLabel
+    whileBody <- (buildGraph tree)
+    lblNext <- uniqueLabel
+    
+    let condGraph = (blockGraph $ BlockOC BNil (Cond (buildExpr cond) lblWhile lblNext))
+    let condGraph' = catNodeCOGraph (Label lblCond) condGraph
+    let condGraph'' = gSplice (blockGraph $ BlockOC BNil (Branch lblCond)) condGraph'
+    let whileGraph = catNodeCOGraph (Label lblWhile) whileBody
+    let whileGraph' = catGraphNodeOC whileGraph (Branch lblCond)
+    let whileGraph'' = gSplice whileGraph' $ blockGraph $ BlockCO (Label lblNext) BNil
+    return $ gSplice condGraph'' whileGraph''
     
 buildGraph x =do
     node <- buildNode x 

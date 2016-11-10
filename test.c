@@ -3,8 +3,10 @@
 
 void main(int i){
     int i=3;
- 	int* j = &i;
- 	*(j+2)=4;
+ 	while (i<20){
+ 		i=i+2;
+ 		print_hex(i);
+ 	}
  	print_hex(i);
  	return i;
 }
