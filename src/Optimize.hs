@@ -1,9 +1,9 @@
 module Optimize where
 import Stack (run_stack_analysis)
 import Instructions
-passes = [run_stack_analysis,run_stack_analysis,peephole_1,peephole_2,
+passes = [run_stack_analysis,peephole_1,peephole_2,
     const_fold,load_store,redundant_ret,indexed_mem,peephole_3,cmp_to_test,
-    cond_jump]
+    cond_jump, peephole_4]
 
 optimize :: [Instruction] -> [Instruction]
 optimize = run passes
@@ -63,6 +63,12 @@ peephole_3 ((Inst_R Push reg1):inst@(Inst_RI op reg2 dat):(Inst_R Pop reg3):rest
     inst:(peephole_3 rest)
 peephole_3 (x:xs) = x:(peephole_3 xs)
 peephole_3 [] = []
+
+peephole_4 ((Inst_RR Mov reg2 reg1):(Inst_R Pop reg3):(Inst_RR op reg4 reg5):rest)
+    | (reg2 == reg4 || reg2 == reg5) && reg1 == reg3 && (reg1 == reg5 || reg1 == reg4) && op `elem` [Add, And, Or, Xor] =
+    (Inst_R Pop reg2):(Inst_RR op reg4 reg5):(peephole_4 rest)
+peephole_4 (x:xs) = x:(peephole_4 xs)
+peephole_4 [] = []
 
 cmp_to_test :: [Instruction] -> [Instruction]
 cmp_to_test ((Inst_RI Cmp reg (Const 0)):rest) =
