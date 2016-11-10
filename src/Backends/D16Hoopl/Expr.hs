@@ -1,4 +1,5 @@
 module Backends.D16Hoopl.Expr where
+import qualified Parse
 
 data Expr = Lit   Lit
           | Var   Var
@@ -38,3 +39,15 @@ tuple :: [String] -> String
 tuple []     = "()"
 tuple [a]    = "(" ++ a ++ ")"
 tuple (a:as) = "(" ++ a ++ concat (map ((++) ", ") as) ++ ")"
+
+opToBinOp :: Parse.OP -> BinOp
+opToBinOp Parse.Plus = Add
+opToBinOp Parse.Minus = Sub
+opToBinOp Parse.Mul = Mul
+opToBinOp Parse.Div = Div
+opToBinOp Parse.Eq = Eq
+opToBinOp Parse.Ne = Ne
+opToBinOp Parse.Gt = Gt
+opToBinOp Parse.Lt = Lt
+opToBinOp Parse.Ge = Gte
+opToBinOp Parse.Le = Lte

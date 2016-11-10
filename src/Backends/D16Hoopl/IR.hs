@@ -1,6 +1,9 @@
 {-# LANGUAGE GADTs #-}
 module Backends.D16Hoopl.IR where
 import Backends.D16Hoopl.Expr
+import Control.Monad
+import qualified Data.Map as M
+import Control.Applicative as AP (Applicative(..))
 import qualified Parse
 import Compiler.Hoopl
 import Prelude hiding (succ)
@@ -12,6 +15,7 @@ data Value = B Bool | I Integer deriving Eq
 data Proc = Proc { name :: String, args :: [Var], entry :: Label, body :: Graph Node C C }
 
 data Node e x where
+  Nop    ::                                         Node O O
   Label  :: Label  ->                               Node C O
   Assign :: Var    -> Expr    ->                    Node O O
   Store  :: Expr   -> Expr    ->                    Node O O
@@ -46,10 +50,46 @@ instance Show (Node e x) where
   show (Call ress f cargs succ) =
     ind $ tuple ress ++ " = " ++ f ++ tuple (map show cargs) ++ " goto " ++ show succ
   show (Return      rargs) = ind $ "ret " ++ tuple (map show rargs)
-
+  show (Nop) = "nop"
 ind :: String -> String
 ind x = "  " ++ x
 
 instance Show Value where
   show (B b) = show b
   show (I i) = show i
+
+
+
+--------------------------------------------------------------------------------
+-- The LabelMapM monad
+--------------------------------------------------------------------------------
+
+type IdLabelMap = M.Map String Label
+data LabelMapM a = LabelMapM (IdLabelMap -> M (IdLabelMap, a))
+
+instance Monad LabelMapM where
+  return = AP.pure
+  LabelMapM f1 >>= k = LabelMapM (\m -> do (m', x) <- f1 m
+                                           let (LabelMapM f2) = k x
+                                           f2 m')
+
+instance Functor LabelMapM where
+  fmap = liftM
+
+instance Applicative LabelMapM where
+  pure x = LabelMapM (\m -> return (m, x))
+  (<*>) = ap
+
+labelFor l = LabelMapM f
+  where f m = case M.lookup l m of
+                Just l' -> return (m, l')
+                Nothing -> do l' <- freshLabel
+                              let m' = M.insert l l' m
+                              return (m', l')
+uniqueLabel = LabelMapM f
+  where f m = do l' <- freshLabel; return(m,l')
+
+getBody graph = LabelMapM f
+  where f m = return (m, graph)
+
+run (LabelMapM f) = f M.empty >>= return . snd
