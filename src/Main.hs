@@ -2,8 +2,6 @@ module Main where
 import Parse
 import Type
 import Tree
-import Optimize (optimize)
-import TempCodegen
 import System.Environment
 import System.IO
 import System.Exit

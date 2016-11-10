@@ -1,4 +1,5 @@
-module TempCodegen where
+module Backends.D16Naive.TempCodegen where
+import Tree(getType)
 import Instructions
 import Parse hiding (OP(..))
 import qualified Parse
@@ -299,24 +300,7 @@ assemble_strings (s:strs) filename =
     in assembledString ++ (assemble_strings strs filename)
 assemble_strings [] _ = []
 
-getType :: Tree -> Type
-getType (AnnotatedVar str t) = t
-getType (AnnotatedVarAssign str t) = t
-getType (Addr expr) = Ptr $ getType expr
-getType (Str s) = Ptr $ P_Char
-getType (Deref t) =
-    derefType (getType t)
-getType (AnnotatedFCallRet _ _ t) = t
-getType (Num x) = P_Int
 
-getType (Operator op left right) =
-    let t1 = getType left
-        t2 = getType right
-    in max t1 t2
-getType (UnaryOp op expr) =
-    getType expr
-getType (Cast t expr) = t
-getType n = trace ("no definition of getType for " ++ (show n)) (P_Int)
 escape :: String -> String
 escape ('\n':cs) = '\\':'n':(escape cs)
 escape ('\0':cs) = '\\':'0':(escape cs)

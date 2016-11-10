@@ -1,5 +1,5 @@
-module Optimize where
-import Stack (run_stack_analysis)
+module Backends.D16Naive.Optimize where
+import Backends.D16Naive.Stack (run_stack_analysis)
 import Instructions
 passes = [run_stack_analysis,peephole_1,peephole_2,
     const_fold,load_store,redundant_ret,indexed_mem,peephole_3,cmp_to_test,

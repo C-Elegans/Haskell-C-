@@ -1,4 +1,4 @@
-module Stack where
+module Backends.D16Naive.Stack where
 import Instructions
 import Data.List (sort)
 import Control.Monad.State

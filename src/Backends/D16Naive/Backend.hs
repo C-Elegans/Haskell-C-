@@ -2,8 +2,8 @@ module Backends.D16Naive.Backend where
 import Parse (Tree(GlobalDec, List))
 import Instructions
 import Tree (getFunctions, getGlobals )
-import TempCodegen (codegen, Location(Global), getLocals, assemble_strings)
-import Optimize (optimize)
+import Backends.D16Naive.TempCodegen (codegen, Location(Global), getLocals, assemble_strings)
+import Backends.D16Naive.Optimize (optimize)
 import qualified Data.Map as M (empty)
 
 runBackend :: Tree -> [(String,String)] -> String -> ([Instruction],String)

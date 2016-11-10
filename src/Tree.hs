@@ -2,7 +2,6 @@ module Tree where
 import Parse (Tree(..), OP(..))
 import Eval (funcop)
 import Type
-import TempCodegen (getType)
 import Debug.Trace (trace)
 import Control.Monad.State
 import Control.Monad.Trans.Maybe
@@ -290,3 +289,22 @@ getStrings (Str str) = do
     return (StrLabel label)
 getStrings x = return x
 isPowerOf2 n = ((.&.) n (n-1)) == 0
+
+getType :: Tree -> Type
+getType (AnnotatedVar str t) = t
+getType (AnnotatedVarAssign str t) = t
+getType (Addr expr) = Ptr $ getType expr
+getType (Str s) = Ptr $ P_Char
+getType (Deref t) =
+    derefType (getType t)
+getType (AnnotatedFCallRet _ _ t) = t
+getType (Num x) = P_Int
+
+getType (Operator op left right) =
+    let t1 = getType left
+        t2 = getType right
+    in max t1 t2
+getType (UnaryOp op expr) =
+    getType expr
+getType (Cast t expr) = t
+getType n = trace ("no definition of getType for " ++ (show n)) (P_Int)
