@@ -10,7 +10,8 @@ import System.FilePath
 import qualified Data.Map
 import Control.Monad.State
 import Debug.Trace (trace)
-import Backends.D16Naive.Backend (runBackend)
+--import Backends.D16Naive.Backend (runBackend)
+import Backends.D16Hoopl.Backend (runBackend)
 
 import qualified Data.Map as M (empty)
 main =
@@ -32,10 +33,10 @@ main =
                     putStrLn (show err)
                     exitFailure
                 Right tree ->do
-                    prettyprint_tree tree
+                    --prettyprint_tree tree
                     let (List l) = tree
                     let (tree',strings) = run_tree tree
-                    prettyprint_tree tree'
+                    --prettyprint_tree tree'
                     let (code,assembledStrings) = runBackend tree' strings cleanFileName
                     
                    

@@ -1,4 +1,7 @@
+NAIVE_BACKEND = $(wildcard src/Backends/D16Naive/*.hs)
+HOOPL_BACKEND = $(wildcard src/Backends/D16Hoopl/*.hs)
 HASKELL_SRCS = $(wildcard src/*.hs)
+
 LIBSRCS = $(wildcard lib/*.d16)
 LIBS = $(patsubst %.d16,%.o,$(LIBSRCS))
 INCLUDEDIR=include/
@@ -19,7 +22,7 @@ out: start.o $(LIBS) compiler.o brk.o
 compiler.s: cmm test.i
 	./cmm test.i compiler.s
 
-cmm: $(HASKELL_SRCS)
+cmm: $(HASKELL_SRCS) $(NAIVE_BACKEND) $(HOOPL_BACKEND)
 	cabal build
 	-rm -f cmm
 	ln -s dist/build/cmm/cmm cmm
