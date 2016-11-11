@@ -14,7 +14,7 @@ data BinOp = Add | Sub | Mul | Div | Eq | Ne | Lt | Gt | Lte | Gte |
 data UnOp = Not | Neg | Addr
     deriving Eq
 
-data Lit = Bool Bool | Int Integer deriving Eq
+data Lit = Bool Bool | Int Int deriving Eq
 type Var = String
 
 instance Show Expr where

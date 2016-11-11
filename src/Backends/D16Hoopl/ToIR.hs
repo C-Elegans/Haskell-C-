@@ -8,7 +8,7 @@ buildExpr :: P.Tree -> Expr
 buildExpr (P.Operator op left right) = 
     Binop (opToBinOp op) (buildExpr left) (buildExpr right)
 buildExpr (P.Num n) =
-    Lit (Int $ toInteger n)
+    Lit (Int $ n)
 buildExpr (P.Addr (P.AnnotatedVar name t)) = 
     Unop Addr (Var name)
 buildExpr (P.AnnotatedVar name t) =

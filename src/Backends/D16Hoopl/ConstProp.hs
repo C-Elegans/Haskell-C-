@@ -42,11 +42,7 @@ varHasLit = mkFTransfer ft
             where toTop f v = Map.insert v Top f
     ft (Return _)           _ = mapEmpty
 
-constPropPass :: FuelMonad m => FwdPass m Node ConstFact
-constPropPass = FwdPass
-  { fp_lattice  = constLattice
-  , fp_transfer = varHasLit
-  , fp_rewrite  = constProp }
+
 
 
 constProp :: forall m . FuelMonad m => FwdRewrite m Node ConstFact

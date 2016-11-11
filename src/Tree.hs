@@ -103,7 +103,7 @@ run_tree tree =
         (tree'',(ss,cnt)) = runState (m_apply getStrings tree' False) ([],0)
     in  (tree'',ss)
 
-passes = [(expand_vardec_assign,True),(check_defined,True),(type_check,True),(fix_ptr_arith,True),(const_subexpr_simplification,True), (arith_identity_removal,True), (mul_div_reduction, True)]
+passes = [(expand_vardec_assign,True),(check_defined,True),(type_check,True),(fix_ptr_arith,True)]
 
 
 run_passes :: [(Tree -> State (M.Map k a) Tree, Bool)] -> Tree -> Tree
