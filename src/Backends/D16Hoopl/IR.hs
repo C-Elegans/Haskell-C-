@@ -14,8 +14,7 @@ data Value = B Bool | I Integer deriving Eq
 
 data Proc = Proc { name :: String, args :: [Var], entry :: Label, body :: Graph Node C C }
 
-data Node e x where
-  Nop    ::                                         Node O O
+data Node e x where                                 
   Label  :: Label  ->                               Node C O
   Assign :: Var    -> Expr    ->                    Node O O
   Store  :: Expr   -> Expr    ->                    Node O O
@@ -50,7 +49,7 @@ instance Show (Node e x) where
   show (Call ress f cargs succ) =
     ind $ tuple ress ++ " = " ++ f ++ tuple (map show cargs) ++ " goto " ++ show succ
   show (Return      rargs) = ind $ "ret " ++ tuple (map show rargs)
-  show (Nop) = "nop"
+  --show (Nop) = "nop"
 ind :: String -> String
 ind x = "  " ++ x
 

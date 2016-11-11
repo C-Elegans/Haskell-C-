@@ -85,19 +85,23 @@ buildGraph x =do
     
     
 
-  
-buildGraphCC :: P.Tree -> LabelMapM (Graph Node C C)
-buildGraphCC (P.FuncDef t name args body) = do
-    lbl <- labelFor name
+args2Vars :: [P.Tree] -> [Var]
+args2Vars ((P.VarDec t str):xs) = str:(args2Vars xs)
+args2Vars [] = []
+buildGraphCC :: P.Tree -> LabelMapM (Proc)
+buildGraphCC (P.FuncDef t name (P.List args) body) = do
+    lbl <- uniqueLabel
     bodyGraph <- buildGraph body
     let graph = catNodeCOGraph (Label lbl) bodyGraph
-    return $ catGraphNodeOC graph (Return [])
+    let graph' = catGraphNodeOC graph (Return [])
+    return $ Proc{ name=name, args=(args2Vars args), entry = lbl, body = graph'}
 
 
 canBecomeGraph :: P.Tree -> Bool
 canBecomeGraph (P.FuncDef _ _ _ _) = True
 canBecomeGraph x = False
 
+treeToIR :: P.Tree -> [Proc]
 treeToIR (P.List lst) =
     map (\ x -> runSimpleUniqueMonad $ runWithFuel 0 ( run (buildGraphCC x))) (filter canBecomeGraph lst)
     
