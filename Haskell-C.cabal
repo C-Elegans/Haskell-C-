@@ -57,7 +57,14 @@ executable cmm
   other-extensions:    DeriveDataTypeable
 
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.9 && <4.10, containers >=0.5 && <0.6, filepath >=1.4 && <1.5, transformers >=0.5 && <0.6, monads-tf == 0.1.*, parsec == 3.1.*, hoopl == 3.10.2.*
+  build-depends:       
+    base >=4.9 && <4.10, 
+    containers >=0.5 && <0.6,
+    filepath >=1.4 && <1.5, 
+    transformers >=0.5 && <0.6, 
+    monads-tf == 0.1.*, 
+    parsec == 3.1.*, 
+    hoopl == 3.10.2.*
 
   -- Directories containing source files.
   hs-source-dirs: src/

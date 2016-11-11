@@ -11,10 +11,10 @@ import Debug.Trace (trace)
 import qualified Data.Set as S
 
 --Lattice
-type Live = S.Set Var
+type Live = S.Set SVar
 liveLattice :: DataflowLattice Live
 liveLattice = DataflowLattice {
-    fact_name = "Live variables",
+    fact_name = "Live SVariables",
     fact_bot = S.empty,
     fact_join = add 
     }
@@ -30,27 +30,29 @@ liveness = mkBTransfer3 firstLive middleLive lastLive
     firstLive (Label _) f = f
     
     middleLive :: Node O O -> Live -> Live
-    middleLive n@(Assign x _)   f = addUses (S.delete x f) n
+    middleLive n@(Assign (S x) _)   f = addUses (S.delete x f) n
+    middleLive (Assign (V x) _)   _ = error $ "Variable " ++ x ++ " is not in SSA Form"
     middleLive n@(Store _ _)    f = addUses f n
     
     lastLive :: Node O C -> FactBase Live -> Live
     lastLive n@(Branch l)       f = addUses (fact f l) n
     lastLive n@(Cond _ tl fl)   f = addUses (fact f tl `S.union` fact f fl) n
-    lastLive n@(Call vs _ _ l)  f = addUses (fact f l ` S.difference` S.fromList vs) n
+    lastLive n@(Call ((S s):[]) _ _ l)  f = addUses (fact f l ` S.difference` S.fromList [s]) n
+    lastLive n@(Call _ _ _ l)     f = addUses (fact f l) n
     lastLive n@(Return _)       _ = addUses (fact_bot liveLattice) n
     
-    fact :: FactBase (S.Set Var) -> Label -> Live
+    fact :: FactBase (S.Set SVar) -> Label -> Live
     fact f l = fromMaybe S.empty $ lookupFact l f
     
-    addUses :: S.Set Var -> Node e x -> Live
-    addUses = fold_EN (fold_EE addVar)
-    addVar s (Var v) = S.insert v s
-    addVar s _       = s
+    addUses :: S.Set SVar -> Node e x -> Live
+    addUses = fold_EN (fold_EE addSVar)
+    addSVar s (SVar v) = S.insert v s
+    addSVar s _       = s
 deadCode :: forall m. FuelMonad m => BwdRewrite m Node Live
 deadCode = mkBRewrite del
   where
     del :: Node e x -> Fact x Live -> m (Maybe (Graph Node e x))
-    del n@(Assign x _) live = 
+    del n@(Assign (S x) _) live = 
         case S.member x live of
             True -> return Nothing
             False -> return $ trace ("Removing node (dead): " ++ (show n)) $ Just emptyGraph

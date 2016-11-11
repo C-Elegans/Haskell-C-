@@ -19,7 +19,7 @@ buildExpr t = error $ "No BuildExpr defined for " ++ (show t)
     
 buildNode :: P.Tree -> LabelMapM (Node O O)
 buildNode (P.Assign (P.AnnotatedVarAssign nam t) (left)) =
-    return $ Assign (nam) (buildExpr left)
+    return $ Assign (V nam) (buildExpr left)
 buildNode (P.Assign (P.Deref expr) (left)) =
     return $ Store (buildExpr expr) (buildExpr left)
 buildNode x = error $ "No BuildNode defined for " ++ (show x) 
@@ -38,6 +38,12 @@ buildGraph (P.FCall name (P.List arglist)) = do
     lbl <- uniqueLabel
     let exprs = map buildExpr arglist
     let call = gUnitOC $ BlockOC BNil (Call [] name exprs lbl)
+    let label = gUnitCO $ BlockCO (Label lbl) BNil
+    return $ gSplice call label
+buildGraph (P.Assign (P.AnnotatedVarAssign nam t) (P.AnnotatedFCallRet name (P.List arglist) t')) = do
+    lbl <- uniqueLabel
+    let exprs = map buildExpr arglist
+    let call = gUnitOC $ BlockOC BNil (Call [V nam] name exprs lbl)
     let label = gUnitCO $ BlockCO (Label lbl) BNil
     return $ gSplice call label
 buildGraph (P.If con block) = do

@@ -3,6 +3,7 @@ import qualified Parse
 
 data Expr = Lit   Lit
           | Var   Var
+          | SVar  SVar
           | Load  Expr
           | Binop BinOp Expr Expr 
           | Unop  UnOp Expr
@@ -16,10 +17,13 @@ data UnOp = Not | Neg | Addr
 
 data Lit = Bool Bool | Int Int deriving Eq
 type Var = String
+data S_Flags = S_None | S_Kill deriving (Eq,Ord)
+data SVar = Svar Var Int S_Flags deriving (Eq,Ord)
 
 instance Show Expr where
   show (Lit   i) = show i
   show (Var   v) = v
+  show (SVar  s) = show s
   show (Load  e) = "m[" ++ show e ++ "]"
   show (Binop b e1 e2) = sub e1 ++ " " ++ show b ++ " " ++ sub e2
     where sub e@(Binop _ _ _) = tuple [show e]
@@ -29,7 +33,11 @@ instance Show Expr where
 instance Show Lit where
   show (Int  i) = show i
   show (Bool b) = show b
-
+instance Show S_Flags where
+  show (S_None) = ""
+  show (S_Kill) = "(kill)"
+instance Show SVar where
+  show (Svar v i f) = v ++ "_" ++ (show i) ++ " " ++ (show f) 
 instance Show BinOp where
   show Add  = "+"
   show Sub  = "-"

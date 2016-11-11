@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP, GADTs, RankNTypes #-}
 {-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}
 module Backends.D16Hoopl.OptSupport
-    (mapVE, mapEE, mapEN, mapVN, fold_EE, fold_EN, insnToG, MaybeChange) where
+    (mapVE, mapEE, mapEN, mapSVE, mapVN, fold_EE, fold_EN, insnToG, MaybeChange) where
 
 import Control.Monad
 import Data.Maybe
@@ -27,6 +27,10 @@ mapVN = mapEN . mapEE . mapVE
 
 mapVE f (Var v) = f v
 mapVE _ _       = Nothing
+
+mapSVE :: (SVar -> Maybe Expr) -> MaybeChange Expr
+mapSVE f (SVar s) = f s
+mapSVE _ _ = Nothing
 
 
 data Mapped a = Old a | New a
@@ -76,6 +80,7 @@ mapVars _ e         = return e
 
 mapEE f e@(Lit _)     = f e
 mapEE f e@(Var _)     = f e
+mapEE f e@(SVar _)    = f e
 mapEE f e@(Load addr) =
   case mapEE f addr of
     Just addr' -> Just $ fromMaybe e' (f e')
@@ -116,6 +121,7 @@ fold_EN :: (a -> Expr -> a) -> a -> Node e x -> a
 
 fold_EE f z e@(Lit _)         = f z e
 fold_EE f z e@(Var _)         = f z e
+fold_EE f z e@(SVar _)        = f z e
 fold_EE f z e@(Load addr)     = f (fold_EE f z addr) e
 fold_EE f z e@(Binop _ e1 e2) =
   let afterE1 = fold_EE f z e1
