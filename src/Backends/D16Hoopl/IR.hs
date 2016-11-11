@@ -20,13 +20,13 @@ instance Show Assignable where
     show (S s) = show s
 
 data Node e x where                                 
-  Label  :: Label  ->                               Node C O
-  Assign :: Assignable    -> Expr    ->                    Node O O
-  Store  :: Expr   -> Expr    ->                    Node O O
-  Branch :: Label  ->                               Node O C
-  Cond   :: Expr   -> Label   -> Label  ->          Node O C
-  Call   :: [Assignable]  -> String  -> [Expr] -> Label -> Node O C
-  Return :: [Expr] ->                               Node O C
+  Label  :: Label  ->                                       Node C O
+  Assign :: Assignable    -> Expr    ->                     Node O O
+  Store  :: Expr   -> Expr    ->                            Node O O
+  Branch :: Label  ->                                       Node O C
+  Cond   :: Expr   -> Label   -> Label  ->                  Node O C
+  Call   :: [Assignable]  -> String  -> [Expr] -> Label ->  Node O C
+  Return :: [Expr] ->                                       Node O C
 
 instance NonLocal Node where
   entryLabel (Label l)      = l

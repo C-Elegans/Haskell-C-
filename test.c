@@ -1,10 +1,10 @@
 #include <stdio.h>
 
-void main(int i){
-	int i=0;
-	while(i<10){
-	 	i=i+1;
-	}
+void main(int i, int j, int k){
+	
+	i = i+j;
+	i = i+k;
+	j=3;
 	return i;
 	
 }

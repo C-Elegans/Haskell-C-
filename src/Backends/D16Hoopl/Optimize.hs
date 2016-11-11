@@ -23,7 +23,7 @@ optIr ir@(Proc {entry,body,args}) = do
     (body'', _, _ ) <- analyzeAndRewriteFwd constPropPass (JustC entry) body' 
        (mapSingleton entry (initFact args))
     (body''', _, _) <- analyzeAndRewriteBwd deadCodePass (JustC entry) body'' mapEmpty
-    return $ ir {body = body'}
+    return $ ir {body = body'''}
 
 ssaPass :: FuelMonad m => FwdPass m Node SSAFact
 ssaPass = FwdPass {
