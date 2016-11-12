@@ -7,6 +7,7 @@ import Backends.D16Hoopl.ConstProp
 import Backends.D16Hoopl.Simplify
 import Backends.D16Hoopl.DeadCode
 import Backends.D16Hoopl.SSA
+import Backends.D16Hoopl.Kill
 
 
 type ErrorM        = Either String
@@ -23,7 +24,11 @@ optIr ir@(Proc {entry,body,args}) = do
     (body'', _, _ ) <- analyzeAndRewriteFwd constPropPass (JustC entry) body' 
        (mapSingleton entry (initFact args))
     (body''', _, _) <- analyzeAndRewriteBwd deadCodePass (JustC entry) body'' mapEmpty
-    return $ ir {body = body'''}
+    (body'''',_,_) <- analyzeAndRewriteBwd killCodePass (JustC entry) body''' mapEmpty
+    return $ ir {body = body''''}
+
+
+
 
 ssaPass :: FuelMonad m => FwdPass m Node SSAFact
 ssaPass = FwdPass {
@@ -42,4 +47,9 @@ deadCodePass = BwdPass {
     bp_lattice = liveLattice,
     bp_transfer = liveness,
     bp_rewrite = deadCode
+    }
+killCodePass = BwdPass {
+    bp_lattice = killLattice,
+    bp_transfer = killed,
+    bp_rewrite = killVars
     }

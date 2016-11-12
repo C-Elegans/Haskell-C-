@@ -18,7 +18,14 @@ data UnOp = Not | Neg | Addr
 data Lit = Bool Bool | Int Int deriving Eq
 type Var = String
 data S_Flags = S_None | S_Kill deriving (Eq,Ord)
-data SVar = Svar Var Int S_Flags deriving (Eq,Ord)
+data SVar = Svar Var Int S_Flags
+instance Eq SVar where
+    (Svar name i _) == (Svar name2 i2 _) = name == name2 && i == i2
+instance Ord SVar where
+    compare (Svar name _ _) (Svar name2 _ _)
+        | name /= name2 = compare name name2
+    compare (Svar name i _) (Svar name2 i2 _) 
+        = compare i i2
 
 instance Show Expr where
   show (Lit   i) = show i

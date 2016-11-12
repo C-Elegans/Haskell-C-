@@ -2,9 +2,9 @@
 
 void main(int i, int j, int k){
 	
-	i = i+j;
-	i = i+k;
-	j=3;
-	return i;
+	j = i+j;
+	k = i+k;
+	
+	return j+k;
 	
 }
