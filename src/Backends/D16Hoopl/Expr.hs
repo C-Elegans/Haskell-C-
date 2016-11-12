@@ -53,7 +53,7 @@ instance Show BinOp where
   show Sub  = "-"
   show Mul  = "*"
   show Div  = "/"
-  show Eq   = "="
+  show Eq   = "=="
   show Ne   = "/="
   show Gt   = ">"
   show Lt   = "<"

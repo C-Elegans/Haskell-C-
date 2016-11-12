@@ -8,7 +8,7 @@ import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport
 import Debug.Trace (trace)
-import Prelude hiding (head)
+import Prelude hiding ((<*>))
 
 
 type SplitFact = Int
@@ -54,7 +54,10 @@ splitExpr = mkFRewrite split
         let (lst,expr,i) = splitExpr e f
             graph = mkMiddles (lst ++ [(Assign v expr)])
         in  return $ Just graph
-        
+    split (Cond c l r) f = 
+        let (lst,expr,i) = splitExpr c f
+            graph = mkMiddles lst
+        in  return $ Just $ graph <*> (mkLast (Cond expr l r))
     split n f = 
         return $ liftM insnToG $ Nothing
     
@@ -70,6 +73,7 @@ splitExpr = mkFRewrite split
             tmp = (Svar "tmp" (e_i+1) S_None)
             node = (Assign (S tmp) (Unop op e_e ))
             in (e_nodes ++ [node], (SVar tmp), e_i+1)
+        
         
     splitExpr e i =
         ([],e,i)
