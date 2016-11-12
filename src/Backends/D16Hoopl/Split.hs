@@ -8,74 +8,69 @@ import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport
 import Debug.Trace (trace)
+import Prelude hiding (head)
 
 
-type SSAFact = Map.Map Var Int
-ssaLattice :: DataflowLattice SSAFact
-ssaLattice = DataflowLattice {
-    fact_name = "SSA Map",
-    fact_bot = Map.empty,
+type SplitFact = Int
+splitLattice :: DataflowLattice SplitFact
+splitLattice = DataflowLattice {
+    fact_name = "Temp counter",
+    fact_bot = 0,
     fact_join = add }
     where
         add _ (OldFact old) (NewFact new) =
-            let map = Map.unionWith (max) old new 
-                changeFlag = changeIf $ (Map.size map) > (Map.size old)
-            in (changeFlag, map)
+            let i = max old new 
+                changeFlag = changeIf $ old /= new
+            in (changeFlag, i)
             
-initSSAFact :: [Var] -> SSAFact
-initSSAFact vars = Map.fromList $ [(v,0) | v <- vars]
 
-assignSSAVar :: FwdTransfer Node SSAFact
-assignSSAVar = mkFTransfer ft
+countNodes :: FwdTransfer Node SplitFact
+countNodes = mkFTransfer ft
   where
-    ft :: Node e x -> SSAFact -> Fact x SSAFact
+    ft :: Node e x -> SplitFact -> Fact x SplitFact
     ft (Label _)            f = f
-    ft (Assign v _)         f = addVar f v
+    ft (Assign v e)         f = f + 1
     
     ft (Store _ _)          f = f
     ft (Branch l)           f = mapSingleton l f
-    ft (Cond _ tl fl)       f =
-        mkFactBase ssaLattice [(tl,f), (fl,f)]
+    ft (Cond c tl fl)       f =
+        mkFactBase splitLattice [(tl,f + (nodes c) ), (fl,f + (nodes c))]
     ft (Call vs _ _ bid)    f = 
-        mapSingleton bid (foldl addVar f vs)
+        mapSingleton bid f
     ft (Return _)           _ = mapEmpty
-    addVar :: SSAFact  -> Assignable -> SSAFact
-    addVar f (V v) = case Map.lookup v f of
-        Just i  -> Map.insert v (i+1) f
-        Nothing -> Map.insert v 0 f
-    addVar f (S (Svar n i fl)) = 
-        Map.insert n (i) f
         
     addVar f _ = f
+    
+nodes :: Expr -> Int
+nodes (Binop o l r) = 1  + (nodes l)  + (nodes r)
+nodes _ = 1;
 
 
-
-ssaRewrite :: forall m . FuelMonad m => FwdRewrite m Node SSAFact
-ssaRewrite = mkFRewrite ssa
+splitExpr :: forall m . FuelMonad m => FwdRewrite m Node SplitFact
+splitExpr = mkFRewrite split
   where
-    ssa :: Node e x -> SSAFact -> m (Maybe (Graph Node e x))
-    ssa node@(Assign _ _) f = 
-        return $ liftM insnToG $ convertAssign f node
-    ssa node f =
-        return $ liftM insnToG $ mapVN (lookup f) node
-    mapVN :: (Var -> Maybe Expr) -> MaybeChange (Node e x)
-    mapVN = mapEN . mapEE . mapVE
-    
-    
-    lookup :: SSAFact -> Var -> Maybe Expr
-    lookup f x = case Map.lookup x f of
-        Just i -> Just $ SVar $ Svar x i S_None
-        _              -> Nothing
-    lookupAssign :: SSAFact -> Var -> Maybe Expr
-    lookupAssign f x = case Map.lookup x f of
-        Just i -> Just $ SVar $ Svar x (i+1) S_None
-        _              -> Just $ SVar $ Svar x 0 S_None
-    convertAssign :: SSAFact -> Node O O -> Maybe (Node O O)
-    convertAssign f (Assign (V v) e) = do
-        (SVar sv) <- lookupAssign f v
+    split :: Node e x -> SplitFact -> m (Maybe (Graph Node e x))
+    split (Assign v e) f = 
+        let (lst,expr,i) = splitExpr e f
+            graph = mkMiddles (lst ++ [(Assign v expr)])
+        in  return $ Just graph
         
-        let e'= (mapEE . mapVE) (lookup f) e
-        let efinal = case e' of
-                        Just expr -> expr
-                        Nothing -> e
-        return (Assign (S sv) efinal)
+    split n f = 
+        return $ liftM insnToG $ Nothing
+    
+    splitExpr :: Expr -> Int -> ([Node O O],Expr,Int)
+    splitExpr (Binop op l r) i = 
+        let (l_nodes,l_e,l_i) = splitExpr l i
+            (r_nodes,r_e,r_i) = splitExpr r l_i
+            tmp = (Svar "tmp" (r_i+1) S_None)
+            node = (Assign (S tmp) (Binop op l_e r_e ))
+            in (l_nodes ++ r_nodes ++ [node], (SVar tmp), r_i+1)
+    splitExpr (Unop op e) i =
+        let (e_nodes,e_e,e_i) = splitExpr e i
+            tmp = (Svar "tmp" (e_i+1) S_None)
+            node = (Assign (S tmp) (Unop op e_e ))
+            in (e_nodes ++ [node], (SVar tmp), e_i+1)
+        
+    splitExpr e i =
+        ([],e,i)
+    

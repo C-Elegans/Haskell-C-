@@ -8,6 +8,8 @@ import Backends.D16Hoopl.Simplify
 import Backends.D16Hoopl.DeadCode
 import Backends.D16Hoopl.SSA
 import Backends.D16Hoopl.Kill
+import Backends.D16Hoopl.Split
+import Backends.D16Hoopl.RegisterAllocator
 
 
 type ErrorM        = Either String
@@ -24,8 +26,11 @@ optIr ir@(Proc {entry,body,args}) = do
     (body'', _, _ ) <- analyzeAndRewriteFwd constPropPass (JustC entry) body' 
        (mapSingleton entry (initFact args))
     (body''', _, _) <- analyzeAndRewriteBwd deadCodePass (JustC entry) body'' mapEmpty
-    (body'''',_,_) <- analyzeAndRewriteBwd killCodePass (JustC entry) body''' mapEmpty
-    return $ ir {body = body''''}
+    (body'''',_,_) <- analyzeAndRewriteFwd splitPass (JustC entry) body''' mapEmpty
+    (body''''',_,_) <- analyzeAndRewriteBwd killCodePass (JustC entry) body'''' mapEmpty
+    --(body''''',_,_) <- analyzeAndRewriteFwd regAllocatePass (JustC entry) body'''' 
+    --    (mapSingleton entry (initRegs args))
+    return $ ir {body = body'''''}
 
 
 
@@ -52,4 +57,15 @@ killCodePass = BwdPass {
     bp_lattice = killLattice,
     bp_transfer = killed,
     bp_rewrite = killVars
+    }
+
+--regAllocatePass = FwdPass {
+--    fp_lattice = regLattice,
+--    fp_transfer = assignRegister,
+--    fp_rewrite = rewriteRegister
+--    }
+splitPass = FwdPass {
+    fp_lattice = splitLattice,
+    fp_transfer = countNodes,
+    fp_rewrite = splitExpr
     }

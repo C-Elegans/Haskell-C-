@@ -1,9 +1,11 @@
 module Backends.D16Hoopl.Expr where
 import qualified Parse
+import Instructions (Register)
 
 data Expr = Lit   Lit
           | Var   Var
           | SVar  SVar
+          | Reg   Register
           | Load  Expr
           | Binop BinOp Expr Expr 
           | Unop  UnOp Expr
@@ -31,6 +33,7 @@ instance Show Expr where
   show (Lit   i) = show i
   show (Var   v) = v
   show (SVar  s) = show s
+  show (Reg   r) = show r
   show (Load  e) = "m[" ++ show e ++ "]"
   show (Binop b e1 e2) = sub e1 ++ " " ++ show b ++ " " ++ sub e2
     where sub e@(Binop _ _ _) = tuple [show e]

@@ -6,6 +6,7 @@ import qualified Data.Map as M
 import Control.Applicative as AP (Applicative(..))
 import qualified Parse
 import Compiler.Hoopl
+import Instructions (Register)
 import Prelude hiding (succ)
 
 type M = CheckingFuelMonad (SimpleUniqueMonad)
@@ -14,7 +15,7 @@ data Value = B Bool | I Integer deriving Eq
 
 data Proc = Proc { name :: String, args :: [Var], entry :: Label, body :: Graph Node C C }
 
-data Assignable = V Var | S SVar
+data Assignable = V Var | S SVar | R Register
 instance Show Assignable where
     show (V v) = v
     show (S s) = show s
@@ -48,6 +49,7 @@ instance Show (Node e x) where
   show (Label lbl)        = show lbl ++ ":"
   show (Assign (V v) e)       = ind $ v ++ " = " ++ show e
   show (Assign (S s) e)       = ind $ (show s) ++ " = " ++ show e
+  show (Assign (R r) e)       = ind $ (show r) ++ " = " ++ show e
   show (Store addr e)     = ind $ "m[" ++ show addr ++ "] = " ++ show e
   show (Branch lbl)       = ind $ "goto " ++ show lbl
   show (Cond e t f)       =
