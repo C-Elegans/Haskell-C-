@@ -29,21 +29,17 @@ countNodes = mkFTransfer ft
   where
     ft :: Node e x -> SplitFact -> Fact x SplitFact
     ft (Label _)            f = f
-    ft (Assign v e)         f = f + 1
+    ft (Assign _ _)         f = f + 1
     
     ft (Store _ _)          f = f
     ft (Branch l)           f = mapSingleton l f
-    ft (Cond c tl fl)       f =
-        mkFactBase splitLattice [(tl,f + (nodes c) ), (fl,f + (nodes c))]
-    ft (Call vs _ _ bid)    f = 
+    ft (Cond _ tl fl)       f =
+        mkFactBase splitLattice [(tl,f + 1 ), (fl,f + 1)]
+    ft (Call _ _ _ bid)    f = 
         mapSingleton bid f
     ft (Return _)           _ = mapEmpty
         
-    addVar f _ = f
     
-nodes :: Expr -> Int
-nodes (Binop o l r) = 1  + (nodes l)  + (nodes r)
-nodes _ = 1;
 
 
 splitExpr :: forall m . FuelMonad m => FwdRewrite m Node SplitFact
@@ -51,14 +47,23 @@ splitExpr = mkFRewrite split
   where
     split :: Node e x -> SplitFact -> m (Maybe (Graph Node e x))
     split (Assign v e) f = 
-        let (lst,expr,i) = splitExpr e f
+        let (lst,expr,_) = splitExpr e f
             graph = mkMiddles (lst ++ [(Assign v expr)])
         in  return $ Just graph
     split (Cond c l r) f = 
-        let (lst,expr,i) = splitExpr c f
+        let (lst,expr,_) = splitExpr c f
             graph = mkMiddles lst
         in  return $ Just $ graph <*> (mkLast (Cond expr l r))
-    split n f = 
+    split (Call vs name exprs lbl) f =
+        let (nodes,exprs',_) = fold_split exprs f
+            graph = mkMiddles nodes
+        in return $ Just $ graph <*> (mkLast (Call vs name exprs' lbl))
+        
+    split (Return e) f = 
+        let (lst,expr,_) = fold_split e f
+            graph = mkMiddles (lst)
+        in  return $ Just $ graph <*> (mkLast (Return expr))
+    split _ _ = 
         return $ liftM insnToG $ Nothing
     
     splitExpr :: Expr -> Int -> ([Node O O],Expr,Int)
@@ -77,4 +82,11 @@ splitExpr = mkFRewrite split
         
     splitExpr e i =
         ([],e,i)
+    fold_split :: [Expr] -> Int -> ([Node O O],[Expr],Int)
+    fold_split (e:rest) i =
+        let (lst,new_e,i' ) = splitExpr e i
+            (lst_rest,es,i'') = fold_split rest i'
+        in  (lst ++ lst_rest, new_e:es, i'')
+    fold_split [] i = 
+        ([],[],i)
     
