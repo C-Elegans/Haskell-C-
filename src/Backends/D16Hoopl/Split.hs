@@ -20,7 +20,7 @@ splitLattice = DataflowLattice {
     where
         add _ (OldFact old) (NewFact new) =
             let i = max old new 
-                changeFlag = changeIf $ old /= new
+                changeFlag = changeIf $ i /=old && i/= new
             in (changeFlag, i)
             
 

@@ -18,7 +18,7 @@ ssaLattice = DataflowLattice {
     where
         add _ (OldFact old) (NewFact new) =
             let map = Map.unionWith (max) old new 
-                changeFlag = changeIf $ (Map.size map) > (Map.size old)
+                changeFlag = changeIf $ False
             in (changeFlag, map)
             
 initSSAFact :: [Var] -> SSAFact

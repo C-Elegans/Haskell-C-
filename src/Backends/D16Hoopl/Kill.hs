@@ -22,7 +22,7 @@ killLattice = DataflowLattice {
     where add _ (OldFact old) (NewFact new) = (ch, j)
             where
               j = new `S.union` old
-              ch = changeIf (S.size j > S.size old)
+              ch = changeIf (S.size j > S.size old )
 
 killed :: BwdTransfer Node Kill
 killed = mkBTransfer3 firstLive middleLive lastLive

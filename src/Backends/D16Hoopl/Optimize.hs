@@ -16,13 +16,14 @@ import Backends.D16Hoopl.RegisterAllocator
 
 type ErrorM        = Either String
 optimize ir = 
-     runSimpleUniqueMonad $ runWithFuel infiniteFuel $ optimize_M ir
+     runSimpleUniqueMonad $ runWithFuel 100 $ optimize_M ir
 
 optimize_M :: [Proc] -> M [Proc]
 optimize_M ir =  ( return ir >>= mapM optIr) 
 
    
 optIr ir@(Proc {entry,body,args}) = do
+    -- Note: does not actually perform SSA conversion, but instead converts all vars to SVars -- 
     body' <- runPass entry body args (\ e b a -> analyzeAndRewriteFwd 
         ssaPass (JustC e) b (mapSingleton e (initSSAFact a)) )
     body''  <- runPass entry body' args (\ e b a -> analyzeAndRewriteFwd constPropPass (JustC e) b
@@ -31,8 +32,6 @@ optIr ir@(Proc {entry,body,args}) = do
     body'''' <- runPass entry body''' args (\e b _ -> analyzeAndRewriteFwd splitPass (JustC e) b mapEmpty)
     body''''' <- runPass entry body'''' args (\ e b _ ->analyzeAndRewriteBwd 
         killCodePass (JustC e) b mapEmpty )
-    --body'''''' <- runPass entry body''''' args (\ e b _ -> analyzeAndRewriteFwd
-       -- numberPass (JustC e) b mapEmpty )
     --(body''''',_,_) <- analyzeAndRewriteFwd regAllocatePass (JustC entry) body'''' 
     --    (mapSingleton entry (initRegs args))
     return $ ir {body = body'''''}
@@ -81,8 +80,4 @@ splitPass = FwdPass {
     fp_rewrite = splitExpr
     }
 
---numberPass = FwdPass {
---    fp_lattice = numberLattice,
---    fp_transfer = updateCount,
---    fp_rewrite = numberNodes
---    }
+
