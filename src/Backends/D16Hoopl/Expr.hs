@@ -21,6 +21,9 @@ data Lit = Bool Bool | Int Int deriving Eq
 type Var = String
 data S_Flags = S_None | S_Kill deriving (Eq,Ord)
 data SVar = Svar Var Int S_Flags
+
+svToString :: SVar -> String
+svToString (Svar n i _) = n ++ (show i)
 instance Eq SVar where
     (Svar name i _) == (Svar name2 i2 _) = name == name2 && i == i2
 instance Ord SVar where

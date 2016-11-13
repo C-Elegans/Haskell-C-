@@ -29,23 +29,16 @@ assignSSAVar = mkFTransfer ft
   where
     ft :: Node e x -> SSAFact -> Fact x SSAFact
     ft (Label _)            f = f
-    ft (Assign v _)         f = addVar f v
+    ft (Assign v _)         f = f
     
     ft (Store _ _)          f = f
     ft (Branch l)           f = mapSingleton l f
     ft (Cond _ tl fl)       f =
         mkFactBase ssaLattice [(tl,f), (fl,f)]
     ft (Call vs _ _ bid)    f = 
-        mapSingleton bid (foldl addVar f vs)
+        mapSingleton bid f
     ft (Return _)           _ = mapEmpty
-    addVar :: SSAFact  -> Assignable -> SSAFact
-    addVar f (V v) = case Map.lookup v f of
-        Just i  -> Map.insert v (i+1) f
-        Nothing -> Map.insert v 0 f
-    addVar f (S (Svar n i fl)) = 
-        Map.insert n (i) f
-        
-    addVar f _ = f
+    
 
 
 
@@ -62,13 +55,9 @@ ssaRewrite = mkFRewrite ssa
     
     
     lookup :: SSAFact -> Var -> Maybe Expr
-    lookup f x = case Map.lookup x f of
-        Just i -> Just $ SVar $ Svar x i S_None
-        _              -> Nothing
+    lookup f x = Just $ SVar $ Svar x 0 S_None              
     lookupAssign :: SSAFact -> Var -> Maybe Expr
-    lookupAssign f x = case Map.lookup x f of
-        Just i -> Just $ SVar $ Svar x (i+1) S_None
-        _              -> Just $ SVar $ Svar x 0 S_None
+    lookupAssign f x =  Just $ SVar $ Svar x 0 S_None
     convertAssign :: SSAFact -> Node O O -> Maybe (Node O O)
     convertAssign f (Assign (V v) e) = do
         (SVar sv) <- lookupAssign f v

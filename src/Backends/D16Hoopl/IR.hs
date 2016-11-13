@@ -5,7 +5,7 @@ import Control.Monad
 import qualified Data.Map as M
 import Control.Applicative as AP (Applicative(..))
 import qualified Parse
-import Compiler.Hoopl
+import Compiler.Hoopl 
 import Instructions (Register)
 import Prelude hiding (succ)
 
@@ -93,6 +93,8 @@ labelFor l = LabelMapM f
                 Nothing -> do l' <- freshLabel
                               let m' = M.insert l l' m
                               return (m', l')
+
+
 uniqueLabel = LabelMapM f
   where f m = do l' <- freshLabel; return(m,l')
 

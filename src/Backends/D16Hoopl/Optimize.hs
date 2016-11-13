@@ -2,6 +2,7 @@
 module Backends.D16Hoopl.Optimize (optimize) where
 
 import Backends.D16Hoopl.IR
+import Backends.D16Hoopl.Expr
 import Compiler.Hoopl
 import Backends.D16Hoopl.ConstProp
 import Backends.D16Hoopl.Simplify
@@ -9,29 +10,39 @@ import Backends.D16Hoopl.DeadCode
 import Backends.D16Hoopl.SSA
 import Backends.D16Hoopl.Kill
 import Backends.D16Hoopl.Split
+
 import Backends.D16Hoopl.RegisterAllocator
 
 
 type ErrorM        = Either String
 optimize ir = 
-     runSimpleUniqueMonad $ runWithFuel 9999 $ optimize_M ir
+     runSimpleUniqueMonad $ runWithFuel infiniteFuel $ optimize_M ir
 
 optimize_M :: [Proc] -> M [Proc]
 optimize_M ir =  ( return ir >>= mapM optIr) 
 
    
 optIr ir@(Proc {entry,body,args}) = do
-    (body', _, _ ) <- analyzeAndRewriteFwd ssaPass (JustC entry) body 
-        (mapSingleton entry (initSSAFact args))
-    (body'', _, _ ) <- analyzeAndRewriteFwd constPropPass (JustC entry) body' 
-       (mapSingleton entry (initFact args))
-    (body''', _, _) <- analyzeAndRewriteBwd deadCodePass (JustC entry) body'' mapEmpty
-    (body'''',_,_) <- analyzeAndRewriteFwd splitPass (JustC entry) body''' mapEmpty
-    (body''''',_,_) <- analyzeAndRewriteBwd killCodePass (JustC entry) body'''' mapEmpty
+    body' <- runPass entry body args (\ e b a -> analyzeAndRewriteFwd 
+        ssaPass (JustC e) b (mapSingleton e (initSSAFact a)) )
+    body''  <- runPass entry body' args (\ e b a -> analyzeAndRewriteFwd constPropPass (JustC e) b
+       (mapSingleton e (initFact a)))
+    body''' <- runPass entry body'' args (\ e b _ -> analyzeAndRewriteBwd deadCodePass (JustC e) b mapEmpty)
+    body'''' <- runPass entry body''' args (\e b _ -> analyzeAndRewriteFwd splitPass (JustC e) b mapEmpty)
+    body''''' <- runPass entry body'''' args (\ e b _ ->analyzeAndRewriteBwd 
+        killCodePass (JustC e) b mapEmpty )
+    --body'''''' <- runPass entry body''''' args (\ e b _ -> analyzeAndRewriteFwd
+       -- numberPass (JustC e) b mapEmpty )
     --(body''''',_,_) <- analyzeAndRewriteFwd regAllocatePass (JustC entry) body'''' 
     --    (mapSingleton entry (initRegs args))
     return $ ir {body = body'''''}
 
+runPass :: CheckpointMonad m => Label -> Graph Node C C -> [Var] -> 
+            (Label -> Graph Node C C -> [Var] -> m (Graph Node C C,
+           FactBase f, MaybeO x f)) -> m (Graph Node C C)
+runPass e b a f = do
+    (body,_,_) <- f e b a 
+    return $ body    
 
 
 
@@ -69,3 +80,9 @@ splitPass = FwdPass {
     fp_transfer = countNodes,
     fp_rewrite = splitExpr
     }
+
+--numberPass = FwdPass {
+--    fp_lattice = numberLattice,
+--    fp_transfer = updateCount,
+--    fp_rewrite = numberNodes
+--    }
