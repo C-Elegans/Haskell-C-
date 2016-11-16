@@ -22,19 +22,18 @@ optimize_M :: [Proc] -> M [Proc]
 optimize_M ir =  ( return ir >>= mapM optIr) 
 
    
-optIr ir@(Proc {entry,body,args}) = do
+optIr ir@(Proc {entry,body,args}) =
     -- Note: does not actually perform SSA conversion, but instead converts all vars to SVars -- 
-    body' <- runPass entry body args (\ e b a -> analyzeAndRewriteFwd 
-        ssaPass (JustC e) b (mapSingleton e (initSSAFact a)) )
-    body''  <- runPass entry body' args (\ e b a -> analyzeAndRewriteFwd constPropPass (JustC e) b
-       (mapSingleton e (initFact a)))
-    body''' <- runPass entry body'' args (\ e b _ -> analyzeAndRewriteBwd deadCodePass (JustC e) b mapEmpty)
-    body'''' <- runPass entry body''' args (\e b _ -> analyzeAndRewriteFwd splitPass (JustC e) b mapEmpty)
-    body''''' <- runPass entry body'''' args (\ e b _ ->analyzeAndRewriteBwd 
-        killCodePass (JustC e) b mapEmpty )
-    --(body''''',_,_) <- analyzeAndRewriteFwd regAllocatePass (JustC entry) body'''' 
-    --    (mapSingleton entry (initRegs args))
-    return $ ir {body = body'''''}
+    (return body)               >>=
+    (ssaRun         entry args) >>= 
+    (constPropRun   entry args) >>= 
+    (deadCodeRun    entry args) >>= 
+    (splitPassRun   entry args) >>=
+    (killCodeRun    entry args) >>=
+    \final -> 
+    return $ ir {body = final}
+    
+        
 
 runPass :: CheckpointMonad m => Label -> Graph Node C C -> [Var] -> 
             (Label -> Graph Node C C -> [Var] -> m (Graph Node C C,
@@ -51,23 +50,35 @@ ssaPass = FwdPass {
     fp_transfer = assignSSAVar,
     fp_rewrite = ssaRewrite 
     }
+ssaRun entry args body = 
+    runPass entry body args (\ e b a -> analyzeAndRewriteFwd
+        ssaPass (JustC e) b (mapSingleton e (initSSAFact a)) )
 
 constPropPass :: FuelMonad m => FwdPass m Node ConstFact
 constPropPass = FwdPass
   { fp_lattice  = constLattice
   , fp_transfer = varHasLit
   , fp_rewrite  = constProp `thenFwdRw` simplify }
+constPropRun entry args body = 
+    runPass entry body args (\ e b a -> analyzeAndRewriteFwd constPropPass (JustC e) b
+       (mapSingleton e (initFact a)))
+
 deadCodePass :: FuelMonad m => BwdPass m Node Live
 deadCodePass = BwdPass {
     bp_lattice = liveLattice,
     bp_transfer = liveness,
     bp_rewrite = deadCode
     }
+deadCodeRun entry args body =
+    runPass entry body args (\ e b _ -> analyzeAndRewriteBwd deadCodePass (JustC e) b mapEmpty)
 killCodePass = BwdPass {
     bp_lattice = killLattice,
     bp_transfer = killed,
     bp_rewrite = killVars
     }
+killCodeRun entry args body = 
+    runPass entry body args (\ e b _ ->analyzeAndRewriteBwd 
+        killCodePass (JustC e) b mapEmpty )
 
 --regAllocatePass = FwdPass {
 --    fp_lattice = regLattice,
@@ -79,5 +90,6 @@ splitPass = FwdPass {
     fp_transfer = countNodes,
     fp_rewrite = splitExpr
     }
-
+splitPassRun entry args body = 
+    runPass entry body args (\e b _ -> analyzeAndRewriteFwd splitPass (JustC e) b mapEmpty)
 
