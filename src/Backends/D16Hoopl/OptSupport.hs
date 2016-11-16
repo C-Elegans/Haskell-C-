@@ -81,6 +81,7 @@ mapVars _ e         = return e
 mapEE f e@(Lit _)     = f e
 mapEE f e@(Var _)     = f e
 mapEE f e@(SVar _)    = f e
+mapEE f e@(Str _)     = f e
 mapEE f e@(Load addr) =
   case mapEE f addr of
     Just addr' -> Just $ fromMaybe e' (f e')
@@ -122,6 +123,7 @@ fold_EN :: (a -> Expr -> a) -> a -> Node e x -> a
 fold_EE f z e@(Lit _)         = f z e
 fold_EE f z e@(Var _)         = f z e
 fold_EE f z e@(SVar _)        = f z e
+fold_EE f z e@(Str  _)        = f z e
 fold_EE f z e@(Load addr)     = f (fold_EE f z addr) e
 fold_EE f z e@(Binop _ e1 e2) =
   let afterE1 = fold_EE f z e1

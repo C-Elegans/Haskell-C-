@@ -5,6 +5,7 @@ import Instructions (Register)
 data Expr = Lit   Lit
           | Var   Var
           | SVar  SVar
+          | Str Var
           | Reg   Register
           | Load  Expr
           | Binop BinOp Expr Expr 
@@ -38,6 +39,7 @@ instance Show Expr where
   show (SVar  s) = show s
   show (Reg   r) = show r
   show (Load  e) = "m[" ++ show e ++ "]"
+  show (Str   s) = "Str " ++ s
   show (Binop b e1 e2) = sub e1 ++ " " ++ show b ++ " " ++ sub e2
     where sub e@(Binop _ _ _) = tuple [show e]
           sub e = show e

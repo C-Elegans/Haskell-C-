@@ -1,12 +1,13 @@
 #include <stdio.h>
+void test(char* str){
+	while(*str != 0){
+		*str = *str + 1;
+	}
+}
+
 
 void main(int i, int j, int k){
-	int r;
-	r=i;
-	while(i<10){
-		r=r+i;
-		i=i+1;
-	}
-	
-	return r+r+k;
+	char* str = "testing";
+	test(str);
+	puts(str);
 }

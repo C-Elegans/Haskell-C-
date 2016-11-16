@@ -15,6 +15,10 @@ buildExpr (P.AnnotatedVar name t) =
     Var name
 buildExpr (P.UnaryOp op t) =
     Unop (opToUnOp op) (buildExpr t)
+buildExpr (P.Deref x) = 
+    Load (buildExpr x)
+buildExpr (P.StrLabel str) =
+    Str str
 buildExpr t = error $ "No BuildExpr defined for " ++ (show t)
     
 buildNode :: P.Tree -> LabelMapM (Node O O)
