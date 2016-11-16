@@ -66,6 +66,7 @@ executable cmm
     parsec == 3.1.*, 
     hoopl == 3.10.2.*,
     linearscan-hoopl == 1.0.*,
+    hashable == 1.2.4.*,
     linearscan 
 
   -- Directories containing source files.

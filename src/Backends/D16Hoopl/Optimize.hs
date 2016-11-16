@@ -1,6 +1,6 @@
 {-# LANGUAGE RankNTypes, ScopedTypeVariables, GADTs, EmptyDataDecls, PatternGuards, TypeFamilies, NamedFieldPuns #-}
 module Backends.D16Hoopl.Optimize (optimize) where
-
+import Control.Monad
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.Expr
 import Compiler.Hoopl
@@ -21,7 +21,7 @@ optimize ir =
 optimize_M :: [Proc] -> M [Proc]
 optimize_M ir =  ( return ir >>= mapM optIr) 
 
-   
+optIr :: Proc -> CheckingFuelMonad SimpleUniqueMonad Proc 
 optIr ir@(Proc {entry,body,args}) =
     -- Note: does not actually perform SSA conversion, but instead converts all vars to SVars -- 
     (return body)               >>=
@@ -30,6 +30,7 @@ optIr ir@(Proc {entry,body,args}) =
     (deadCodeRun    entry args) >>= 
     (splitPassRun   entry args) >>=
     (killCodeRun    entry args) >>=
+    --(allocate entry)    >>=
     \final -> 
     return $ ir {body = final}
     
