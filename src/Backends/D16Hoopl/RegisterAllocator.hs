@@ -35,11 +35,12 @@ instance Hashable SVar where
        abs $ (hashWithSalt s name) + (hashWithSalt s i)
 
 instance NodeAlloc Node Node where
+    isCall (Call _ _ _) = True
     isCall _ = False
     
     isBranch (Branch _) = True
     isBranch (Cond _ _ _) = True
-    isBranch (Call _ _ _ _) = True
+    
     isBranch _ = False
     
     retargetBranch (Branch _) _ lbl = (Branch lbl)
@@ -57,7 +58,7 @@ instance NodeAlloc Node Node where
         let lst = fold_EE (svToVInfo Input) [] e
             lst' = svToVInfo Output lst (SVar sv)
         in  lst'
-    getReferences (Call assgns _ exprs _) =
+    getReferences (Call assgns _ exprs ) =
         let lst = (foldl . fold_EE) (svToVInfo Input) [] exprs
             svars = map (\(S s) -> SVar s) assgns
             lst' = (foldl . fold_EE) (svToVInfo Output) lst svars
@@ -80,7 +81,7 @@ instance NodeAlloc Node Node where
             Just pr -> return $ (Assign (R (intToReg pr)) expr)
             Nothing -> trace ("Could not allocate dest " ++ (show sv)) return $ (Assign sv expr)
      
-    setRegisters allocs node@(Call svs name es lbl) = 
+    setRegisters allocs node@(Call svs name es) = 
         let lst = map (\((vid,_),reg) -> (vid,reg)) allocs
             mp = Map.fromList lst
             newExprs = (map . mapEE . mapSVE) (setRegister mp) es
@@ -90,7 +91,7 @@ instance NodeAlloc Node Node where
                     Just (Reg r) -> Just $ R r
                     x  -> Nothing) $  map (setRegister mp)  $ map (\(S s) -> s) svs
             vars = trace (show newVars) $ zipWith (fromMaybe) svs newVars
-        in return $ (Call vars name exprs lbl)
+        in return $ (Call vars name exprs)
     setRegisters allocs node = 
         let lst = map (\((vid,_),reg) -> (vid,reg)) allocs
             mp = Map.fromList lst

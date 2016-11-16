@@ -35,8 +35,7 @@ countNodes = mkFTransfer ft
     ft (Branch l)           f = mapSingleton l f
     ft (Cond _ tl fl)       f =
         mkFactBase splitLattice [(tl,f + 1 ), (fl,f + 1)]
-    ft (Call _ _ _ bid)    f = 
-        mapSingleton bid f
+    ft (Call _ _ _ )    f = f+1
     ft (Return _)           _ = mapEmpty
         
     
@@ -59,10 +58,10 @@ splitExpr = mkFRewrite split
         let (lst,expr,_) = splitExpr c f
             graph = mkMiddles lst
         in  return $ Just $ graph <*> (mkLast (Cond expr l r))
-    split (Call vs name exprs lbl) f =
+    split (Call vs name exprs) f =
         let (nodes,exprs',_) = fold_split exprs f
             graph = mkMiddles nodes
-        in return $ Just $ graph <*> (mkLast (Call vs name exprs' lbl))
+        in return $ Just $ graph <*> (mkMiddle (Call vs name exprs'))
         
     split (Return e) f = 
         let (lst,expr,_) = fold_split e f

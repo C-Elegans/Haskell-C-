@@ -33,12 +33,12 @@ liveness = mkBTransfer3 firstLive middleLive lastLive
     middleLive n@(Assign (S x) _)   f = addUses (S.delete x f) n
     middleLive (Assign (V x) _)   _ = error $ "Variable " ++ x ++ " is not in SSA Form"
     middleLive n@(Store _ _)    f = addUses f n
+    middleLive n@(Call ((S s):[]) _ _)  f = addUses (S.delete s f) n
+    middleLive n@(Call _ _ _)           f = addUses f n
     
     lastLive :: Node O C -> FactBase Live -> Live
     lastLive n@(Branch l)       f = addUses (fact f l) n
     lastLive n@(Cond _ tl fl)   f = addUses (fact f tl `S.union` fact f fl) n
-    lastLive n@(Call ((S s):[]) _ _ l)  f = addUses (fact f l ` S.difference` S.fromList [s]) n
-    lastLive n@(Call _ _ _ l)     f = addUses (fact f l) n
     lastLive n@(Return _)       _ = addUses (fact_bot liveLattice) n
     
     fact :: FactBase (S.Set SVar) -> Label -> Live

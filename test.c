@@ -9,7 +9,8 @@ int a(int i){
 
 
 void main(int i, int j){
-	i=i;
-	j=j;
-	return j+(2*i);
+	int k;
+	int j = i+i+j;
+	k = a(j);
+	return k*2;
 }

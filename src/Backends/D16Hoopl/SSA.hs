@@ -35,8 +35,7 @@ assignSSAVar = mkFTransfer ft
     ft (Branch l)           f = mapSingleton l f
     ft (Cond _ tl fl)       f =
         mkFactBase ssaLattice [(tl,f), (fl,f)]
-    ft (Call vs _ _ bid)    f = 
-        mapSingleton bid f
+    ft (Call vs _ _ )    f = f
     ft (Return _)           _ = mapEmpty
     
 
@@ -48,7 +47,7 @@ ssaRewrite = mkFRewrite ssa
     ssa :: Node e x -> SSAFact -> m (Maybe (Graph Node e x))
     ssa node@(Assign _ _) f = 
         return $ liftM insnToG $ convertAssign f node
-    ssa node@(Call _ _ _ _) f =
+    ssa node@(Call _ _ _) f =
         return $ liftM insnToG $ convertCall f node
     ssa node f =
         return $ liftM insnToG $ mapVN (lookup f) node
@@ -69,15 +68,15 @@ ssaRewrite = mkFRewrite ssa
                         Just expr -> expr
                         Nothing -> e
         return (Assign (S sv) efinal)
-    convertCall :: SSAFact -> Node O C -> Maybe (Node O C)
-    convertCall f (Call assgns nam es lbl) = do
+    convertCall :: SSAFact -> Node O O -> Maybe (Node O O)
+    convertCall f (Call assgns nam es) = do
         svs <- mapM (\(V v) -> case lookupAssign f v of
             Just (SVar sv) -> Just (S sv)
             _ -> error $ "Something went wrong in assigning SSA Vars in Call" ) assgns
         
         let es' = map ((mapEE . mapVE) (lookup f)) es
         
-        return (Call svs nam (select es' es) lbl)
+        return (Call svs nam (select es' es))
     convertCall f _ = Nothing
     select :: [Maybe a] -> [a] -> [a]
     select (m:ms) (a:as) =

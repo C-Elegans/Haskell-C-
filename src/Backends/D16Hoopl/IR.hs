@@ -27,14 +27,13 @@ data Node e x where
   Store  :: Expr   -> Expr    ->                            Node O O
   Branch :: Label  ->                                       Node O C
   Cond   :: Expr   -> Label   -> Label  ->                  Node O C
-  Call   :: [Assignable]  -> String  -> [Expr] -> Label ->  Node O C
+  Call   :: [Assignable]  -> String  -> [Expr] ->           Node O O
   Return :: [Expr] ->                                       Node O C
 
 instance NonLocal Node where
   entryLabel (Label l)      = l
   successors (Branch l)     = [l]
   successors (Cond _ t f)   = [t, f]
-  successors (Call _ _ _ l) = [l]
   successors (Return _)     = []
 
 --------------------------------------------------------------------------------
@@ -55,8 +54,8 @@ instance Show (Node e x) where
   show (Branch lbl)       = ind $ "goto " ++ show lbl
   show (Cond e t f)       =
     ind $ "if " ++ show e ++ " then goto " ++ show t ++ " else goto " ++ show f
-  show (Call ress f cargs succ) =
-    ind $ tuple (map show ress) ++ " = " ++ f ++ tuple (map show cargs) ++ " goto " ++ show succ
+  show (Call ress f cargs) =
+    ind $ tuple (map show ress) ++ " = " ++ f ++ tuple (map show cargs)
   show (Return      rargs) = ind $ "ret " ++ tuple (map show rargs)
   --show (Nop) = "nop"
 ind :: String -> String

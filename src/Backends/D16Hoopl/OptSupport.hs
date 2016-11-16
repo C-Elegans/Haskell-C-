@@ -108,9 +108,9 @@ mapEN _   (Branch _)          = Nothing
 mapEN f   (Cond e tid fid)    =
   case f e of Just e' -> Just $ Cond e' tid fid
               Nothing -> Nothing
-mapEN f   (Call rs n es succ) =
+mapEN f   (Call rs n es) =
   if all isNothing es' then Nothing
-  else Just $ Call rs n (map (uncurry fromMaybe) (zip es es')) succ
+  else Just $ Call rs n (map (uncurry fromMaybe) (zip es es'))
     where es' = map f es
 mapEN f   (Return es) =
    if all isNothing es' then Nothing
@@ -138,7 +138,7 @@ fold_EN f z (Assign _ e)    = f z e
 fold_EN f z (Store addr e)  = f (f z e) addr
 fold_EN _ z (Branch _)      = z
 fold_EN f z (Cond e _ _)    = f z e
-fold_EN f z (Call _ _ es _) = foldl f z es
+fold_EN f z (Call _ _ es) = foldl f z es
 fold_EN f z (Return es)     = foldl f z es
 
 ----------------------------------------------
@@ -151,5 +151,5 @@ insnToG n@(Assign _ _)   = mkMiddle n
 insnToG n@(Store _ _)    = mkMiddle n
 insnToG n@(Branch _)     = mkLast n
 insnToG n@(Cond _ _ _)   = mkLast n
-insnToG n@(Call _ _ _ _) = mkLast n
+insnToG n@(Call _ _ _)   = mkMiddle n
 insnToG n@(Return _)     = mkLast n

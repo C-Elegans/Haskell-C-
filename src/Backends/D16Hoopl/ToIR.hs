@@ -39,17 +39,15 @@ buildGraph (P.List []) =
 buildGraph (P.Compound defs body) =
     buildGraph body
 buildGraph (P.FCall name (P.List arglist)) = do
-    lbl <- uniqueLabel
     let exprs = map buildExpr arglist
-    let call = gUnitOC $ BlockOC BNil (Call [] name exprs lbl)
-    let label = gUnitCO $ BlockCO (Label lbl) BNil
-    return $ gSplice call label
+    let call = mkMiddle (Call [] name exprs)
+    
+    return $ call
 buildGraph (P.Assign (P.AnnotatedVarAssign nam t) (P.AnnotatedFCallRet name (P.List arglist) t')) = do
-    lbl <- uniqueLabel
     let exprs = map buildExpr arglist
-    let call = gUnitOC $ BlockOC BNil (Call [V nam] name exprs lbl)
-    let label = gUnitCO $ BlockCO (Label lbl) BNil
-    return $ gSplice call label
+    let call = mkMiddle (Call [V nam] name exprs)
+    
+    return $ call 
 buildGraph (P.If con block) = do
     lblIf <- uniqueLabel
     lblNext <- uniqueLabel

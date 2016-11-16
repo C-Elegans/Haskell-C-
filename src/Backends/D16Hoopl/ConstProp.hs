@@ -30,6 +30,10 @@ varHasLit = mkFTransfer ft
     ft (Label _)            f = f
     ft (Assign (S x) (Lit k))   f = Map.insert x (PElem k) f
     ft (Assign (S x) _)         f = Map.insert x Top f
+    ft (Call vs _ _)            f = (foldl toTop f vs)
+            where 
+                toTop f (S v) = Map.insert v Top f
+                toTop f v = trace ("No toTop defined for " ++ show v) f
     ft (Store _ _)          f = f
     ft (Branch l)           f = mapSingleton l f
     ft (Cond (SVar x) tl fl) f =
@@ -38,11 +42,6 @@ varHasLit = mkFTransfer ft
              (fl, Map.insert x (PElem (Bool False))f)]
     ft (Cond _ tl fl)       f =
         mkFactBase constLattice [(tl,f), (fl,f)]
-    ft (Call vs _ _ bid)    f = 
-        mapSingleton bid (foldl toTop f vs)
-            where 
-                toTop f (S v) = Map.insert v Top f
-                toTop f v = trace ("No toTop defined for " ++ show v) f
     ft (Return _)           _ = mapEmpty
     ft n _ = error $ "No ft defined for " ++ (show n)
 
