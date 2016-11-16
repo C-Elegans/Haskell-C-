@@ -7,6 +7,7 @@ import Compiler.Hoopl
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport
+import Debug.Trace (trace)
 
 type ConstFact = Map.Map SVar (WithTop Lit)
 constLattice :: DataflowLattice ConstFact
@@ -39,7 +40,9 @@ varHasLit = mkFTransfer ft
         mkFactBase constLattice [(tl,f), (fl,f)]
     ft (Call vs _ _ bid)    f = 
         mapSingleton bid (foldl toTop f vs)
-            where toTop f (S v) = Map.insert v Top f
+            where 
+                toTop f (S v) = Map.insert v Top f
+                toTop f v = trace ("No toTop defined for " ++ show v) f
     ft (Return _)           _ = mapEmpty
     ft n _ = error $ "No ft defined for " ++ (show n)
 

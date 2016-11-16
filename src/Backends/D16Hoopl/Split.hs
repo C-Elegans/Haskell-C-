@@ -46,6 +46,11 @@ splitExpr :: forall m . FuelMonad m => FwdRewrite m Node SplitFact
 splitExpr = mkFRewrite split
   where
     split :: Node e x -> SplitFact -> m (Maybe (Graph Node e x))
+    split (Assign v (Binop op l r)) f =
+        let (lst,left,i) = splitExpr l f
+            (lst',right,_) = splitExpr r i
+            graph = mkMiddles (lst ++ lst' ++ [(Assign v (Binop op left right))])
+        in return $ Just graph
     split (Assign v e) f = 
         let (lst,expr,_) = splitExpr e f
             graph = mkMiddles (lst ++ [(Assign v expr)])

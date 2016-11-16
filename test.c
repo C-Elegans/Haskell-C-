@@ -1,13 +1,15 @@
 #include <stdio.h>
-void test(char* str){
-	while(*str != 0){
-		*str = *str + 1;
-	}
+int a(int i){
+	int k;
+	int j = i+i;
+	k=j*2;
+	return k;
+	
 }
 
 
-void main(int i, int j, int k){
-	char* str = "testing";
-	test(str);
-	puts(str);
+void main(int i, int j){
+	i=i;
+	j=j;
+	return j+(2*i);
 }

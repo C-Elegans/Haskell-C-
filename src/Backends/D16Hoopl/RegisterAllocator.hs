@@ -1,10 +1,13 @@
 {-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}
-{-# LANGUAGE ScopedTypeVariables, GADTs, MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables, GADTs, MultiParamTypeClasses, NamedFieldPuns #-}
 module Backends.D16Hoopl.RegisterAllocator where
 import Compiler.Hoopl
+import qualified Data.Map as Map
 import LinearScan.Hoopl
+import LinearScan.Hoopl.DSL
 import LinearScan
-import Instructions (intToReg)
+import Data.Maybe
+import Instructions (Register(..), intToReg)
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport
@@ -16,7 +19,20 @@ instance HooplNode Node where
     mkBranchNode l = (Branch l)
     mkLabelNode l = (Label l)
 
+instance Show VarKind where
+    show Input = "Input"
+    show InputOutput = "InputOutput"
+    show Temp = "Temp"
+    show Output = "Output"
+instance Show VarInfo where
+    show VarInfo{varId, varKind, regRequired} = 
+        case varId of
+            Left pr -> (show (intToReg pr)) ++ " " ++ (show varKind) ++ " " ++ (show regRequired)
+            Right vi -> (show vi) ++ " " ++ (show varKind) ++ " " ++ (show regRequired)
 
+instance Hashable SVar where
+    hashWithSalt s (Svar name i _) = 
+       abs $ (hashWithSalt s name) + (hashWithSalt s i)
 
 instance NodeAlloc Node Node where
     isCall _ = False
@@ -37,30 +53,81 @@ instance NodeAlloc Node Node where
 
     mkLabelOp lbl = (Label lbl)
     mkJumpOp lbl = (Branch lbl)
-    
-    getReferences = fold_EN (fold_EE svToVInfo) []
+    getReferences (Assign (S sv) e) =  
+        let lst = fold_EE (svToVInfo Input) [] e
+            lst' = svToVInfo Output lst (SVar sv)
+        in  lst'
+    getReferences (Call assgns _ exprs _) =
+        let lst = (foldl . fold_EE) (svToVInfo Input) [] exprs
+            svars = map (\(S s) -> SVar s) assgns
+            lst' = (foldl . fold_EE) (svToVInfo Output) lst svars
+        in lst'
+    getReferences (Return expr) =
+        let lst = foldl (fold_EE (svToVInfo Input)) [] expr
+        in  lst
+    getReferences node =   
+        fold_EN (fold_EE (svToVInfo Input)) [] node
     
     --setRegisters :: [((VarId, VarKind), PhysReg)] -> nv e x -> Env (nr e x)
-    setRegisters allocs node = return node
+    setRegisters allocs (Assign sv@(S s) e) =
+        let lst = map (\((vid,_),reg) -> (vid,reg)) allocs
+            mp = Map.fromList lst
+            newExpr = (mapEE . mapSVE) (setRegister mp) e
+            expr = case newExpr of
+                Just e' -> e'
+                Nothing -> e
+        in case Map.lookup (hash s) mp of
+            Just pr -> return $ (Assign (R (intToReg pr)) expr)
+            Nothing -> trace ("Could not allocate dest " ++ (show sv)) return $ (Assign sv expr)
+     
+    setRegisters allocs node@(Call svs name es lbl) = 
+        let lst = map (\((vid,_),reg) -> (vid,reg)) allocs
+            mp = Map.fromList lst
+            newExprs = (map . mapEE . mapSVE) (setRegister mp) es
+            exprs = zipWith (fromMaybe) es newExprs
+            newVars = 
+                map (\ x -> case x of
+                    Just (Reg r) -> Just $ R r
+                    x  -> Nothing) $  map (setRegister mp)  $ map (\(S s) -> s) svs
+            vars = trace (show newVars) $ zipWith (fromMaybe) svs newVars
+        in return $ (Call vars name exprs lbl)
+    setRegisters allocs node = 
+        let lst = map (\((vid,_),reg) -> (vid,reg)) allocs
+            mp = Map.fromList lst
+            newNode = (mapEN . mapEE . mapSVE) (setRegister mp) node
+        in case newNode of
+            Nothing -> return node
+            Just new -> return new
     
     --mkMoveOps :: PhysReg -> VarId -> PhysReg -> Env [nr O O]
     mkMoveOps r1 _ r2 = return $ (Assign (R (intToReg r2)) (Reg (intToReg r1))):[]
     
-    mkSaveOps reg vid = return $ (Assign (S (Svar "tmp" vid S_None)) (Reg (intToReg reg))):[]
+    mkSaveOps reg vid = do
+        slot <- getStackSlot (Just vid)
+        return $ [Store (Binop Add (Reg R6) (Lit (Int slot))) (Reg (intToReg reg))]
+        
     
-    mkRestoreOps vid reg = return $ (Assign (R (intToReg reg)) (SVar (Svar "tmp" vid S_None))):[]
+    mkRestoreOps vid reg = do
+        slot <- getStackSlot (Just vid)
+        return $ [Assign (R (intToReg reg)) (Binop Add (Reg R6) (Lit (Int slot)))]
     
     op1ToString = show
     
-svToVInfo :: [VarInfo] -> Expr -> [VarInfo]
-svToVInfo vi (SVar sv) = (convert sv):vi
+svToVInfo :: VarKind -> [VarInfo] -> Expr -> [VarInfo]
+svToVInfo vk vi (SVar sv) =  (convert sv):vi
     where 
-        convert (Svar name i _) = VarInfo{
-            varId = Right $ hash (name ++ (show i)),
-            varKind = Input,
+        convert sv = VarInfo{
+            varId = Right $ hash sv,
+            varKind = vk,
             regRequired = True
             }
-svToVInfo vi _ = vi
+svToVInfo _ vi _ = vi
+
+setRegister :: Map.Map VarId PhysReg -> SVar -> Maybe Expr
+setRegister mp sv = 
+    case Map.lookup (hash sv) mp of
+        Just pr -> Just $ Reg (intToReg pr)
+        Nothing -> Nothing
 
 
 
@@ -69,7 +136,7 @@ allocate entry g  =
     let nRegs = 6
         stackOffset = 16
         regSize = 2
-        verifier = VerifyEnabled
+        verifier = VerifyDisabled
         
         (dump,allocated) = allocateHoopl nRegs stackOffset regSize verifier entry g
     in  trace (dump) $

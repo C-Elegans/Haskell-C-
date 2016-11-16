@@ -48,6 +48,8 @@ ssaRewrite = mkFRewrite ssa
     ssa :: Node e x -> SSAFact -> m (Maybe (Graph Node e x))
     ssa node@(Assign _ _) f = 
         return $ liftM insnToG $ convertAssign f node
+    ssa node@(Call _ _ _ _) f =
+        return $ liftM insnToG $ convertCall f node
     ssa node f =
         return $ liftM insnToG $ mapVN (lookup f) node
     mapVN :: (Var -> Maybe Expr) -> MaybeChange (Node e x)
@@ -67,5 +69,20 @@ ssaRewrite = mkFRewrite ssa
                         Just expr -> expr
                         Nothing -> e
         return (Assign (S sv) efinal)
-    
-    
+    convertCall :: SSAFact -> Node O C -> Maybe (Node O C)
+    convertCall f (Call assgns nam es lbl) = do
+        svs <- mapM (\(V v) -> case lookupAssign f v of
+            Just (SVar sv) -> Just (S sv)
+            _ -> error $ "Something went wrong in assigning SSA Vars in Call" ) assgns
+        
+        let es' = map ((mapEE . mapVE) (lookup f)) es
+        
+        return (Call svs nam (select es' es) lbl)
+    convertCall f _ = Nothing
+    select :: [Maybe a] -> [a] -> [a]
+    select (m:ms) (a:as) =
+        case m of
+            Just j -> j:(select ms as)
+            Nothing -> a:(select ms as)
+    select [] _ = []
+    select _ [] = []

@@ -29,8 +29,8 @@ optIr ir@(Proc {entry,body,args}) =
     (constPropRun   entry args) >>= 
     (deadCodeRun    entry args) >>= 
     (splitPassRun   entry args) >>=
-    (killCodeRun    entry args) >>=
-    --(allocate entry)    >>=
+    --(killCodeRun    entry args) >>=
+    (allocate entry)    >>=
     \final -> 
     return $ ir {body = final}
     
@@ -72,6 +72,7 @@ deadCodePass = BwdPass {
     }
 deadCodeRun entry args body =
     runPass entry body args (\ e b _ -> analyzeAndRewriteBwd deadCodePass (JustC e) b mapEmpty)
+killCodePass :: FuelMonad m => BwdPass m Node Kill    
 killCodePass = BwdPass {
     bp_lattice = killLattice,
     bp_transfer = killed,
@@ -86,6 +87,7 @@ killCodeRun entry args body =
 --    fp_transfer = assignRegister,
 --    fp_rewrite = rewriteRegister
 --    }
+splitPass :: FuelMonad m => FwdPass m Node SplitFact
 splitPass = FwdPass {
     fp_lattice = splitLattice,
     fp_transfer = countNodes,
