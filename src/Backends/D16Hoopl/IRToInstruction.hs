@@ -66,6 +66,8 @@ assembleNode _ (Assign (R r) (E.Load (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))
     append [Inst_MemI Ld r R6 (Const i) Word Displacement]
 assembleNode _ (Store (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))) (E.Reg r)) =
     append [Inst_MemI St R6 r (Const i) Word Displacement]
+assembleNode _ (Store (E.Reg r) (E.Reg r2)) =
+    append [Inst_Mem St r r2 Word]
 assembleNode _ (Assign (R r) (E.Load (E.Reg r2))) = 
     append [Inst_Mem Ld r r2 Word]
 assembleNode _(Return ((E.Reg r):[]))  = 
@@ -78,7 +80,7 @@ assembleNode _ (Return ((E.Lit (E.Int i)):[])) =
 assembleNode _ (Return _) =
     append epilogue
 assembleNode _ (IR.Call [] name exprs) = --Need to check register order
-    append [Inst_R Push R0,Inst_JmpI Call Al (Label name),Inst_R Pop R0]
+    append [Inst_JmpI Call Al (Label name)]
 assembleNode name (IR.Label lbl) =
     append [Inst_Label (lblToLabel lbl name)]
 

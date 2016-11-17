@@ -62,7 +62,13 @@ instance NodeAlloc Node Node where
         let lst = (foldl . fold_EE) (svToVInfo Input) [] exprs
             svars = map (\(S s) -> SVar s) assgns
             lst' = (foldl . fold_EE) (svToVInfo Output) lst svars
-        in lst'
+            lst'' = lst' ++ [
+                VarInfo{varId=Left 0,varKind=Output,regRequired=True},
+                VarInfo{varId=Left 1,varKind=Output,regRequired=True},
+                VarInfo{varId=Left 2,varKind=Output,regRequired=True},
+                VarInfo{varId=Left 3,varKind=Output,regRequired=True}
+                ]
+        in lst''
     getReferences (Return expr) =
         let lst = foldl (fold_EE (svToVInfo Input)) [] expr
         in  lst

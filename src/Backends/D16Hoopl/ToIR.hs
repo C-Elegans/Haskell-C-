@@ -5,8 +5,11 @@ import Compiler.Hoopl
 import Instructions (Register(..))
 import qualified Parse as P
 import Prelude hiding ((<*>))
+import Debug.Trace(trace)
 
 buildExpr :: P.Tree -> Expr
+buildExpr tr
+    | trace ("BuildExpr " ++ (show tr)) False = undefined
 buildExpr (P.Operator op left right) = 
     Binop (opToBinOp op) (buildExpr left) (buildExpr right)
 buildExpr (P.Num n) =
@@ -24,6 +27,8 @@ buildExpr (P.StrLabel str) =
 buildExpr t = error $ "No BuildExpr defined for " ++ (show t)
     
 buildNode :: P.Tree -> LabelMapM (Node O O)
+buildNode tr 
+    | trace ("Buildnode " ++ (show tr)) False = undefined
 buildNode (P.Assign (P.AnnotatedVarAssign nam t) (left)) =
     return $ Assign (V nam) (buildExpr left)
 buildNode (P.Assign (P.Deref expr) (left)) =

@@ -62,7 +62,10 @@ splitExpr = mkFRewrite split
         let (nodes,exprs',_) = fold_split exprs f
             graph = mkMiddles nodes
         in return $ Just $ graph <*> (mkMiddle (Call vs name exprs'))
-        
+    split (Store loc expr) f =
+        let (lst,expr',_) = splitExpr expr f
+            graph = mkMiddles lst
+        in return $ Just $ graph <*> (mkMiddle (Store loc expr'))
     split (Return e) f = 
         let (lst,expr,_) = fold_split e f
             graph = mkMiddles (lst)
