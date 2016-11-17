@@ -90,7 +90,7 @@ instance NodeAlloc Node Node where
                 map (\ x -> case x of
                     Just (Reg r) -> Just $ R r
                     x  -> Nothing) $  map (setRegister mp)  $ map (\(S s) -> s) svs
-            vars = trace (show newVars) $ zipWith (fromMaybe) svs newVars
+            vars =  zipWith (fromMaybe) svs newVars
         in return $ (Call vars name exprs)
     setRegisters allocs node = 
         let lst = map (\((vid,_),reg) -> (vid,reg)) allocs
@@ -110,7 +110,7 @@ instance NodeAlloc Node Node where
     
     mkRestoreOps vid reg = do
         slot <- getStackSlot (Just vid)
-        return $ [Assign (R (intToReg reg)) (Binop Add (Reg R6) (Lit (Int slot)))]
+        return $ [Assign (R (intToReg reg)) (Load (Binop Add (Reg R6) (Lit (Int slot))))]
     
     op1ToString = show
     
@@ -135,7 +135,7 @@ setRegister mp sv =
 allocate :: Label -> Graph Node C C -> CheckingFuelMonad SimpleUniqueMonad (Graph Node C C)
 allocate entry g  = 
     let nRegs = 6
-        stackOffset = 16
+        stackOffset = 2
         regSize = 2
         verifier = VerifyDisabled
         

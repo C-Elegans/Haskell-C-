@@ -1,16 +1,11 @@
 #include <stdio.h>
-int a(int i){
-	int k;
-	int j = i+i;
-	k=j*2;
-	return k;
-	
-}
 
 
-void main(int i, int j){
-	int k;
-	int j = i+i+j;
-	k = a(j);
-	return k*2;
+
+void main(int i){
+	if (i<10)
+		return i-3;
+	else
+		return 2*i;
 }
+

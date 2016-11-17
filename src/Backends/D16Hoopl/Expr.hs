@@ -1,6 +1,8 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 module Backends.D16Hoopl.Expr where
+import Data.Data
 import qualified Parse
-import Instructions (Register)
+import Backends.D16Hoopl.Instructions (Register)
 
 data Expr = Lit   Lit
           | Var   Var
@@ -10,18 +12,18 @@ data Expr = Lit   Lit
           | Load  Expr
           | Binop BinOp Expr Expr 
           | Unop  UnOp Expr
-        deriving (Eq)
+        deriving (Eq, Typeable, Data)
           
 data BinOp = Add | Sub | Mul | Div | Eq | Ne | Lt | Gt | Lte | Gte | 
     Shl | Shr | And | Or | Xor | Sar
-    deriving Eq
+    deriving (Eq,Data)
 data UnOp = Not | Neg | Addr
-    deriving Eq
+    deriving (Eq,Data)
 
-data Lit = Bool Bool | Int Int deriving Eq
+data Lit = Bool Bool | Int Int deriving (Eq,Data)
 type Var = String
-data S_Flags = S_None | S_Kill deriving (Eq,Ord)
-data SVar = Svar Var Int S_Flags
+data S_Flags = S_None | S_Kill deriving (Eq,Ord,Data)
+data SVar = Svar Var Int S_Flags deriving (Data)
 
 svToString :: SVar -> String
 svToString (Svar n i _) = n ++ (show i)

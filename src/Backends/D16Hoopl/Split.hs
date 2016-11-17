@@ -9,7 +9,7 @@ import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport
 import Debug.Trace (trace)
 import Prelude hiding ((<*>))
-
+import Data.Data (toConstr)
 
 type SplitFact = Int
 splitLattice :: DataflowLattice SplitFact
@@ -71,6 +71,10 @@ splitExpr = mkFRewrite split
         return $ liftM insnToG $ Nothing
     
     splitExpr :: Expr -> Int -> ([Node O O],Expr,Int)
+    splitExpr l@(Load _) i =
+        let tmp = (Svar "tmp" (i+1) S_None)
+            node = (Assign (S tmp) l)
+            in ([node], (SVar tmp), i+1)
     splitExpr (Binop op l r) i = 
         let (l_nodes,l_e,l_i) = splitExpr l i
             (r_nodes,r_e,r_i) = splitExpr r l_i
