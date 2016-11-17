@@ -71,6 +71,10 @@ splitExpr = mkFRewrite split
         return $ liftM insnToG $ Nothing
     
     splitExpr :: Expr -> Int -> ([Node O O],Expr,Int)
+    splitExpr l@(Lit (Int int)) i =
+        let tmp = (Svar "tmp" (i+1) S_None)
+            node = (Assign (S tmp) l)
+            in ([node], (SVar tmp), i+1)
     splitExpr l@(Load _) i =
         let tmp = (Svar "tmp" (i+1) S_None)
             node = (Assign (S tmp) l)

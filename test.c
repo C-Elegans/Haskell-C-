@@ -1,11 +1,16 @@
 #include <stdio.h>
 
+void main(void){
+	int i;
+	i=0;
+	while(i<6){
+		if(i>2){
+			print_hex(i);
+		}else{
+			print_hex(1);
+		}
+		i=i+1;
+	}
 
-
-void main(int i){
-	if (i<10)
-		return i-3;
-	else
-		return 2*i;
 }
 

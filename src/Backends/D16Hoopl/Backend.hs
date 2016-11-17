@@ -10,6 +10,7 @@ import Instructions
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.Optimize
 import Backends.D16Hoopl.IRToInstruction
+import Backends.D16Hoopl.Peephole
 import Debug.Trace (trace)
 runBackend :: Tree -> [(String,String)] -> String -> ([Instruction],String)
 runBackend tree strings cleanfilename = 
@@ -17,8 +18,8 @@ runBackend tree strings cleanfilename =
         ir' = trace (concat $ map showProc ir ) (optimize ir)
         
         insns = trace (concat $ map showProc ir' ) $ map (assemble) ir'
-        
-    in  (concat insns,"")
+        insns' = map (runPeephole) insns
+    in  (concat insns',"")
 
 
 

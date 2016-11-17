@@ -56,9 +56,12 @@ assembleNode _(Assign (R r) (E.Binop op (E.Reg r2) (E.Lit (E.Int i))))
             instruction = (Inst_RI (binopToOp op) r (Const i))
 assembleNode _(Assign (R r) (E.Binop op (E.Reg r2) (E.Lit (E.Int i)))) =
     append [Inst_RI Cmp r2 (Const i), Inst_Jmp Set (binopToCond op) r]
-    
+assembleNode _(Assign (R r) (E.Binop op (E.Reg r2) (E.Reg r3))) =
+    append [Inst_RR Cmp r2 r3, Inst_Jmp Set (binopToCond op) r]
 assembleNode _ (Assign (R r) (E.Lit (E.Int i))) =
     append [Inst_RI Mov r (Const i)]
+assembleNode _ (Assign (R r) (E.Reg r2)) = 
+    append [Inst_RR Mov r r2]
 assembleNode _ (Assign (R r) (E.Load (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))))) =
     append [Inst_MemI Ld r R6 (Const i) Word Displacement]
 assembleNode _ (Store (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))) (E.Reg r)) =
@@ -74,17 +77,18 @@ assembleNode _ (Return ((E.Lit (E.Int i)):[])) =
     append $ (Inst_RI Mov R0 (Const i)):epilogue
 assembleNode _ (Return _) =
     append epilogue
-assembleNode _ (IR.Call [] name exprs) =
-    append [Inst_JmpI Call Al (Label name)]
+assembleNode _ (IR.Call [] name exprs) = --Need to check register order
+    append [Inst_R Push R0,Inst_JmpI Call Al (Label name),Inst_R Pop R0]
 assembleNode name (IR.Label lbl) =
     append [Inst_Label (lblToLabel lbl name)]
+
 assembleNode name (Branch lbl) =
     append [Inst_JmpI Jmp Al (Label (lblToLabel lbl name))]
 assembleNode name (Cond (E.Reg r) tl fl) =
     append [Inst_RR Test r r,
             Inst_JmpI Jmp Ne (Label (lblToLabel tl name)),
             Inst_JmpI Jmp Al (Label (lblToLabel fl name))]
-assembleNode _ n = trace ("No assembleNode defined for " ++ (show n)) id
+assembleNode _ n = error $ "No assembleNode defined for " ++ (show n)
 
 
 assembleFunction :: Proc -> Writer Program ()
