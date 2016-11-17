@@ -2,7 +2,9 @@ module Backends.D16Hoopl.ToIR where
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.Expr
 import Compiler.Hoopl
+import Instructions (Register(..))
 import qualified Parse as P
+import Prelude hiding ((<*>))
 
 buildExpr :: P.Tree -> Expr
 buildExpr (P.Operator op left right) = 
@@ -96,13 +98,22 @@ buildGraph x =do
 args2Vars :: [P.Tree] -> [Var]
 args2Vars ((P.VarDec t str):xs) = str:(args2Vars xs)
 args2Vars [] = []
+
+assignVars :: [P.Tree] -> [Register] -> [Node O O]
+assignVars ((P.VarDec t str):xs) (r:rs) = (Assign (V str) (Reg r)):(assignVars xs rs)
+assignVars [] _ = []
+assignVars x [] = error $ "Cannot assign register to " ++ (show x)
+
+
 buildGraphCC :: P.Tree -> LabelMapM (Proc)
 buildGraphCC (P.FuncDef t name (P.List args) body) = do
     lbl <- uniqueLabel
     bodyGraph <- buildGraph body
-    let graph = catNodeCOGraph (Label lbl) bodyGraph
-    let graph' = catGraphNodeOC graph (Return [])
-    return $ Proc{ name=name, args=(args2Vars args), entry = lbl, body = graph'}
+    let pars = assignVars args [R0, R1, R2, R3]
+    let graph = (mkMiddles pars) <*> bodyGraph
+    let graph' = catNodeCOGraph (Label lbl) graph
+    let graph'' = catGraphNodeOC graph' (Return [])
+    return $ Proc{ name=name, args=(args2Vars args), entry = lbl, body = graph''}
 
 
 canBecomeGraph :: P.Tree -> Bool

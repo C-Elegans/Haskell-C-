@@ -34,6 +34,9 @@ condense_compare ((Inst_Jmp Set cond r1):(Inst_RR Test r2 r3):(Inst_JmpI Jmp Ne 
 condense_compare (x:xs) = x:(condense_compare xs)
 condense_compare [] = []
 
+move_constants ((Inst_RR Mov r1 r2):rest) 
+    | r1 == r2 =
+    (move_constants rest)
 move_constants ((Inst_RI Mov r1 (Const i)):(Inst_RR op r2 r3):rest) 
     | r1 == r3 =
     (Inst_RI op r2 (Const i)):(move_constants rest)

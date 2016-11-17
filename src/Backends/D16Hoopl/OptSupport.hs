@@ -80,6 +80,7 @@ mapVars _ e         = return e
 
 mapEE f e@(Lit _)     = f e
 mapEE f e@(Var _)     = f e
+mapEE f e@(Reg _)     = f e
 mapEE f e@(SVar _)    = f e
 mapEE f e@(Str _)     = f e
 mapEE f e@(Load addr) =
@@ -122,6 +123,7 @@ fold_EN :: (a -> Expr -> a) -> a -> Node e x -> a
 
 fold_EE f z e@(Lit _)         = f z e
 fold_EE f z e@(Var _)         = f z e
+fold_EE f z e@(Reg _)         = f z e
 fold_EE f z e@(SVar _)        = f z e
 fold_EE f z e@(Str  _)        = f z e
 fold_EE f z e@(Load addr)     = f (fold_EE f z addr) e
