@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable, GADTs #-}
-module Instructions where
+module Backends.D16Hoopl.Instructions where
 import Numeric
+import Compiler.Hoopl
 import Data.Char
 import Data.Data
 import Data.Typeable
@@ -8,18 +9,18 @@ data Opcode = Nop | Add | Sub | Push | Pop | Mov | And | Or | Xor | Not | Neg | 
     Cmp | Jmp | Call | Ret | Shl | Shr | Rol | Rcl | Ldcp | Stcp | Adc | Sbb | Set | Test|
     Dw | PushLR | Globl | Sar
     deriving (Data, Typeable,Eq)
-data Instruction =
-    Inst_RR Opcode Register Register |
-    Inst_RI Opcode Register Address |
-    Inst_R Opcode Register   |
-    Inst_I Opcode Address |
-    Inst Opcode   |
-    Inst_Mem Opcode Register Register ByteFlag  |
-    Inst_MemI Opcode Register Register Address ByteFlag DispFlag   |
-    Inst_Jmp Opcode Condition Register   |
-    Inst_JmpI Opcode Condition Address  |
-    Inst_Label String   |
-    Inst_Directive Opcode Int
+data Instruction e x where
+    Inst_RR     :: Opcode -> Register -> Register ->                 Instruction O O
+    Inst_RI     :: Opcode -> Register -> Address  ->                 Instruction O O
+    Inst_R      :: Opcode -> Register ->                             Instruction O O                           
+    Inst_I      :: Opcode -> Address  ->                             Instruction O O
+    Inst        :: Opcode ->                                         Instruction O O
+    Inst_Mem    :: Opcode -> Register -> Register -> ByteFlag ->     Instruction O O
+    Inst_MemI   :: Opcode -> Register -> Register -> Address -> ByteFlag -> DispFlag -> Instruction O O
+    Inst_Jmp    :: Opcode -> Condition-> Register ->                 Instruction O C
+    Inst_JmpI   :: Opcode -> Condition-> Address  ->                 Instruction O C
+    Inst_Label  :: String ->                                         Instruction C O
+    Inst_Directive :: Opcode   -> Int ->                             Instruction O O
 
 data Address = Label String | Const Int
     deriving (Eq)
@@ -84,7 +85,9 @@ instance Show Register where
     show (R6) = "r6"
     show (R7) = "r7"
 
-instance Show Instruction where
+
+
+instance Show (Instruction e x) where
     show (Inst_RR op rD rS) =
         "    " ++ (show op) ++ " " ++ (show rD) ++ ", " ++ (show rS)
     show (Inst_RI op rD (Const num)) =

@@ -6,7 +6,7 @@ import qualified Data.Map as M
 import Control.Applicative as AP (Applicative(..))
 import qualified Parse
 import Compiler.Hoopl 
-import Instructions (Register)
+import Backends.D16Hoopl.Instructions (Register)
 import Prelude hiding (succ)
 
 type M = CheckingFuelMonad (SimpleUniqueMonad)
