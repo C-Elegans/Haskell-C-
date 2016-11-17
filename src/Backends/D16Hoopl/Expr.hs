@@ -2,7 +2,7 @@
 module Backends.D16Hoopl.Expr where
 import Data.Data
 import qualified Parse
-import Backends.D16Hoopl.Instructions (Register)
+import Instructions (Register)
 
 data Expr = Lit   Lit
           | Var   Var

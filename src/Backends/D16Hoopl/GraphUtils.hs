@@ -1,40 +1,25 @@
-{-# OPTIONS_GHC -Wall -Werror -i..  #-}
+{-# OPTIONS_GHC -Wall -i..  #-}
 {-# LANGUAGE GADTs, RankNTypes, ScopedTypeVariables #-}
 -- originally from https://github.com/sanjoy/echoes/blob/master/src/Utils/Graph.hs
-module Backends.D16Hoopl.GraphUtils(mapConcatGraph, mapConcatGraph') where
+module Backends.D16Hoopl.GraphUtils(foldGraphNodes') where
 import Prelude hiding ((<*>))
-import Control.Monad
 import Compiler.Hoopl
 
-{- A mapConcat for graphs, similar in semantics to the list mapConcat.
- - This is specialized to Closed/Closed graphs, and might need to be
- - generalized later on.-}
-mapConcatGraph :: forall n n' m. (UniqueMonad m, NonLocal n, NonLocal n') =>
-                  (n C O -> m (Graph n' C O),
-                   n O O -> m (Graph n' O O),
-                   n O C -> m (Graph n' O C)) ->
-                  Graph n C C -> m (Graph n' C C)
-mapConcatGraph (nodeMapFnCO, nodeMapFnOO, nodeMapFnOC)
-  (GMany NothingO lMap NothingO) =
-  let newSubGraphs = map blockMapFn $ mapElems lMap
-      newGraph = foldl1 (liftM2 (|*><*|)) newSubGraphs
-  in newGraph
-  where
-    blockMapFn :: UniqueMonad m => Block n C C -> m (Graph n' C C)
-    blockMapFn block =
-      foldBlockNodesF3 (closeOpen, openOpen, openClose) block (
-        return emptyClosedGraph :: m (Graph n' C C))
+foldGraphNodes' :: forall n a .
+                  (forall e x . n e x       -> a -> a)
+               -> (forall e x . Graph n e x -> a -> a)
 
-    closeOpen :: UniqueMonad m => n C O -> m (Graph n' e C) -> m (Graph n' e O)
-    closeOpen node graph = liftM2 (|*><*|) graph $ nodeMapFnCO node
+foldGraphNodes' f = graph
+    where graph :: forall e x . Graph n e x -> a -> a
+          lift  :: forall thing ex . (thing -> a -> a) -> (MaybeO ex thing -> a -> a)
 
-    openOpen :: UniqueMonad m => n O O -> m (Graph n' e O) -> m (Graph n' e O)
-    openOpen node graph  = liftM2 (<*>) graph $ nodeMapFnOO node
+          graph GNil              = id
+          graph (GUnit b)         = block b
+          graph (GMany e b x)     = lift block e . body b . lift block x
+          body :: Body n -> a -> a
+          body bdy                = \a -> mapFold block a bdy
+          lift _ NothingO         = id
+          lift f (JustO thing)    = f thing
 
-    openClose :: UniqueMonad m => n O C -> m (Graph n' e O) -> m (Graph n' e C)
-    openClose node graph = liftM2 (<*>) graph $ nodeMapFnOC node
-
-mapConcatGraph' :: forall n n' m. (UniqueMonad m, NonLocal n, NonLocal n') =>
-                   (forall e' x'. n e' x' -> m (Graph n' e' x')) ->
-                   Graph n C C -> m (Graph n' C C)
-mapConcatGraph' f = mapConcatGraph (f, f, f)
+          block :: Block n e x -> IndexedCO x a a -> IndexedCO e a a
+          block = foldBlockNodesB f

@@ -7,7 +7,7 @@ import LinearScan.Hoopl
 import LinearScan.Hoopl.DSL
 import LinearScan
 import Data.Maybe
-import Backends.D16Hoopl.Instructions (Register(..), intToReg)
+import Instructions (Register(..), intToReg)
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport
