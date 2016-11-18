@@ -4,6 +4,6 @@ start:
     st [_program_break],r0
 	mov r0,6
 	mov r1,1
-	call main
+	call _main
 	kill
 	

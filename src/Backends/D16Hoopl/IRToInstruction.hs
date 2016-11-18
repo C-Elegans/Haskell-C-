@@ -17,7 +17,7 @@ type Program = [Instruction]
 emitPrologue :: String -> Writer Program ()
 emitPrologue fname = do
     tell $ [Inst_Directive Globl 0]
-    tell $ [Inst_Label fname]
+    tell $ [Inst_Label ("_" ++ fname)]
     tell $ [Inst PushLR]
     tell $ [Inst_R Push R6]
     tell $ [Inst_RR Mov R6 R7]
@@ -80,7 +80,7 @@ assembleNode _ (Return ((E.Lit (E.Int i)):[])) =
 assembleNode _ (Return _) =
     append epilogue
 assembleNode _ (None (E.Call name rs)) =
-    append [Inst_JmpI Call Al (Label name)]
+    append [Inst_JmpI Call Al (Label ("_" ++ name))]
 assembleNode name (IR.Label lbl) =
     append [Inst_Label (lblToLabel lbl name)]
 

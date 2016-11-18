@@ -1,5 +1,5 @@
 .global
-mul: ;takes 2 parameters
+_mul: ;takes 2 parameters
 mov r3,r0
 xor r0,r0
 1:
@@ -23,7 +23,7 @@ abs:
 1:
 	ret
 .global
-div: ; divide r0 by r1
+_div: ; divide r0 by r1
 		test r1,r1
 		jmp.eq div_end
 		xor r2,r2

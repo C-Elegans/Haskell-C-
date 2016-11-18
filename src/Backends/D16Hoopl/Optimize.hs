@@ -30,11 +30,13 @@ optIr ir@(Proc {entry,body,args}) =
      
     (deadCodeRun    entry args) >>= 
     (constPropRun   entry args) >>=
+
     (splitPassRun   entry args) >>=
     
     (deadCodeRun    entry args) >>=
     --(killCodeRun    entry args) >>=
     (allocate entry)    >>=
+    (constPropRun   entry args) >>=
     \final -> 
     return $ ir {body = final}
     

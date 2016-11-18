@@ -21,6 +21,9 @@ simplify = deepFwdRw simp
         | trace ("s_node " ++ (show n)) False = undefined
     s_node (Cond (Lit (Bool b)) t f) =
         Just $ Branch (if b then t else f)
+    s_node (Assign (R r1) (Binop op (Reg r2) (Reg r3))) 
+        | r1 == r3 && isAssoc op =
+        Just $ (Assign (R r1) (Binop op (Reg r3) (Reg r2)))
     
     s_node n = (mapEN . mapEE) s_exp n
     s_exp (Binop opr e1 e2) 
@@ -40,6 +43,7 @@ simplify = deepFwdRw simp
                     0 -> Just $ Lit $ Int 0
                     1 -> Just e1
                     _ -> Nothing
+    
     s_exp (Unop opr e1)
         | (Just op, Lit (Int i1)) <- (unOp opr, e1) =
         Just $ Lit $ Int $ op i1

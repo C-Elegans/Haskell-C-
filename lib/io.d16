@@ -1,5 +1,5 @@
 .global
-print_hex: ;r0 - int to print
+_print_hex: ;r0 - int to print
     mov r1,hex_string
     mov r3,4
     add r1,5
@@ -14,7 +14,7 @@ print_hex: ;r0 - int to print
     jmp.ne 1b
 
     mov r0,hex_string
-    jmp puts
+    jmp _puts
 
 hex_string:
     .asciz "0x    \n"
@@ -22,14 +22,14 @@ hexdata: ;ascii hex constants
 	.ascii "0123456789ABCDEF"
 
 .global
-putc:
+_putc:
     ld.b r1,[0xff03]
     test r1,1
-    jmp.eq putc
+    jmp.eq _putc
 	st.b [0xff02],r0
 	ret
 .global
-puts:
+_puts:
 	ld.b r1,[r0]
 	test r1,r1
 	jmp.eq 1f
@@ -39,6 +39,6 @@ puts:
     jmp.eq 2b
 	st.b [0xff02],r1
 	add r0,1
-	jmp puts
+	jmp _puts
 1:
 	ret

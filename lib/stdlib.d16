@@ -1,5 +1,5 @@
 .global
-atoi: ;string in r0
+_atoi: ;string in r0
     mov r1,r0
     push r4
     mov r0,0
@@ -30,26 +30,26 @@ atoi_end:
     ret
 
 .global
-brk: ;addr in r0, sets program break to addr
+_brk: ;addr in r0, sets program break to addr
     st [_program_break],r0
     mov r0,0
     ret
 .global
-sbrk: ;increment in r0, returns old system break
+_sbrk: ;increment in r0, returns old system break
     ld r1, [_program_break]
     add r0,r1
     st [_program_break], r0
     mov r0,r1
     ret
 .global
-srand:
+_srand:
     test r0,r0
     jmp.eq 1f
     st [rand_state],r0
 1:
     ret
 .global
-rand:
+_rand:
     ld r0,[rand_state]
     rol r0,1
     xor r0,0xAce1

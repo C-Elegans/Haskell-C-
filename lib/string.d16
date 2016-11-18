@@ -1,17 +1,17 @@
 .global
-strcpy: ;r0 = dest r1 = src
+_strcpy: ;r0 = dest r1 = src
 	ld.b r2,[r1]
 	st.b [r0],r2
 	test r2,r2
 	jmp.eq 1f
 	add r0,1
 	add r1,1
-	jmp strcpy
+	jmp _strcpy
 1:
 	ret
 
 .global
-strlen: ;ptr in r0
+_strlen: ;ptr in r0
 	xor r2,r2
 1:
 	ld.b r1,[r0]
@@ -25,7 +25,7 @@ strlen: ;ptr in r0
 	ret
 
 .global
-memcpy: ;r0 - dest, r1 - source, r2 count
+_memcpy: ;r0 - dest, r1 - source, r2 count
 	push r0
 	xor r3,r3
 	or r3,r0
@@ -54,7 +54,7 @@ memcpy: ;r0 - dest, r1 - source, r2 count
 	ret
 
 .global
-strcmp: ;str1 in r0, str1 in r1
+_strcmp: ;str1 in r0, str1 in r1
 	ld.b r2,[r0]
 	ld.b r3,[r1]
 	test r2,r2
@@ -62,14 +62,14 @@ strcmp: ;str1 in r0, str1 in r1
 	add r0,1
 	add r1,1
 	cmp r2,r3
-	jmp.eq strcmp
+	jmp.eq _strcmp
 	sub r2,r3
 1:
 mov r0,r2
 ret
 
 .global
-strchr:
+_strchr:
 	and r1,0xff
 1:
 	ld.b r2,[r0]
@@ -82,7 +82,7 @@ strchr:
 2:
 	ret
 .global
-memset: ; r0 - dest, r1 - val, r2 - nbytes
+_memset: ; r0 - dest, r1 - val, r2 - nbytes
 	push r0
 1:
 	st.b [r0],r1
@@ -93,17 +93,17 @@ memset: ; r0 - dest, r1 - val, r2 - nbytes
 	ret
 
 .global
-memchr: ;ptr in r0, char in r1, count in r2
+_memchr: ;ptr in r0, char in r1, count in r2
 	ld.b r3,[r0]
 	add r0,1
 	sub r2,1
 	jmp.eq 1f
 	cmp r3,r1
-	jmp.ne memchr
+	jmp.ne _memchr
 1:
 	ret
 .global
-memcmp: ;ptr1 in r0, ptr2 in r1, count in r2
+_memcmp: ;ptr1 in r0, ptr2 in r1, count in r2
 	push r4	
 1:
 	ld.b r3,[r0]
@@ -124,7 +124,7 @@ memcmp: ;ptr1 in r0, ptr2 in r1, count in r2
 	ret
 
 .global
-strcat: ;str1 in r0, str2 in r1
+_strcat: ;str1 in r0, str2 in r1
 	push r0
 1:
 	ld.b r2,[r0]
