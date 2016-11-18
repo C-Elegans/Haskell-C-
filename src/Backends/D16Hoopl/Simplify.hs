@@ -6,6 +6,7 @@ import Compiler.Hoopl
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.OptSupport
+import Debug.Trace(trace)
 import Data.Bits
 
 
@@ -16,15 +17,19 @@ simplify = deepFwdRw simp
     simp node _ = return $ liftM insnToG $ s_node node
     
     s_node :: Node e x -> Maybe (Node e x)
+    s_node n 
+        | trace ("s_node " ++ (show n)) False = undefined
     s_node (Cond (Lit (Bool b)) t f) =
         Just $ Branch (if b then t else f)
+    
     s_node n = (mapEN . mapEE) s_exp n
     s_exp (Binop opr e1 e2) 
         | (Just op, Lit (Int i1), Lit (Int i2)) <- (intOp opr, e1, e2) =
             Just $ Lit $ Int $ op i1 i2
         | (Just op, Lit (Int i1), Lit (Int i2)) <- (cmpOp opr, e1, e2) =
             Just $ Lit $ Bool $ op i1 i2
-    s_exp (Binop Mul (Lit (Int i)) e1) = Just $ Binop Mul e1 (Lit (Int i))
+    s_exp (Binop op (Lit (Int i)) e1) 
+        | isAssoc op = Just $ Binop op e1 (Lit (Int i))
     s_exp (Binop Mul e1 (Lit (Int i))) =
         let trailing = (countTrailingZeros i)
             remainder = shiftR i trailing
@@ -38,6 +43,8 @@ simplify = deepFwdRw simp
     s_exp (Unop opr e1)
         | (Just op, Lit (Int i1)) <- (unOp opr, e1) =
         Just $ Lit $ Int $ op i1
+    s_exp (Call _ _) = Nothing
+        
         
         
     s_exp _ = Nothing

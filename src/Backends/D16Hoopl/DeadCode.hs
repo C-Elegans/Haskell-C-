@@ -51,10 +51,18 @@ deadCode :: forall m. FuelMonad m => BwdRewrite m Node Live
 deadCode = mkBRewrite del
   where
     del :: Node e x -> Fact x Live -> m (Maybe (Graph Node e x))
-    del n@(Assign (S x) _) live = 
+    del n@(Assign (S x) e) live 
+        | (mapEE containsCall e) == Nothing =
         case S.member x live of
             True -> return Nothing
             False -> return $ trace ("Removing node (dead): " ++ (show n)) $ Just emptyGraph
+    del n@(Assign (S x) e) _ 
+        | (mapEE containsCall e) /= Nothing =
+        return $ Just $ insnToG $  None e
         
+    del (None (Call _ _)) _ = return $ Nothing
+    del (None _) _ = return $ Just emptyGraph
     del _ _ = return $ Nothing
     
+    containsCall c@(Call _ _) = Just c
+    containsCall _ = Nothing

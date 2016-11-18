@@ -107,3 +107,13 @@ opToUnOp :: Parse.OP -> UnOp
 opToUnOp Parse.Not = Not
 opToUnOp Parse.Neg = Neg
 
+isAssoc Sub = False
+isAssoc Div = False
+isAssoc Gt = False
+isAssoc Lt = False
+isAssoc Lte = False
+isAssoc Gte = False
+isAssoc Shl = False
+isAssoc Shr = False
+isAssoc Sar = False
+isAssoc _ = True

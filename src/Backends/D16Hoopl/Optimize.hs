@@ -25,10 +25,14 @@ optIr :: Proc -> CheckingFuelMonad SimpleUniqueMonad Proc
 optIr ir@(Proc {entry,body,args}) =
     -- Note: does not actually perform SSA conversion, but instead converts all vars to SVars -- 
     (return body)               >>=
-    (ssaRun         entry args) >>= 
-    (constPropRun   entry args) >>= 
+    (ssaRun         entry args) >>=
+   
+     
     (deadCodeRun    entry args) >>= 
+    (constPropRun   entry args) >>=
     (splitPassRun   entry args) >>=
+    
+    (deadCodeRun    entry args) >>=
     --(killCodeRun    entry args) >>=
     (allocate entry)    >>=
     \final -> 

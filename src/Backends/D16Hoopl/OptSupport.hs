@@ -26,11 +26,11 @@ mapVN :: (Var  -> Maybe Expr) -> MaybeChange (Node e x)
 mapVN = mapEN . mapEE . mapVE
 
 mapVE f (Var v) = f v
-mapVE _ _       = Nothing
+mapVE _ n       = Just n
 
 mapSVE :: (SVar -> Maybe Expr) -> MaybeChange Expr
 mapSVE f (SVar s) = f s
-mapSVE _ _ = Nothing
+mapSVE _ e = Just e
 
 
 data Mapped a = Old a | New a
@@ -85,7 +85,7 @@ mapEE f e@(SVar _)    = f e
 mapEE f e@(Str _)     = f e
 mapEE f e@(Call n es) = 
     let es' = (map (uncurry fromMaybe) (zip es (map (mapEE f) es)))
-    in Just $ fromMaybe (Call n es') $ f (Call n es')
+    in f (Call n es')
 mapEE f e@(Load addr) =
   case mapEE f addr of
     Just addr' -> Just $ fromMaybe e' (f e')
