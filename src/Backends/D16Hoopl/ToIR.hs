@@ -42,9 +42,9 @@ buildGraph :: P.Tree -> LabelMapM (Graph Node O O)
 buildGraph (P.List (x:xs)) = do
     node <- buildGraph x
     graph <- buildGraph (P.List xs)
-    return $ gSplice node graph
+    return $ node <*> graph
 buildGraph (P.List []) =
-    return $ gUnitOO $ BNil
+    return $ emptyGraph
 buildGraph (P.Compound defs body) =
     buildGraph body
 buildGraph (P.FCall name (P.List arglist)) = do
@@ -61,10 +61,9 @@ buildGraph (P.If con block) = do
     lblIf <- uniqueLabel
     lblNext <- uniqueLabel
     blockGraph <- buildGraph block
-    let blockGraph' = catGraphNodeOC blockGraph (Branch lblNext)
-    let blockGraph'' = catNodeCOGraph (Label lblIf) blockGraph'
-    let cond = gUnitOC $ BlockOC BNil (Cond (buildExpr con) lblIf lblNext)
-    return $ gSplice (gSplice cond blockGraph'') $ gUnitCO $ BlockCO (Label lblNext) BNil
+    let blockGraph' = (mkFirst (Label lblIf)) <*> blockGraph <*> (mkLast (Branch lblNext))
+    let cond = mkLast (Cond (buildExpr con) lblIf lblNext)
+    return $ cond |*><*| blockGraph' |*><*| ( mkFirst (Label lblNext) )
 
 buildGraph (P.IfElse cond i e) = do
     lblIf <- uniqueLabel
@@ -72,33 +71,35 @@ buildGraph (P.IfElse cond i e) = do
     lblNext <- uniqueLabel
     ifGraph <- buildGraph i 
     elseGraph <- buildGraph e
-    let ifGraph' = catNodeCOGraph (Label lblIf) (catGraphNodeOC ifGraph (Branch lblNext))
-    let elseGraph' = catNodeCOGraph (Label lblElse) (catGraphNodeOC elseGraph (Branch lblNext))
-    let condGraph = (blockGraph $ BlockOC BNil (Cond (buildExpr cond) lblIf lblElse))
-    return $ gSplice condGraph $ gSplice ifGraph' (gSplice elseGraph' (blockGraph $ BlockCO (Label lblNext) BNil))
-    
+    let ifGraph' = (mkFirst (Label lblIf)) <*> ifGraph <*> (mkLast (Branch lblNext))
+    let elseGraph' = (mkFirst (Label lblElse)) <*> elseGraph <*> (mkLast (Branch lblNext))
+    let condGraph = mkLast (Cond (buildExpr cond) lblIf lblElse)
+    return $ condGraph |*><*| ifGraph' |*><*| elseGraph' |*><*| (mkFirst (Label lblNext) )
 buildGraph (P.Return expr) = do
-    let ret =blockGraph $ BlockOC BNil (Return [(buildExpr expr)])
+    let ret = mkLast (Return [(buildExpr expr)])
     dummyLabel <- uniqueLabel
-    let dummy = blockGraph $ BlockCO (Label dummyLabel) BNil
-    return $ gSplice ret dummy
+    let dummy = mkFirst (Label dummyLabel)
+    return $ ret |*><*| dummy
 buildGraph (P.While cond tree) = do
     lblCond <- uniqueLabel
     lblWhile <- uniqueLabel
     whileBody <- (buildGraph tree)
     lblNext <- uniqueLabel
     
-    let condGraph = (blockGraph $ BlockOC BNil (Cond (buildExpr cond) lblWhile lblNext))
-    let condGraph' = catNodeCOGraph (Label lblCond) condGraph
-    let condGraph'' = gSplice (blockGraph $ BlockOC BNil (Branch lblCond)) condGraph'
-    let whileGraph = catNodeCOGraph (Label lblWhile) whileBody
-    let whileGraph' = catGraphNodeOC whileGraph (Branch lblCond)
-    let whileGraph'' = gSplice whileGraph' $ blockGraph $ BlockCO (Label lblNext) BNil
-    return $ gSplice condGraph'' whileGraph''
+    let condGraph = 
+            (mkLast (Branch lblCond)) |*><*|
+            (mkFirst (Label lblCond)) <*>
+            (mkLast (Cond (buildExpr cond) lblWhile lblNext))
+    let whileGraph =    
+            (mkFirst (Label lblWhile))  <*> 
+            (whileBody)                 <*>
+            (mkLast (Branch lblCond))   |*><*|
+            (mkFirst (Label lblNext))
+    return $ condGraph |*><*| whileGraph
     
 buildGraph x =do
     node <- buildNode x 
-    return $ gUnitOO $ BMiddle $ node
+    return $ mkMiddle node
     
     
 
