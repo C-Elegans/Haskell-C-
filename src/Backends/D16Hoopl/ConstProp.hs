@@ -30,7 +30,7 @@ varHasLit = mkFTransfer ft
     ft (Label _)            f = f
     ft (Assign (S x) (Lit k))   f = Map.insert x (PElem k) f
     ft (Assign (S x) _)         f = Map.insert x Top f
-    ft (Call vs _ _)            f = (foldl toTop f vs)
+    ft (None e)                 f = f
             where 
                 toTop f (S v) = Map.insert v Top f
                 toTop f v = trace ("No toTop defined for " ++ show v) f

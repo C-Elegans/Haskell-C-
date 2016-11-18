@@ -25,9 +25,9 @@ data Node e x where
   Label  :: Label  ->                                       Node C O
   Assign :: Assignable    -> Expr    ->                     Node O O
   Store  :: Expr   -> Expr    ->                            Node O O
+  None   :: Expr   ->                                       Node O O
   Branch :: Label  ->                                       Node O C
   Cond   :: Expr   -> Label   -> Label  ->                  Node O C
-  Call   :: [Assignable]  -> String  -> [Expr] ->           Node O O
   Return :: [Expr] ->                                       Node O C
 
 instance NonLocal Node where
@@ -54,8 +54,7 @@ instance Show (Node e x) where
   show (Branch lbl)       = ind $ "goto " ++ show lbl
   show (Cond e t f)       =
     ind $ "if " ++ show e ++ " then goto " ++ show t ++ " else goto " ++ show f
-  show (Call ress f cargs) =
-    ind $ tuple (map show ress) ++ " = " ++ f ++ tuple (map show cargs)
+  show (None expr)        = ind $ show expr
   show (Return      rargs) = ind $ "ret " ++ tuple (map show rargs)
   --show (Nop) = "nop"
 ind :: String -> String

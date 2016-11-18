@@ -35,7 +35,7 @@ countNodes = mkFTransfer ft
     ft (Branch l)           f = mapSingleton l f
     ft (Cond _ tl fl)       f =
         mkFactBase splitLattice [(tl,f + 1 ), (fl,f + 1)]
-    ft (Call _ _ _ )    f = f+1
+    ft (None _)             f = f
     ft (Return _)           _ = mapEmpty
         
     
@@ -58,10 +58,14 @@ splitExpr = mkFRewrite split
         let (lst,expr,_) = splitExpr c f
             graph = mkMiddles lst
         in  return $ Just $ graph <*> (mkLast (Cond expr l r))
-    split (Call vs name exprs) f =
-        let (nodes,exprs',_) = fold_split exprs f
-            graph = mkMiddles nodes
-        in return $ Just $ graph <*> (mkMiddle (Call vs name exprs'))
+--    split (None c@(Call name es)) f = trace ("Split call " ++ (show c)) $ 
+--        let (lst,exprs,_) = fold_split es f
+--            graph = mkMiddles lst
+--        in return $ Just $ graph <*> ( mkMiddle $ None $ Call name exprs)
+    split (None e) f=
+        let (lst,expr,_) = splitExpr e f
+            graph = mkMiddles lst
+        in return $ Just $ graph <*> (mkMiddle (None expr))
     split (Store loc expr) f =
         let (lst,expr',_) = splitExpr expr f
             graph = mkMiddles lst
@@ -70,7 +74,8 @@ splitExpr = mkFRewrite split
         let (lst,expr,_) = fold_split e f
             graph = mkMiddles (lst)
         in  return $ Just $ graph <*> (mkLast (Return expr))
-    split _ _ = 
+        
+    split n _ = 
         return $ liftM insnToG $ Nothing
     
     splitExpr :: Expr -> Int -> ([Node O O],Expr,Int)
@@ -93,9 +98,12 @@ splitExpr = mkFRewrite split
             tmp = (Svar "tmp" (e_i+1) S_None)
             node = (Assign (S tmp) (Unop op e_e ))
             in (e_nodes ++ [node], (SVar tmp), e_i+1)
-        
-        
-    splitExpr e i =
+    splitExpr (Call n es) i =
+        let (nodes,exprs,i') = fold_split es i 
+            tmp = (Svar "tmp" (i'+1) S_None)
+            node = (Assign (S tmp) (Call n exprs))
+            in (nodes ++ [node], (SVar tmp), i'+1)   
+    splitExpr e i = trace ("Default splitExpr on " ++ (show e)) $
         ([],e,i)
     fold_split :: [Expr] -> Int -> ([Node O O],[Expr],Int)
     fold_split (e:rest) i =

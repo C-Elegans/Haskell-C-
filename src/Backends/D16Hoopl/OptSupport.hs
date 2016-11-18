@@ -6,7 +6,7 @@ module Backends.D16Hoopl.OptSupport
 import Control.Monad
 import Data.Maybe
 import Prelude hiding (succ)
-
+import Debug.Trace(trace)
 import Control.Applicative as AP (Applicative(..))
 import Compiler.Hoopl hiding ((<*>))
 import Backends.D16Hoopl.IR
@@ -83,6 +83,9 @@ mapEE f e@(Var _)     = f e
 mapEE f e@(Reg _)     = f e
 mapEE f e@(SVar _)    = f e
 mapEE f e@(Str _)     = f e
+mapEE f e@(Call n es) = 
+    let es' = (map (uncurry fromMaybe) (zip es (map (mapEE f) es)))
+    in Just $ fromMaybe (Call n es') $ f (Call n es')
 mapEE f e@(Load addr) =
   case mapEE f addr of
     Just addr' -> Just $ fromMaybe e' (f e')
@@ -109,10 +112,10 @@ mapEN _   (Branch _)          = Nothing
 mapEN f   (Cond e tid fid)    =
   case f e of Just e' -> Just $ Cond e' tid fid
               Nothing -> Nothing
-mapEN f   (Call rs n es) =
-  if all isNothing es' then Nothing
-  else Just $ Call rs n (map (uncurry fromMaybe) (zip es es'))
-    where es' = map f es
+mapEN f   (None e) =
+    case f e of 
+        Just e' -> Just $ None e'
+        Nothing -> Nothing
 mapEN f   (Return es) =
    if all isNothing es' then Nothing
    else Just $ Return (map (uncurry fromMaybe) (zip es es'))
@@ -126,6 +129,7 @@ fold_EE f z e@(Var _)         = f z e
 fold_EE f z e@(Reg _)         = f z e
 fold_EE f z e@(SVar _)        = f z e
 fold_EE f z e@(Str  _)        = f z e
+fold_EE f z e@(Call _ es)     = f ((foldl . fold_EE) f z es) e
 fold_EE f z e@(Load addr)     = f (fold_EE f z addr) e
 fold_EE f z e@(Binop _ e1 e2) =
   let afterE1 = fold_EE f z e1
@@ -140,7 +144,7 @@ fold_EN f z (Assign _ e)    = f z e
 fold_EN f z (Store addr e)  = f (f z e) addr
 fold_EN _ z (Branch _)      = z
 fold_EN f z (Cond e _ _)    = f z e
-fold_EN f z (Call _ _ es) = foldl f z es
+fold_EN f z (None e)        = f z e
 fold_EN f z (Return es)     = foldl f z es
 
 ----------------------------------------------
@@ -153,5 +157,5 @@ insnToG n@(Assign _ _)   = mkMiddle n
 insnToG n@(Store _ _)    = mkMiddle n
 insnToG n@(Branch _)     = mkLast n
 insnToG n@(Cond _ _ _)   = mkLast n
-insnToG n@(Call _ _ _)   = mkMiddle n
+insnToG n@(None _)       = mkMiddle n
 insnToG n@(Return _)     = mkLast n

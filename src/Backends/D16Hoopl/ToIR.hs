@@ -24,6 +24,8 @@ buildExpr (P.Deref x) =
     Load (buildExpr x)
 buildExpr (P.StrLabel str) =
     Str str
+buildExpr (P.FCallRet name (P.List exprs)) =
+    Call name (map buildExpr exprs)
 buildExpr t = error $ "No BuildExpr defined for " ++ (show t)
     
 buildNode :: P.Tree -> LabelMapM (Node O O)
@@ -47,12 +49,12 @@ buildGraph (P.Compound defs body) =
     buildGraph body
 buildGraph (P.FCall name (P.List arglist)) = do
     let exprs = map buildExpr arglist
-    let call = mkMiddle (Call [] name exprs)
+    let call = mkMiddle (None (Call name exprs))
     
     return $ call
 buildGraph (P.Assign (P.AnnotatedVarAssign nam t) (P.AnnotatedFCallRet name (P.List arglist) t')) = do
     let exprs = map buildExpr arglist
-    let call = mkMiddle (Call [V nam] name exprs)
+    let call = mkMiddle (Assign (V nam) (Call name exprs))
     
     return $ call 
 buildGraph (P.If con block) = do

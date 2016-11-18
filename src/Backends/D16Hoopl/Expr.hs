@@ -9,6 +9,7 @@ data Expr = Lit   Lit
           | SVar  SVar
           | Str Var
           | Reg   Register
+          | Call  String [Expr]
           | Load  Expr
           | Binop BinOp Expr Expr 
           | Unop  UnOp Expr
@@ -42,6 +43,8 @@ instance Show Expr where
   show (Reg   r) = show r
   show (Load  e) = "m[" ++ show e ++ "]"
   show (Str   s) = "Str " ++ s
+  show (Call name s) = 
+        name ++ tuple (map show s)
   show (Binop b e1 e2) = sub e1 ++ " " ++ show b ++ " " ++ sub e2
     where sub e@(Binop _ _ _) = tuple [show e]
           sub e = show e

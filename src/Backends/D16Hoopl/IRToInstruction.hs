@@ -79,8 +79,8 @@ assembleNode _ (Return ((E.Lit (E.Int i)):[])) =
     append $ (Inst_RI Mov R0 (Const i)):epilogue
 assembleNode _ (Return _) =
     append epilogue
-assembleNode _ (IR.Call [] name exprs) = --Need to check register order
-    append [Inst_JmpI Call Al (Label name)]
+--assembleNode _ (IR.Call [] name exprs) = --Need to check register order
+    --append [Inst_JmpI Call Al (Label name)]
 assembleNode name (IR.Label lbl) =
     append [Inst_Label (lblToLabel lbl name)]
 

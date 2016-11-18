@@ -34,8 +34,7 @@ killed = mkBTransfer3 firstLive middleLive lastLive
     middleLive n@(Assign (S x) _)   f = addUses (S.delete x f) n
     middleLive (Assign (V x) _)   _ = error $ "Variable " ++ x ++ " is not in SSA Form"
     middleLive n@(Store _ _)    f = addUses f n
-    middleLive n@(Call ((S s):[]) _ _)  f = addUses (S.delete s f) n
-    middleLive n@(Call _ _ _)           f = addUses f n
+    middleLive n@(None _)       f = addUses f n
     
     lastLive :: Node O C -> FactBase Kill -> Kill
     lastLive n@(Branch l)       f = addUses (fact f l) n
@@ -66,8 +65,7 @@ killVars = mkBRewrite kill
     --Closed Nodes
     kill_node f n@(Cond c tl fl) = mapSVN (kill_var (fact f tl `S.union` fact f fl)) n
     kill_node f n@(Return _) = mapSVN (kill_var S.empty) n
-    kill_node f n@(Call ((S s):[]) _ _) = mapSVN (kill_var (S.delete s f)) n
-    kill_node f n@(Call _ _ _) = mapSVN (kill_var f) n
+    kill_node f n@(None _)   = mapSVN (kill_var f) n
     kill_node f n = Nothing
     
     kill_var :: Kill -> SVar -> Maybe Expr
