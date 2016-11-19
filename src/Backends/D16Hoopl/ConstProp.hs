@@ -21,7 +21,7 @@ constLattice = DataflowLattice {
             else                (SomeChange, Top)    
             
 initFact :: [Var] -> ConstFact
-initFact vars = Map.fromList $ [(Svar v 0 S_None,Top) | v <- vars]
+initFact vars = Map.fromList [(Svar v 0 S_None,Top) | v <- vars]
 
 varHasLit :: FwdTransfer Node ConstFact
 varHasLit = mkFTransfer ft
@@ -40,7 +40,7 @@ varHasLit = mkFTransfer ft
     ft (Cond _ tl fl)       f =
         mkFactBase constLattice [(tl,f), (fl,f)]
     ft (Return _)           _ = mapEmpty
-    ft n _ = error $ "No ft defined for " ++ (show n)
+    ft n _ = error  $ "No ft defined for " ++ show n
 
 
 
@@ -50,7 +50,7 @@ constProp = mkFRewrite cp
   where
     cp :: Node e x -> ConstFact -> m (Maybe (Graph Node e x))
     cp node f =
-        return $ liftM insnToG $ mapVN (lookup f) node
+        return $ fmap insnToG $ mapVN (lookup f) node
     mapVN :: (SVar -> Maybe Expr) -> MaybeChange (Node e x)
     mapVN = mapEN . mapEE . mapSVE
     

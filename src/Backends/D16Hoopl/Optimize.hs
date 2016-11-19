@@ -16,13 +16,13 @@ import Backends.D16Hoopl.RegisterAllocator
 
 type ErrorM        = Either String
 optimize ir = 
-     runSimpleUniqueMonad $ runWithFuel 100 $ optimize_M ir
+     runSimpleUniqueMonad $ runWithFuel 100 $ optimizeM ir
 
-optimize_M :: [Proc] -> M [Proc]
-optimize_M ir =  ( return ir >>= mapM optIr) 
+optimizeM :: [Proc] -> M [Proc]
+optimizeM = mapM optIr 
 
 optIr :: Proc -> CheckingFuelMonad SimpleUniqueMonad Proc 
-optIr ir@(Proc {entry,body,args}) =
+optIr ir@Proc {entry,body,args} =
     -- Note: does not actually perform SSA conversion, but instead converts all vars to SVars -- 
     (return body)               >>=
     (ssaRun         entry args) >>=
@@ -35,7 +35,7 @@ optIr ir@(Proc {entry,body,args}) =
     
     (deadCodeRun    entry args) >>=
     --(killCodeRun    entry args) >>=
-    (allocate entry)    >>=
+    (allocate entry)            >>=
     --(constPropRun   entry args) >>=
     \final -> 
     return $ ir {body = final}
@@ -47,7 +47,7 @@ runPass :: CheckpointMonad m => Label -> Graph Node C C -> [Var] ->
            FactBase f, MaybeO x f)) -> m (Graph Node C C)
 runPass e b a f = do
     (body,_,_) <- f e b a 
-    return $ body    
+    return body    
 
 
 

@@ -3,6 +3,7 @@
 module Backends.D16Hoopl.SSA where
 import qualified Data.Map as Map
 import Control.Monad
+import Data.Maybe
 import Compiler.Hoopl
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.IR
@@ -17,12 +18,12 @@ ssaLattice = DataflowLattice {
     fact_join = add }
     where
         add _ (OldFact old) (NewFact new) =
-            let map = Map.unionWith (max) old new 
-                changeFlag = changeIf $ False
+            let map = Map.unionWith max old new 
+                changeFlag = changeIf  False
             in (changeFlag, map)
             
 initSSAFact :: [Var] -> SSAFact
-initSSAFact vars = Map.fromList $ [(v,0) | v <- vars]
+initSSAFact vars = Map.fromList  [(v,0) | v <- vars]
 
 assignSSAVar :: FwdTransfer Node SSAFact
 assignSSAVar = mkFTransfer ft
@@ -46,7 +47,7 @@ ssaRewrite = mkFRewrite ssa
   where
     ssa :: Node e x -> SSAFact -> m (Maybe (Graph Node e x))
     ssa node@(Assign _ _) f = 
-        return $ liftM insnToG $ convertAssign f node
+        return $ fmap insnToG $ convertAssign f node
     ssa node f =
         return $ liftM insnToG $ mapVN (lookup f) node
     mapVN :: (Var -> Maybe Expr) -> MaybeChange (Node e x)
@@ -62,15 +63,13 @@ ssaRewrite = mkFRewrite ssa
         (SVar sv) <- lookupAssign f v
         
         let e'= (mapEE . mapVE) (lookup f) e
-        let efinal = case e' of
-                        Just expr -> expr
-                        Nothing -> e
+        let efinal = fromMaybe e e'
         return (Assign (S sv) efinal)
     
     select :: [Maybe a] -> [a] -> [a]
     select (m:ms) (a:as) =
         case m of
-            Just j -> j:(select ms as)
-            Nothing -> a:(select ms as)
+            Just j -> j:select ms as
+            Nothing -> a:select ms as
     select [] _ = []
     select _ [] = []

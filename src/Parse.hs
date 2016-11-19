@@ -39,18 +39,18 @@ data OP = Plus | Minus | Mul | Div | Shl | Shr | And | Or | Xor | Not | Neg |
 
 whiteSpace = P.whiteSpace lexer
 
-symbol = P.symbol lexer
-integer = P.integer lexer
-parens = P.parens lexer
-semi = P.semi lexer
-identifier = P.identifier lexer
-reserved = P.reserved lexer
-reservedOp = P.reservedOp lexer
+symbol        = P.symbol lexer
+integer       = P.integer lexer
+parens        = P.parens lexer
+semi          = P.semi lexer
+identifier    = P.identifier lexer
+reserved      = P.reserved lexer
+reservedOp    = P.reservedOp lexer
 stringLiteral = P.stringLiteral lexer
-charLiteral = P.charLiteral lexer
-squares = P.brackets lexer
-commaSep1 = P.commaSep1 lexer
-commaSep = P.commaSep lexer
+charLiteral   = P.charLiteral lexer
+squares       = P.brackets lexer
+commaSep1     = P.commaSep1 lexer
+commaSep      = P.commaSep lexer
 lexeme p = do
     x <- p
     whiteSpace
@@ -162,7 +162,7 @@ prettyprint_helper col tree =
                     putStrLn "Body: "
                     prettyprint_helper (col+1) right
             (FuncDec t id pars) -> do
-                putStrLn ("Func declaration " ++ id ++ " -> " ++ (show t))
+                putStrLn ("Func declaration " ++ id ++ " -> " ++ show t)
                 spaceTabs col
                 putStrLn "Pars: "
                 prettyprint_helper (col+1) pars
@@ -263,10 +263,10 @@ line_directive = do
     return ()
 var_declaration =
     try(do
-        t <- lexeme $ type_specifier
-        name <- lexeme $ identifier
+        t <- lexeme type_specifier
+        name <- lexeme  identifier
         do
-          (try semi)
+          try semi
           return $ VarDec t name
           <|>do
             lexeme $ char '='
@@ -297,9 +297,7 @@ factor = do
         return (FCallRet name pars))
     <|> var
     <|> try cast
-    <|> try (do
-            x <- parens simple_expression
-            return x)
+    <|> try (parens simple_expression )
 
 
 
@@ -337,7 +335,7 @@ varAssign = try(do
         return $ VarAssign str)
         <?> "Assignment var"
 
-statement = try(call_stmt) <|> expression_statement <|> return_statement <|> selection_statement
+statement = try call_stmt <|> expression_statement <|> return_statement <|> selection_statement
     <|> compound_statement <|> iteration_statement
     <?> "statement"
 
@@ -395,7 +393,7 @@ primitive_type = do
 
 expression_statement =
     do
-        expr <- (expression <?> "expression")
+        expr <- expression <?> "expression"
         semi
         return expr
 selection_statement :: Parser Tree
@@ -488,11 +486,11 @@ args = do
     <?> "args"
 run :: Show a => Parser a -> String -> IO ()
 run p input
-        = case (Parsec.parse p "" input) of
+        = case Parsec.parse p "" input of
             Left err -> do{ putStr "parse error at "
 ; print err
                           }
             Right x  -> print x
 
 parse :: Parser Tree -> String -> String -> Either ParseError Tree
-parse p filename input = Parsec.parse (do { spaces; p;}) filename input
+parse p = Parsec.parse (do { spaces; p;}) 

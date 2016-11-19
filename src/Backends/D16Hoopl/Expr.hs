@@ -46,16 +46,16 @@ instance Show Expr where
   show (Call name s) = 
         name ++ tuple (map show s)
   show (Binop b e1 e2) = sub e1 ++ " " ++ show b ++ " " ++ sub e2
-    where sub e@(Binop _ _ _) = tuple [show e]
+    where sub e@Binop{} = tuple [show e]
           sub e = show e
-  show (Unop u l) = (show u) ++ (show l)
+  show (Unop u l) = show u ++ (show l)
 
 instance Show Lit where
   show (Int  i) = show i
   show (Bool b) = show b
 instance Show S_Flags where
-  show (S_None) = ""
-  show (S_Kill) = "(kill)"
+  show S_None = ""
+  show S_Kill = "(kill)"
 instance Show SVar where
   show (Svar v i f) = v ++ "_" ++ (show i) ++ " " ++ (show f) 
 instance Show BinOp where
@@ -86,22 +86,22 @@ tuple [a]    = "(" ++ a ++ ")"
 tuple (a:as) = "(" ++ a ++ concat (map ((++) ", ") as) ++ ")"
 
 opToBinOp :: Parse.OP -> BinOp
-opToBinOp Parse.Plus = Add
+opToBinOp Parse.Plus  = Add
 opToBinOp Parse.Minus = Sub
-opToBinOp Parse.Mul = Mul
-opToBinOp Parse.Div = Div
-opToBinOp Parse.Eq = Eq
-opToBinOp Parse.Ne = Ne
-opToBinOp Parse.Gt = Gt
-opToBinOp Parse.Lt = Lt
-opToBinOp Parse.Ge = Gte
-opToBinOp Parse.Le = Lte
-opToBinOp Parse.Shl = Shl
-opToBinOp Parse.Shr = Shr
-opToBinOp Parse.And = And 
-opToBinOp Parse.Or  = Or
-opToBinOp Parse.Xor = Xor  
-opToBinOp Parse.Sar = Sar
+opToBinOp Parse.Mul   = Mul
+opToBinOp Parse.Div   = Div
+opToBinOp Parse.Eq    = Eq
+opToBinOp Parse.Ne    = Ne
+opToBinOp Parse.Gt    = Gt
+opToBinOp Parse.Lt    = Lt
+opToBinOp Parse.Ge    = Gte
+opToBinOp Parse.Le    = Lte
+opToBinOp Parse.Shl   = Shl
+opToBinOp Parse.Shr   = Shr
+opToBinOp Parse.And   = And
+opToBinOp Parse.Or    = Or
+opToBinOp Parse.Xor   = Xor
+opToBinOp Parse.Sar   = Sar
 
 opToUnOp :: Parse.OP -> UnOp
 opToUnOp Parse.Not = Not
@@ -109,11 +109,11 @@ opToUnOp Parse.Neg = Neg
 
 isAssoc Sub = False
 isAssoc Div = False
-isAssoc Gt = False
-isAssoc Lt = False
+isAssoc Gt  = False
+isAssoc Lt  = False
 isAssoc Lte = False
 isAssoc Gte = False
 isAssoc Shl = False
 isAssoc Shr = False
 isAssoc Sar = False
-isAssoc _ = True
+isAssoc _   = True

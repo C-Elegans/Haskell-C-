@@ -9,7 +9,7 @@ import Compiler.Hoopl
 import Instructions (Register)
 import Prelude hiding (succ)
 
-type M = CheckingFuelMonad (SimpleUniqueMonad)
+type M = CheckingFuelMonad SimpleUniqueMonad
 
 data Value = B Bool | I Integer deriving Eq
 
@@ -100,4 +100,4 @@ uniqueLabel = LabelMapM f
 getBody graph = LabelMapM f
   where f m = return (m, graph)
 
-run (LabelMapM f) = f M.empty >>= return . snd
+run (LabelMapM f) = fmap snd (f M.empty)
