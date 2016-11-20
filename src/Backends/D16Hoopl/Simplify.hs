@@ -34,7 +34,7 @@ simplify = deepFwdRw simp
     s_exp (Binop op (Lit (Int i)) e1) 
         | isAssoc op = Just $ Binop op e1 (Lit (Int i))
     s_exp (Binop Mul e1 (Lit (Int i))) =
-        let trailing = (countTrailingZeros i)
+        let trailing = countTrailingZeros i
             remainder = shiftR i trailing
         in if trailing > 0 && i /= 0 then
                 Just (Binop Mul (Binop Shl e1 (Lit (Int trailing))) (Lit (Int remainder)))
