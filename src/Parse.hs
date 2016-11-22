@@ -17,7 +17,7 @@ lexer  = P.makeTokenParser
             P.commentStart = "/*",
             P.commentEnd = "*/"
          }
-table = [   [prefix "~" (UnaryOp Not), prefix "-" (UnaryOp Neg), prefix "*" (Deref), prefix "&" (Addr) ],
+table = [   [prefix "~" (UnaryOp Not), prefix "-" (UnaryOp Neg), prefix "*" Deref, prefix "&" Addr ],
             [binary "*" (Operator Mul) AssocRight, binary "/" (Operator Div) AssocRight],
             [binary "+" (Operator Plus) AssocRight, binary "-" (Operator Minus) AssocRight],
             [binary "<<" (Operator Shl) AssocRight, binary ">>" (Operator Shr) AssocRight],
@@ -31,7 +31,7 @@ table = [   [prefix "~" (UnaryOp Not), prefix "-" (UnaryOp Neg), prefix "*" (Der
         ]
 prefix name fun = Prefix (do reservedOp name; return fun;)
 postfix name fun = Postfix (do reservedOp name; return fun;)
-binary name fun assoc = Infix (do reservedOp name; return fun;) assoc
+binary name fun = Infix (do reservedOp name; return fun;) 
 expr = buildExpressionParser table factor
 data OP = Plus | Minus | Mul | Div | Shl | Shr | And | Or | Xor | Not | Neg |
     Lt | Gt | Eq | Ge | Le | Ne | Sar
@@ -100,15 +100,15 @@ prettyprint_helper col tree =
     do
         spaceTabs col
         case tree of
-            (Num x) -> putStrLn $ show x
+            (Num x) -> print x
             (Operator op left right) ->
                 do
-                    putStrLn $ show op
+                    print op
                     prettyprint_helper (col+1) left
                     prettyprint_helper (col+1) right
             (UnaryOp op left) ->
                 do
-                    putStrLn $ show op
+                    print op
                     prettyprint_helper (col+1) left
             (Var x) -> putStrLn ("Var: " ++x)
             (VarAssign str) -> putStrLn ("VarAssign: " ++ str)
@@ -147,14 +147,14 @@ prettyprint_helper col tree =
                     putStrLn "Block"
                     prettyprint_helper (col+1) decls
                     prettyprint_helper (col+1) stmts
-            (EmptyTree) -> putStrLn "Empty"
-            (VarDec t str) -> putStrLn ("VarDec " ++ str ++ " = " ++ (show t))
-            (VarDecAssign t str exp) -> putStrLn ("VarDec " ++ str ++ " " ++ (show t) ++ " = " ++ (show exp))
-            (GlobalDec t str) -> putStrLn ("Global " ++ str ++ "=" ++ (show t))
-            (ArrayDec t str sz) -> putStrLn ("Array (" ++ (show t) ++ ") "++ str ++ " [" ++ (show sz) ++ "]")
+            EmptyTree -> putStrLn "Empty"
+            (VarDec t str) -> putStrLn ("VarDec " ++ str ++ " = " ++ show t)
+            (VarDecAssign t str exp) -> putStrLn ("VarDec " ++ str ++ " " ++ show t ++ " = " ++ show exp)
+            (GlobalDec t str) -> putStrLn ("Global " ++ str ++ "=" ++ show t)
+            (ArrayDec t str sz) -> putStrLn ("Array (" ++ show t ++ ") "++ str ++ " [" ++ show sz ++ "]")
             (FuncDef t id left right) ->
                 do
-                    putStrLn ("Func " ++ id ++ " -> " ++ (show t))
+                    putStrLn ("Func " ++ id ++ " -> " ++ show t)
                     spaceTabs col
                     putStrLn "Pars: "
                     prettyprint_helper (col+1) left
@@ -180,7 +180,7 @@ prettyprint_helper col tree =
                     prettyprint_helper (col+1) args
             (AnnotatedFCallRet id args t) ->
                 do
-                    putStrLn ("Call_r " ++ id ++ "()" ++ "->" ++ (show t))
+                    putStrLn ("Call_r " ++ id ++ "()" ++ "->" ++ show t)
                     spaceTabs col
                     putStrLn "args: "
                     prettyprint_helper (col+1) args
@@ -194,17 +194,17 @@ prettyprint_helper col tree =
             (Str str) -> putStrLn $ "String: " ++ str
             (StrLabel str) -> putStrLn $ "String at: " ++ str
             (AnnotatedVar str t) ->
-                putStrLn $ "Var: " ++ str ++ " (" ++ (show t) ++ ")"
+                putStrLn $ "Var: " ++ str ++ " (" ++ show t ++ ")"
             (AnnotatedVarAssign str t) ->
-                putStrLn $ "Var: " ++ str ++ " (" ++ (show t) ++ ")"
+                putStrLn $ "Var: " ++ str ++ " (" ++ show t ++ ")"
             (Deref tree) -> do
                 putStrLn "Deref:"
                 prettyprint_helper (col+1) tree
-            (Addr (Var str)) -> do
+            (Addr (Var str)) -> 
                 putStrLn $ "&" ++ str
-            (Addr (AnnotatedVar str t)) -> putStrLn $ "&" ++ str ++ " (" ++ (show t) ++ ")"
+            (Addr (AnnotatedVar str t)) -> putStrLn $ "&" ++ str ++ " (" ++ show t ++ ")"
             (Cast t exp) -> do
-                putStrLn $ "Cast (" ++ (show t) ++ ")"
+                putStrLn $ "Cast (" ++ show t ++ ")"
                 prettyprint_helper (col+1) exp
 
 

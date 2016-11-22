@@ -10,7 +10,7 @@ import Backends.D16Hoopl.DeadCode
 import Backends.D16Hoopl.SSA
 import Backends.D16Hoopl.Kill
 import Backends.D16Hoopl.Split
-
+import Backends.D16Hoopl.CallAllocation
 import Backends.D16Hoopl.RegisterAllocator
 
 
@@ -35,8 +35,8 @@ optIr ir@Proc {entry,body,args} =
     
     (deadCodeRun    entry args) >>=
     --(killCodeRun    entry args) >>=
+    (callAllocRun   entry args) >>=
     (allocate entry)            >>=
-    --(constPropRun   entry args) >>=
     \final -> 
     return $ ir {body = final}
     
@@ -101,4 +101,12 @@ splitPass = FwdPass {
     }
 splitPassRun entry args body = 
     runPass entry body args (\e b _ -> analyzeAndRewriteFwd splitPass (JustC e) b mapEmpty)
+callAllocPass :: FuelMonad m => FwdPass m Node CallFact
+callAllocPass = FwdPass {
+    fp_lattice = emptyLattice,
+    fp_transfer = emptyTransfer,
+    fp_rewrite = callAlloc
+}
+callAllocRun entry args body = 
+    runPass entry body args (\e b _ -> analyzeAndRewriteFwd callAllocPass (JustC e) b mapEmpty)
 

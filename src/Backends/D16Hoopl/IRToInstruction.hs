@@ -58,8 +58,12 @@ assembleNode _(Assign (R r) (E.Binop op (E.Reg r2) (E.Lit (E.Int i)))) =
     append [Inst_RI Cmp r2 (Const i), Inst_Jmp Set (binopToCond op) r]
 assembleNode _(Assign (R r) (E.Binop op (E.Reg r2) (E.Reg r3))) =
     append [Inst_RR Cmp r2 r3, Inst_Jmp Set (binopToCond op) r]
+assembleNode _(Assign (R r) (E.Unop op (E.Reg r2))) =
+    append [Inst_R (unopToOp op) r2, Inst_RR Mov r r2]
 assembleNode _ (Assign (R r) (E.Lit (E.Int i))) =
     append [Inst_RI Mov r (Const i)]
+assembleNode _ (Assign (R r) (E.Str str)) =
+    append [Inst_RI Mov r (Label str)]
 assembleNode _ (Assign (R r) (E.Reg r2)) = 
     append [Inst_RR Mov r r2]
 assembleNode _ (Assign (R r) (E.Load (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))))) =
@@ -81,6 +85,10 @@ assembleNode _ (Return _) =
     append epilogue
 assembleNode _ (None (E.Call name rs)) =
     append [Inst_JmpI Call Al (Label ("_" ++ name))]
+assembleNode _ (Assign (R R0) (E.Call name rs)) =
+    append [Inst_JmpI Call Al (Label ("_" ++ name))]
+assembleNode _ (None _) =
+    id
 assembleNode name (IR.Label lbl) =
     append [Inst_Label (lblToLabel lbl name)]
 
@@ -113,6 +121,9 @@ binopToOp E.Xor = Xor
 binopToOp E.Shl = Shl
 binopToOp E.Shr = Shr
 
+unopToOp :: E.UnOp -> Opcode
+unopToOp E.Neg = Neg
+unopToOp E.Not = Not
 
 canBeOp E.Add = True
 canBeOp E.Sub = True

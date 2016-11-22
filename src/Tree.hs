@@ -121,7 +121,7 @@ fix_ptr_arith x = return x
 
 extract_assignments ((VarDecAssign t str expr):xs) =
     let (decs,assgns) = extract_assignments xs
-    in ((VarDec t str):decs,(Assign (VarAssign str) expr):assgns)
+    in (VarDec t str:decs, Assign (VarAssign str) expr:assgns)
 extract_assignments (x:xs) =
     let (decs,assgns) = extract_assignments xs
     in (x:decs,assgns)

@@ -19,10 +19,24 @@ runBackend tree strings cleanfilename =
         
         insns = trace (concat $ map showProc ir' ) $ map (assemble) ir'
         insns' = map (runPeephole) insns
-    in  (concat insns',"")
+        assembledStrings = trace (show strings) $ assemble_strings strings cleanfilename
+    in  (concat insns',assembledStrings)
 
 
+assemble_strings :: [(String,String)] -> String -> String
+assemble_strings (s:strs) filename =
+    let (label,string) = s
+        assembledString = label ++ ":\n    "++".asciz \"" ++ (escape string) ++"\"\n"
+    in assembledString ++ (assemble_strings strs filename)
+assemble_strings [] _ = []
 
+
+escape :: String -> String
+escape ('\n':cs) = '\\':'n':(escape cs)
+escape ('\0':cs) = '\\':'0':(escape cs)
+escape ('\r':cs) = '\\':'r':(escape cs)
+escape (c:cs) = c:(escape cs)
+escape [] = []
 
 
 

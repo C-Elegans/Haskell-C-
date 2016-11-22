@@ -58,7 +58,7 @@ deadCode = mkBRewrite del
             False -> return $ trace ("Removing node (dead): " ++ (show n)) $ Just emptyGraph
     del n@(Assign (S x) e) _ 
         | (mapEE containsCall e) /= Nothing =
-        return $ Just $ insnToG $  None e
+        return Nothing
         
     del (None (Call _ _)) _ = return $ Nothing
     del (None _) _ = return $ Just emptyGraph

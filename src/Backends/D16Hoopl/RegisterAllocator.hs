@@ -63,7 +63,7 @@ instance NodeAlloc Node Node where
         let lst   = (foldl . fold_EE) (svToVInfo Input) [] es
             lst'  = (svToVInfo Output) lst (SVar v)
             lst'' = lst' ++ [
-                VarInfo{varId=Left 0,varKind=Output,regRequired=True},
+                {-VarInfo{varId=Left 0,varKind=Output,regRequired=True},-}
                 VarInfo{varId=Left 1,varKind=Output,regRequired=True},
                 VarInfo{varId=Left 2,varKind=Output,regRequired=True},
                 VarInfo{varId=Left 3,varKind=Output,regRequired=True}
