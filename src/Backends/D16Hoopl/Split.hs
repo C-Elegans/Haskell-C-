@@ -87,6 +87,18 @@ splitExpr = mkFRewrite split
         let tmp = (Svar "tmp" (i+1) S_None)
             node = (Assign (S tmp) l)
             in ([node], (SVar tmp), i+1)
+    splitExpr (Binop Mul l r) i =
+        let (l_nodes,l_e,l_i) = splitExpr l i
+            (r_nodes,r_e,r_i) = splitExpr r l_i
+            tmp = (Svar "tmp" (r_i+1) S_None)
+            node = (Assign (S tmp) (Call "mul" [l_e,r_e]))
+        in  (l_nodes ++ r_nodes ++ [node], SVar tmp, r_i+1)
+    splitExpr (Binop Div l r) i =
+        let (l_nodes,l_e,l_i) = splitExpr l i
+            (r_nodes,r_e,r_i) = splitExpr r l_i
+            tmp = (Svar "tmp" (r_i+1) S_None)
+            node = (Assign (S tmp) (Call "div" [l_e,r_e]))
+        in  (l_nodes ++ r_nodes ++ [node], SVar tmp, r_i+1)
     splitExpr (Binop op l r) i = 
         let (l_nodes,l_e,l_i) = splitExpr l i
             (r_nodes,r_e,r_i) = splitExpr r l_i
