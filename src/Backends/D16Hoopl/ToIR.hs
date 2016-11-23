@@ -75,6 +75,11 @@ buildGraph (P.IfElse cond i e) = do
     let elseGraph' = (mkFirst (Label lblElse)) <*> elseGraph <*> (mkLast (Branch lblNext))
     let condGraph = mkLast (Cond (buildExpr cond) lblIf lblElse)
     return $ condGraph |*><*| ifGraph' |*><*| elseGraph' |*><*| (mkFirst (Label lblNext) )
+buildGraph (P.Return P.EmptyTree) = do
+    let ret = mkLast (Return [])
+    dummyLabel <- uniqueLabel
+    let dummy = mkFirst (Label dummyLabel)
+    return $ ret |*><*| dummy
 buildGraph (P.Return expr) = do
     let ret = mkLast (Return [(buildExpr expr)])
     dummyLabel <- uniqueLabel

@@ -53,6 +53,8 @@ callAlloc = mkFRewrite alloc
         in  Just $  (mkMiddles nodes) <*> 
                     (mkMiddle (Assign (R R0) (Call name args'))) <*>
                     (mkMiddle (Assign (S s) (Reg R0)))
+    a_node (Return ((SVar sv):[])) =
+        Just $ (mkMiddle (Assign (R R0) (SVar sv))) <*> mkLast (Return [Reg R0])
     a_node _ = Nothing
 
     assign_args :: [Register] -> [Expr] -> [Node O O]

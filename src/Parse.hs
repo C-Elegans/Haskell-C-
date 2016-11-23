@@ -431,9 +431,13 @@ return_statement :: Parser Tree
 return_statement =
     do
         lexeme $ reserved "return"
-        tree <- expression
-        semi
-        return $ Return tree
+        try (do
+                semi
+                return $ Return EmptyTree
+            <|> do
+                tree <- expression
+                semi
+                return $ Return tree)
     <?> "return"
 
 operation_assignment :: Parser Tree

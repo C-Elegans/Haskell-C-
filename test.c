@@ -1,6 +1,7 @@
+int test(int i,int j,int k, int l){
+    return (j+k)+(l+i);
+}
 void main(int* p){
-    int r = *p;
-    if(p==0) return 0;
-    *p=r+3;
+    return;
 }
 

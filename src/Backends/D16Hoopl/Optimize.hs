@@ -17,7 +17,7 @@ import Backends.D16Hoopl.NullPtrUB
 
 type ErrorM        = Either String
 optimize ir = 
-     runSimpleUniqueMonad $ runWithFuel 100 $ optimizeM ir
+     runSimpleUniqueMonad $ runWithFuel infiniteFuel $ optimizeM ir
 
 optimizeM :: [Proc] -> M [Proc]
 optimizeM = mapM optIr 
