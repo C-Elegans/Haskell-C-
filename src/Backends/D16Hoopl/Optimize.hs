@@ -12,6 +12,7 @@ import Backends.D16Hoopl.Kill
 import Backends.D16Hoopl.Split
 import Backends.D16Hoopl.CallAllocation
 import Backends.D16Hoopl.RegisterAllocator
+import Backends.D16Hoopl.NullPtrUB
 
 
 type ErrorM        = Either String
@@ -32,7 +33,8 @@ optIr ir@Proc {entry,body,args} =
     (constPropRun   entry args) >>=
 
     (splitPassRun   entry args) >>=
-    
+    (nullPtrRun     entry args) >>=
+    (constPropRun   entry args) >>=
     (deadCodeRun    entry args) >>=
     --(killCodeRun    entry args) >>=
     (callAllocRun   entry args) >>=
@@ -109,4 +111,12 @@ callAllocPass = FwdPass {
 }
 callAllocRun entry args body = 
     runPass entry body args (\e b _ -> analyzeAndRewriteFwd callAllocPass (JustC e) b mapEmpty)
+nullPtrPass :: FuelMonad m => FwdPass m Node NullPtrFact
+nullPtrPass = FwdPass {
+    fp_lattice = nullLattice,
+    fp_transfer = nullTransfer,
+    fp_rewrite = nullRewrite
+}
 
+nullPtrRun entry args body = 
+    runPass entry body args (\e b _ -> analyzeAndRewriteFwd nullPtrPass (JustC e) b mapEmpty)
