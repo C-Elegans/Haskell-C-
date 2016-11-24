@@ -26,6 +26,8 @@ buildExpr (P.StrLabel str) =
     Str str
 buildExpr (P.FCallRet name (P.List exprs)) =
     Call name (map buildExpr exprs)
+buildExpr (P.AnnotatedFCallRet name (P.List exprs) t) =
+    Call name (map buildExpr exprs)
 buildExpr t = error $ "No BuildExpr defined for " ++ (show t)
     
 buildNode :: P.Tree -> LabelMapM (Node O O)

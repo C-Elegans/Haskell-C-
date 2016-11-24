@@ -98,12 +98,12 @@ instance NodeAlloc Node Node where
     
     mkSaveOps reg vid = do
         slot <- getStackSlot (Just vid)
-        return [Store (Binop Add (Reg R6) (Lit (Int slot))) (Reg (intToReg reg))]
+        return [Store (Binop Add (Reg R6) (Lit (Int (-slot)))) (Reg (intToReg reg))]
         
     
     mkRestoreOps vid reg = do
         slot <- getStackSlot (Just vid)
-        return [Assign (R (intToReg reg)) (Load (Binop Add (Reg R6) (Lit (Int slot))))]
+        return [Assign (R (intToReg reg)) (Load (Binop Add (Reg R6) (Lit (Int (-slot)))))]
     
     op1ToString = show
     
@@ -133,7 +133,7 @@ allocate entry g  =
         verifier    = VerifyDisabled
         
         (dump,allocated) = allocateHoopl nRegs stackOffset regSize verifier entry g
-    in  trace dump $
+    in  
         case allocated of
             Left strs -> return $error $ "Allocation Error: " ++ show strs
             Right gr  -> return gr

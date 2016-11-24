@@ -45,6 +45,16 @@ splitExpr :: forall m . FuelMonad m => FwdRewrite m Node SplitFact
 splitExpr = mkFRewrite split
   where
     split :: Node e x -> SplitFact -> m (Maybe (Graph Node e x))
+    split (Assign v (Binop Div l r)) f =
+        let (lst,left,i) = splitExpr l f
+            (lst',right,_) = splitExpr r i
+            graph = mkMiddles (lst ++ lst' ++ [(Assign v (Call "div" [left,right]))])
+        in return $ Just graph
+    split (Assign v (Binop Mul l r)) f =
+        let (lst,left,i) = splitExpr l f
+            (lst',right,_) = splitExpr r i
+            graph = mkMiddles (lst ++ lst' ++ [(Assign v (Call "mul" [left,right]))])
+        in return $ Just graph
     split (Assign v (Binop op l r)) f =
         let (lst,left,i) = splitExpr l f
             (lst',right,_) = splitExpr r i
@@ -79,6 +89,8 @@ splitExpr = mkFRewrite split
         return $ liftM insnToG $ Nothing
     
     splitExpr :: Expr -> Int -> ([Node O O],Expr,Int)
+    splitExpr node _
+        | trace ("SplitExpr " ++ show node) False = undefined
     splitExpr l@(Lit (Int int)) i =
         let tmp = (Svar "tmp" (i+1) S_None)
             node = (Assign (S tmp) l)

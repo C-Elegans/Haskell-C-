@@ -21,6 +21,7 @@ emitPrologue fname = do
     tell $ [Inst PushLR]
     tell $ [Inst_R Push R6]
     tell $ [Inst_RR Mov R6 R7]
+    tell $ [Inst_RI Sub R7 (Const 16)]
     tell $ [Inst_JmpI Jmp Al (Label ("_L1_" ++ fname))]
     return ()
 
@@ -40,12 +41,15 @@ assemble p = execWriter (assembleFunction p)
 --The fold over the graph is backwards for some reason. 
 
 assembleNode :: String -> Node e x -> [Instruction] -> [Instruction]
-assembleNode _ (Assign (R r) (E.Binop op (E.Reg r2) (E.Reg r3))) 
+assembleNode _ node@(Assign (R r) (E.Binop op (E.Reg r2) (E.Reg r3))) 
     | canBeOp op =
     if r == r2 then
         append [(Inst_RR (binopToOp op) r2 r3)]
     else
-        append [(Inst_RR Mov r r2),(Inst_RR (binopToOp op) r r3)] 
+        if r == r3 then
+            (\_ ->error $ "Cannot convert to 2 address code "++ (show node))
+        else
+            append [(Inst_RR Mov r r2),(Inst_RR (binopToOp op) r r3)] 
 assembleNode _(Assign (R r) (E.Binop op (E.Reg r2) (E.Lit (E.Int i)))) 
     | canBeOp op =
     if r == r2 then
@@ -140,3 +144,4 @@ binopToCond E.Gt = G
 binopToCond E.Gte = Ge
 binopToCond E.Lt = L
 binopToCond E.Lte = Le
+binopToCond c = error $ "No binopToCond defined for " ++ show c

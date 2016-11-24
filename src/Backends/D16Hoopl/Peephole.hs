@@ -4,7 +4,8 @@ import Instructions
 passes = [
         move_constants,
         condense_compare,
-        eliminate_redundant_jump
+        eliminate_redundant_jump,
+        condense_loads
     ]
 
 runPeephole :: [Instruction] -> [Instruction]
@@ -42,3 +43,12 @@ move_constants ((Inst_RI Mov r1 (Const i)):(Inst_RR op r2 r3):rest)
     (Inst_RI op r2 (Const i)):(move_constants rest)
 move_constants (x:xs) = x:move_constants xs
 move_constants [] = []
+
+condense_loads ((Inst_MemI Ld r r2 addr bf df):(Inst_RR Mov r3 r4):rest) 
+    | r == r4 =
+        (Inst_MemI Ld r3 r2 addr bf df):(condense_loads rest)
+condense_loads ((Inst_Mem Ld r r2 bf):(Inst_RR Mov r3 r4):rest) 
+    | r == r4 =
+        (Inst_Mem Ld r3 r2 bf):(condense_loads rest)
+condense_loads (x:xs) = x:condense_loads xs
+condense_loads [] = []
