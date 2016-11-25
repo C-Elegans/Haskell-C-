@@ -30,9 +30,9 @@ optIr ir@Proc {entry,body,args} =
     (ssaRun         entry args) >>=
    
      
-    (deadCodeRun    entry args) >>= 
     (constPropRun   entry args) >>=
 
+    (deadCodeRun    entry args) >>= 
     (splitPassRun   entry args) >>=
     (nullPtrRun     entry args) >>=
     (constPropRun   entry args) >>=

@@ -13,6 +13,6 @@ int gcd(int a, int b){
 }
 
 void main(void){
-    print_hex(gcd(15,6));
+    print_hex(gcd(6,15));
 }
 

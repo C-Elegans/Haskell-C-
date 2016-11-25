@@ -15,6 +15,10 @@ import Data.Hashable
 
 import Debug.Trace(trace)
 
+{-
+ -Performs register allocation through the use of the Linearscan-hoopl library.
+ -}
+
 instance HooplNode Node where
     mkBranchNode = Branch
     mkLabelNode  = Label
@@ -30,6 +34,7 @@ instance Show VarInfo where
             Left pr  -> (show (intToReg pr)) ++ " " ++ (show varKind) ++ " " ++ (show regRequired)
             Right vi -> (show vi) ++ " " ++ (show varKind) ++ " " ++ (show regRequired)
 
+--Linearscan requires variable IDs to be integers, so we define a hashing function for SVars
 instance Hashable SVar where
     hashWithSalt s (Svar name i _) = 
        abs $ (hashWithSalt s name) + (hashWithSalt s i)
@@ -41,7 +46,6 @@ instance NodeAlloc Node Node where
     
     isBranch (Branch _)   = True
     isBranch (Cond _ _ _) = True
-    
     isBranch _ = False
     
     retargetBranch (Branch _) _ lbl = (Branch lbl)
@@ -55,6 +59,8 @@ instance NodeAlloc Node Node where
 
     mkLabelOp lbl = (Label lbl)
     mkJumpOp lbl  = (Branch lbl)
+
+    --Returns all variables and registers referenced by the given node
     getReferences (Assign (S sv) e) =  
         let lst  = fold_EE (svToVInfo Input) [] e
             lst' = svToVInfo Output lst (SVar sv)
@@ -62,8 +68,9 @@ instance NodeAlloc Node Node where
     getReferences (Assign (S v) (Call _ es)) =
         let lst   = (foldl . fold_EE) (svToVInfo Input) [] es
             lst'  = (svToVInfo Output) lst (SVar v)
+            --This ensures that linearscan knows r0-r3 are not preserved across calls.
             lst'' = lst' ++ [
-                {-VarInfo{varId=Left 0,varKind=Output,regRequired=True},-}
+                VarInfo{varId=Left 0,varKind=Output,regRequired=True},
                 VarInfo{varId=Left 1,varKind=Output,regRequired=True},
                 VarInfo{varId=Left 2,varKind=Output,regRequired=True},
                 VarInfo{varId=Left 3,varKind=Output,regRequired=True}
@@ -75,7 +82,7 @@ instance NodeAlloc Node Node where
     getReferences node =   
         fold_EN (fold_EE (svToVInfo Input)) [] node
     
-    --setRegisters :: [((VarId, VarKind), PhysReg)] -> nv e x -> Env (nr e x)
+    --Applies register allocations to the given node
     setRegisters allocs (Assign sv@(S s) e) =
         let lst     = map (\((vid,_),reg) -> (vid,reg)) allocs
             mp      = Map.fromList lst
@@ -93,20 +100,22 @@ instance NodeAlloc Node Node where
             Nothing  -> return node
             Just new -> return new
     
-    --mkMoveOps :: PhysReg -> VarId -> PhysReg -> Env [nr O O]
+    --moves a register to another register
     mkMoveOps r1 _ r2 = return [Assign (R (intToReg r2)) (Reg (intToReg r1))]
     
+    --saves a register to a stack slot
     mkSaveOps reg vid = do
         slot <- getStackSlot (Just vid)
         return [Store (Binop Add (Reg R6) (Lit (Int (-slot)))) (Reg (intToReg reg))]
         
-    
+    --restores a register from a stack slot 
     mkRestoreOps vid reg = do
         slot <- getStackSlot (Just vid)
         return [Assign (R (intToReg reg)) (Load (Binop Add (Reg R6) (Lit (Int (-slot)))))]
     
     op1ToString = show
-    
+
+--Function mapped over nodes in getReferences
 svToVInfo :: VarKind -> [VarInfo] -> Expr -> [VarInfo]
 svToVInfo vk vi (SVar sv) =  (convert sv):vi
     where 
@@ -130,7 +139,7 @@ allocate entry g  =
     let nRegs       = 6
         stackOffset = 2
         regSize     = 2
-        verifier    = VerifyDisabled
+        verifier    = VerifyEnabled
         
         (dump,allocated) = allocateHoopl nRegs stackOffset regSize verifier entry g
     in  
@@ -138,4 +147,3 @@ allocate entry g  =
             Left strs -> return $error $ "Allocation Error: " ++ show strs
             Right gr  -> return gr
     
---fold_EE :: (a -> Expr -> a) -> a -> Expr      -> a

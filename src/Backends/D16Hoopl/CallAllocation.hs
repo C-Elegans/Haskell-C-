@@ -8,6 +8,12 @@ import Control.Monad
 import Instructions (Register(..))
 import Prelude hiding ((<*>))
 
+{-
+ -Performs register allocation for call parameters. At the suggestion of John Wiegly, the author
+ -of linearscan and linearscan-hoopl, calling conventions should be implemented by assigning call
+ -parameters to their appropriate registers or stack slots before allocation takes place
+ -}
+
 type CallFact = Int
 emptyLattice :: DataflowLattice CallFact
 emptyLattice = DataflowLattice {

@@ -9,6 +9,10 @@ import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport
 import Debug.Trace (trace)
 
+{-
+ -This pass performs constant propogation among SVars and is run in tandem with the 
+ -pass in Simplify.hs
+ -}
 type ConstFact = Map.Map SVar (WithTop Lit)
 constLattice :: DataflowLattice ConstFact
 constLattice = DataflowLattice {
@@ -27,19 +31,19 @@ varHasLit :: FwdTransfer Node ConstFact
 varHasLit = mkFTransfer ft
   where
     ft :: Node e x -> ConstFact -> Fact x ConstFact
-    ft (Label _)            f = f
-    ft (Assign (S x) (Lit k))   f = Map.insert x (PElem k) f
-    ft (Assign (S x) _)         f = Map.insert x Top f
-    ft (None _)                 f = f
-    ft (Store _ _)          f = f
-    ft (Branch l)           f = mapSingleton l f
-    ft (Cond (SVar x) tl fl) f =
+    ft (Label _)                        f = f
+    ft (Assign (S x) (Lit k))           f = Map.insert x (PElem k) f
+    ft (Assign (S x) _)                 f = Map.insert x Top f
+    ft (None _)                         f = f
+    ft (Store _ _)                      f = f
+    ft (Branch l)                       f = mapSingleton l f
+    ft (Cond (SVar x) tl fl)            f =
         mkFactBase constLattice
             [(tl, Map.insert x (PElem (Bool True)) f),
              (fl, Map.insert x (PElem (Bool False))f)]
-    ft (Cond _ tl fl)       f =
+    ft (Cond _ tl fl)                   f =
         mkFactBase constLattice [(tl,f), (fl,f)]
-    ft (Return _)           _ = mapEmpty
+    ft (Return _)                       _ = mapEmpty
     ft n _ = error  $ "No ft defined for " ++ show n
 
 

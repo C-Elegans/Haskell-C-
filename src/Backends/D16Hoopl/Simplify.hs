@@ -9,7 +9,12 @@ import Backends.D16Hoopl.OptSupport
 import Debug.Trace(trace)
 import Data.Bits
 
-
+{-
+ -This pass (just a rewrite function) performs expression simplification if an expression
+ -is made up of constants. Also performs strength reduction on multiplication expressions,
+ -converting them to shifts if they're a power of two or removing them altogether if multiplying
+ -by 0 or 1
+ -}
 simplify :: forall m f. FuelMonad m => FwdRewrite m Node f
 simplify = deepFwdRw simp
   where
@@ -17,8 +22,7 @@ simplify = deepFwdRw simp
     simp node _ = return $ liftM insnToG $ s_node node
     
     s_node :: Node e x -> Maybe (Node e x)
-    s_node n 
-        | trace ("s_node " ++ (show n)) False = undefined
+    {-s_node n | trace ("s_node " ++ (show n)) False = undefined-}
     s_node (Cond (Lit (Bool b)) t f) =
         Just $ Branch (if b then t else f)
     s_node (Assign (R r1) (Binop op (Reg r2) (Reg r3))) 

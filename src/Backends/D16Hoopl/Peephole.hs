@@ -52,3 +52,10 @@ condense_loads ((Inst_Mem Ld r r2 bf):(Inst_RR Mov r3 r4):rest)
         (Inst_Mem Ld r3 r2 bf):(condense_loads rest)
 condense_loads (x:xs) = x:condense_loads xs
 condense_loads [] = []
+
+--Does not work for calls to assembly functions, needs poplr instruction
+tail_call_elimination :: [Instruction] -> [Instruction]
+tail_call_elimination ((Inst_JmpI Call Al lbl):(Inst_RR Mov R7 R6):(Inst_R Pop R6):(Inst_R Pop R1):(Inst_Jmp Jmp Al R1):rest) =
+    (Inst_RR Mov R7 R6):(Inst_R Pop R6):(Inst_JmpI Jmp Al lbl):(tail_call_elimination rest)
+tail_call_elimination (x:xs) = x:tail_call_elimination xs
+tail_call_elimination [] = []

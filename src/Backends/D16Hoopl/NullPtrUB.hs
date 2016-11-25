@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wall -Werror -Wno-type-defaults -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -Wall -Wno-type-defaults -fno-warn-name-shadowing #-}
 {-# LANGUAGE ScopedTypeVariables, GADTs #-}
 module Backends.D16Hoopl.NullPtrUB where
 import qualified Data.Map as Map
@@ -7,6 +7,12 @@ import Debug.Trace (trace)
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport
+
+{-
+ -Performs null pointer analysis and optimization. Likely will be disabled by default, 
+ -as it can lead to big problems with incorrect code.
+ -}
+
 data IsNull = Null | Nonnull | Unknown deriving (Eq,Show)
 instance Ord IsNull where
     Unknown <= _ = False
@@ -53,8 +59,7 @@ nullRewrite = mkFRewrite rw
         return $ fmap insnToG $ (mapEN . mapEE) (lookup f) node
     
     lookup :: NullPtrFact -> Expr -> Maybe Expr
-    lookup f n 
-        | trace ("nullptr " ++ show n ++ " Fact " ++ show f) False = undefined
+    {-lookup f n | trace ("nullptr " ++ show n ++ " Fact " ++ show f) False = undefined-}
     lookup f (Binop op (SVar sv) (SVar sv2)) =
         do
             opr <- cmpOp op

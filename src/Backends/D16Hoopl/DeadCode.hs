@@ -9,7 +9,10 @@ import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.OptSupport
 import Debug.Trace (trace)
 import qualified Data.Set as S
-
+{-
+ -performs dead code elimination, requires a backward pass for determining liveness analysis
+ -Does not remove expressions involving calls, however it does remove (None var) expressions
+ -}
 --Lattice
 type Live = S.Set SVar
 liveLattice :: DataflowLattice Live
@@ -55,7 +58,7 @@ deadCode = mkBRewrite del
         | (mapEE containsCall e) == Nothing =
         case S.member x live of
             True -> return Nothing
-            False -> return $ trace ("Removing node (dead): " ++ (show n)) $ Just emptyGraph
+            False -> return $ Just emptyGraph
     del n@(Assign (S x) e) _ 
         | (mapEE containsCall e) /= Nothing =
         return Nothing

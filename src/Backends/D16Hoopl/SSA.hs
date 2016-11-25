@@ -10,6 +10,11 @@ import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport
 import Debug.Trace (trace)
 
+{-
+ - This module converts all variables to SVars, variables with included numbers
+ - Originally it was intended to do SSA conversion, but Hoopl cannot actually do SSA
+ - conversion and it would not be useful to do so in light of fixpoints.
+ -}
 type SSAFact = Map.Map Var Int
 ssaLattice :: DataflowLattice SSAFact
 ssaLattice = DataflowLattice {

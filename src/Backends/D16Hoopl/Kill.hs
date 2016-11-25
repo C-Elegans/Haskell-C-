@@ -11,6 +11,12 @@ import Backends.D16Hoopl.OptSupport
 import Debug.Trace (trace)
 import qualified Data.Set as S
 
+{-
+ -Annotates variable lifetimes by setting the flags of an SVar to S_Kill upon the final usage of
+ -that variable. Not used currently as it seems Linearscan does this on its own, but it may come 
+ -in handy if I ever decide to write a register allocator (either graph coloring or linear)
+ -}
+
 --Lattice
 type Kill = S.Set SVar
 killLattice :: DataflowLattice Kill

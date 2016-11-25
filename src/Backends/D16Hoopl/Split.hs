@@ -11,6 +11,12 @@ import Debug.Trace (trace)
 import Prelude hiding ((<*>))
 import Data.Data (toConstr)
 
+{-
+ -This pass splits expressions into assignments with a single binary, unary, or call expression.
+ -This is necessary because we need to allocate registers for subexpressions and for instruction 
+ -selection (as each assignment corresponds to 1 or 2 instructions for instruction selection. 
+ -}
+
 type SplitFact = Int
 splitLattice :: DataflowLattice SplitFact
 splitLattice = DataflowLattice {
@@ -89,8 +95,7 @@ splitExpr = mkFRewrite split
         return $ liftM insnToG $ Nothing
     
     splitExpr :: Expr -> Int -> ([Node O O],Expr,Int)
-    splitExpr node _
-        | trace ("SplitExpr " ++ show node) False = undefined
+    {-splitExpr node _ | trace ("SplitExpr " ++ show node) False = undefined-}
     splitExpr l@(Lit (Int int)) i =
         let tmp = (Svar "tmp" (i+1) S_None)
             node = (Assign (S tmp) l)
@@ -127,7 +132,7 @@ splitExpr = mkFRewrite split
             tmp = (Svar "tmp" (i'+1) S_None)
             node = (Assign (S tmp) (Call n exprs))
             in (nodes ++ [node], (SVar tmp), i'+1)   
-    splitExpr e i = trace ("Default splitExpr on " ++ (show e)) $
+    splitExpr e i = --trace ("Default splitExpr on " ++ (show e)) $
         ([],e,i)
     fold_split :: [Expr] -> Int -> ([Node O O],[Expr],Int)
     fold_split (e:rest) i =
