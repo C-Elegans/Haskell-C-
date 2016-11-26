@@ -8,7 +8,6 @@ import Control.Monad
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.OptSupport
-import Debug.Trace (trace)
 import qualified Data.Set as S
 
 {-
@@ -39,6 +38,7 @@ killed = mkBTransfer3 firstLive middleLive lastLive
     middleLive :: Node O O -> Kill -> Kill
     middleLive n@(Assign (S x) _)   f = addUses (S.delete x f) n
     middleLive (Assign (V x) _)   _ = error $ "Variable " ++ x ++ " is not in SSA Form"
+    middleLive (Assign (R _) _)   _ = error $ "SSA Pass not intended to be run on registers"
     middleLive n@(Store _ _)    f = addUses f n
     middleLive n@(None _)       f = addUses f n
     
@@ -69,13 +69,13 @@ killVars = mkBRewrite kill
     
     
     --Closed Nodes
-    kill_node f n@(Cond c tl fl) = mapSVN (kill_var (fact f tl `S.union` fact f fl)) n
-    kill_node f n@(Return _) = mapSVN (kill_var S.empty) n
+    kill_node f n@(Cond _ tl fl) = mapSVN (kill_var (fact f tl `S.union` fact f fl)) n
+    kill_node _ n@(Return _) = mapSVN (kill_var S.empty) n
     kill_node f n@(None _)   = mapSVN (kill_var f) n
-    kill_node f n = Nothing
+    kill_node _ _ = Nothing
     
     kill_var :: Kill -> SVar -> Maybe Expr
-    kill_var f v@(Svar n i fl)= 
+    kill_var f v@(Svar n i _)= 
         if S.member v f then
             Just $ SVar $ Svar n i S_None
         else

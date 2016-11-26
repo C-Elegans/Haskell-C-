@@ -7,7 +7,6 @@ import Compiler.Hoopl
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.OptSupport
-import Debug.Trace (trace)
 import qualified Data.Set as S
 {-
  -performs dead code elimination, requires a backward pass for determining liveness analysis
@@ -35,6 +34,7 @@ liveness = mkBTransfer3 firstLive middleLive lastLive
     middleLive :: Node O O -> Live -> Live
     middleLive n@(Assign (S x) _)   f = addUses (S.delete x f) n
     middleLive (Assign (V x) _)   _ = error $ "Variable " ++ x ++ " is not in SSA Form"
+    middleLive (Assign _ _)       _ = error $ "Broken assignment"
     middleLive n@(Store _ _)    f = addUses f n
     middleLive n@(None _)       f = addUses f n
     
@@ -54,12 +54,12 @@ deadCode :: forall m. FuelMonad m => BwdRewrite m Node Live
 deadCode = mkBRewrite del
   where
     del :: Node e x -> Fact x Live -> m (Maybe (Graph Node e x))
-    del n@(Assign (S x) e) live 
+    del (Assign (S x) e) live 
         | (mapEE containsCall e) == Nothing =
         case S.member x live of
             True -> return Nothing
             False -> return $ Just emptyGraph
-    del n@(Assign (S x) e) _ 
+    del (Assign (S _) e) _ 
         | (mapEE containsCall e) /= Nothing =
         return Nothing
         

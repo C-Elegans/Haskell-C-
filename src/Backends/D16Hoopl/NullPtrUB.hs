@@ -3,7 +3,6 @@
 module Backends.D16Hoopl.NullPtrUB where
 import qualified Data.Map as Map
 import Compiler.Hoopl
-import Debug.Trace (trace)
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport

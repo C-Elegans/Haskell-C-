@@ -8,6 +8,7 @@ import qualified Text.Parsec.Token as P
 import Text.Parsec.Language (haskellStyle, haskellDef)
 import Control.Monad (replicateM_)
 import Data.Char (ord)
+import Prelude hiding (id)
 lexer :: P.TokenParser ()
 lexer  = P.makeTokenParser
          $ haskellDef

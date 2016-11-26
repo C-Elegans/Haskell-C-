@@ -1,15 +1,12 @@
 {-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}
 {-# LANGUAGE ScopedTypeVariables, GADTs #-}
 module Backends.D16Hoopl.Split where
-import qualified Data.Map as Map
 import Control.Monad
 import Compiler.Hoopl
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport
-import Debug.Trace (trace)
 import Prelude hiding ((<*>))
-import Data.Data (toConstr)
 
 {-
  -This pass splits expressions into assignments with a single binary, unary, or call expression.
@@ -91,12 +88,12 @@ splitExpr = mkFRewrite split
             graph = mkMiddles (lst)
         in  return $ Just $ graph <*> (mkLast (Return expr))
         
-    split n _ = 
+    split _ _ = 
         return $ liftM insnToG $ Nothing
     
     splitExpr :: Expr -> Int -> ([Node O O],Expr,Int)
     {-splitExpr node _ | trace ("SplitExpr " ++ show node) False = undefined-}
-    splitExpr l@(Lit (Int int)) i =
+    splitExpr l@(Lit (Int _)) i =
         let tmp = (Svar "tmp" (i+1) S_None)
             node = (Assign (S tmp) l)
             in ([node], (SVar tmp), i+1)

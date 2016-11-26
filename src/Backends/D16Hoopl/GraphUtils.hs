@@ -19,7 +19,7 @@ foldGraphNodes' f = graph
           body :: Body n -> a -> a
           body bdy                = \a -> mapFold block a bdy
           lift _ NothingO         = id
-          lift f (JustO thing)    = f thing
+          lift fn (JustO thing)   = fn thing
 
           block :: Block n e x -> IndexedCO x a a -> IndexedCO e a a
           block = foldBlockNodesB f

@@ -6,7 +6,6 @@ module Backends.D16Hoopl.OptSupport
 import Control.Monad
 import Data.Maybe
 import Prelude hiding (succ)
-import Debug.Trace(trace)
 import Control.Applicative as AP (Applicative(..))
 import Compiler.Hoopl hiding ((<*>))
 import Backends.D16Hoopl.IR
@@ -51,31 +50,6 @@ instance Applicative Mapped where
   (<*>) = ap
 
 
-makeTotal :: (a -> Maybe a) -> (a -> Mapped a)
-makeTotal f a = case f a of Just a' -> New a'
-                            Nothing -> Old a
-makeTotalDefault :: b -> (a -> Maybe b) -> (a -> Mapped b)
-makeTotalDefault b f a = case f a of Just b' -> New b'
-                                     Nothing -> Old b
-ifNew :: Mapped a -> Maybe a
-ifNew (New a) = Just a
-ifNew (Old _) = Nothing
-
-type Mapping a b = a -> Mapped b
-
-(/@/) :: Mapping b c -> Mapping a b -> Mapping a c
-f /@/ g = \x -> g x >>= f
-
-
-class HasExpressions a where
-  mapAllSubexpressions :: Mapping Expr Expr -> Mapping a a
-
-instance HasExpressions (Node e x) where
-  mapAllSubexpressions = error "urk!" (mapVars, (/@/), makeTotal, ifNew)
-
-mapVars :: (Var -> Maybe Expr) -> Mapping Expr Expr
-mapVars f e@(Var x) = makeTotalDefault e f x
-mapVars _ e         = return e
 
 
 mapEE f e@(Lit _)     = f e
@@ -83,7 +57,7 @@ mapEE f e@(Var _)     = f e
 mapEE f e@(Reg _)     = f e
 mapEE f e@(SVar _)    = f e
 mapEE f e@(Str _)     = f e
-mapEE f e@(Call n es) = 
+mapEE f   (Call n es) = 
     let es' = (map (uncurry fromMaybe) (zip es (map (mapEE f) es)))
     in f (Call n es')
 mapEE f e@(Load addr) =

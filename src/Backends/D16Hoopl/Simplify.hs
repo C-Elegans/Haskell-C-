@@ -6,7 +6,6 @@ import Compiler.Hoopl
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.OptSupport
-import Debug.Trace(trace)
 import Data.Bits
 
 {-

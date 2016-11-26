@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -Wall -fno-warn-orphans -fno-warn-name-shadowing #-}
 {-# LANGUAGE ScopedTypeVariables, GADTs, MultiParamTypeClasses, NamedFieldPuns #-}
 module Backends.D16Hoopl.RegisterAllocator where
 import Compiler.Hoopl
@@ -61,10 +61,6 @@ instance NodeAlloc Node Node where
     mkJumpOp lbl  = (Branch lbl)
 
     --Returns all variables and registers referenced by the given node
-    getReferences (Assign (S sv) e) =  
-        let lst  = fold_EE (svToVInfo Input) [] e
-            lst' = svToVInfo Output lst (SVar sv)
-        in  lst'
     getReferences (Assign (S v) (Call _ es)) =
         let lst   = (foldl . fold_EE) (svToVInfo Input) [] es
             lst'  = (svToVInfo Output) lst (SVar v)
@@ -76,6 +72,10 @@ instance NodeAlloc Node Node where
                 VarInfo{varId=Left 3,varKind=Output,regRequired=True}
                 ]
         in lst''
+    getReferences (Assign (S sv) e) =  
+        let lst  = fold_EE (svToVInfo Input) [] e
+            lst' = svToVInfo Output lst (SVar sv)
+        in  lst'
     getReferences (Return expr) =
         let lst = foldl (fold_EE (svToVInfo Input)) [] expr
         in  lst
@@ -141,7 +141,7 @@ allocate entry g  =
         regSize     = 2
         verifier    = VerifyEnabled
         
-        (dump,allocated) = allocateHoopl nRegs stackOffset regSize verifier entry g
+        (_,allocated) = allocateHoopl nRegs stackOffset regSize verifier entry g
     in  
         case allocated of
             Left strs -> return $error $ "Allocation Error: " ++ show strs

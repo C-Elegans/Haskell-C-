@@ -8,7 +8,6 @@ import Compiler.Hoopl
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport
-import Debug.Trace (trace)
 
 {-
  - This module converts all variables to SVars, variables with included numbers
@@ -35,7 +34,7 @@ assignSSAVar = mkFTransfer ft
   where
     ft :: Node e x -> SSAFact -> Fact x SSAFact
     ft (Label _)            f = f
-    ft (Assign v _)         f = f
+    ft (Assign _ _)         f = f
     
     ft (Store _ _)          f = f
     ft (Branch l)           f = mapSingleton l f
@@ -60,9 +59,9 @@ ssaRewrite = mkFRewrite ssa
     
     
     lookup :: SSAFact -> Var -> Maybe Expr
-    lookup f x = Just $ SVar $ Svar x 0 S_None              
+    lookup _ x = Just $ SVar $ Svar x 0 S_None              
     lookupAssign :: SSAFact -> Var -> Maybe Expr
-    lookupAssign f x =  Just $ SVar $ Svar x 0 S_None
+    lookupAssign _ x =  Just $ SVar $ Svar x 0 S_None
     convertAssign :: SSAFact -> Node O O -> Maybe (Node O O)
     convertAssign f (Assign (V v) e) = do
         (SVar sv) <- lookupAssign f v
@@ -70,11 +69,4 @@ ssaRewrite = mkFRewrite ssa
         let e'= (mapEE . mapVE) (lookup f) e
         let efinal = fromMaybe e e'
         return (Assign (S sv) efinal)
-    
-    select :: [Maybe a] -> [a] -> [a]
-    select (m:ms) (a:as) =
-        case m of
-            Just j -> j:select ms as
-            Nothing -> a:select ms as
-    select [] _ = []
-    select _ [] = []
+    convertAssign _ _ = Nothing

@@ -2,12 +2,10 @@
 {-# LANGUAGE ScopedTypeVariables, GADTs #-}
 module Backends.D16Hoopl.ConstProp where
 import qualified Data.Map as Map
-import Control.Monad
 import Compiler.Hoopl
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport
-import Debug.Trace (trace)
 
 {-
  -This pass performs constant propogation among SVars and is run in tandem with the 
