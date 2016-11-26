@@ -5,7 +5,8 @@ passes = [
         move_constants,
         condense_compare,
         eliminate_redundant_jump,
-        condense_loads
+        condense_loads,
+        reduce_instruction_size
     ]
 
 runPeephole :: [Instruction] -> [Instruction]
@@ -59,3 +60,13 @@ tail_call_elimination ((Inst_JmpI Call Al lbl):(Inst_RR Mov R7 R6):(Inst_R Pop R
     (Inst_RR Mov R7 R6):(Inst_R Pop R6):(Inst_JmpI Jmp Al lbl):(tail_call_elimination rest)
 tail_call_elimination (x:xs) = x:tail_call_elimination xs
 tail_call_elimination [] = []
+
+
+reduce_instruction_size instrs = map (reduce_size) instrs
+
+reduce_size :: Instruction -> Instruction
+reduce_size (Inst_RI Cmp r (Const 0)) =
+    Inst_RR Test r r
+reduce_size (Inst_RI Mov r (Const 0)) = 
+    Inst_RR Xor r r
+reduce_size i = i
