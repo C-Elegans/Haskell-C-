@@ -23,7 +23,7 @@ compiler.s: cmm test.i
 	./cmm test.i compiler.s
 
 cmm: $(HASKELL_SRCS) $(NAIVE_BACKEND) $(HOOPL_BACKEND)
-	cabal build
+	stack build
 	-rm -f cmm
 	ln -s dist/build/cmm/cmm cmm
 
