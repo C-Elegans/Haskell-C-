@@ -23,9 +23,7 @@ compiler.s: cmm test.i
 	./cmm test.i compiler.s
 
 cmm: $(HASKELL_SRCS) $(NAIVE_BACKEND) $(HOOPL_BACKEND)
-	stack build
-	-rm -f cmm
-	ln -s dist/build/cmm/cmm cmm
+	stack install --local-bin-path=.
 
 clean-all: clean
 	-rm -f cmm
