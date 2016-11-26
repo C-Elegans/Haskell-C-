@@ -13,12 +13,15 @@ import Instructions
 import Debug.Trace (trace)
 
 type Program = [Instruction]
-
-emitPrologue :: String -> Writer Program ()
-emitPrologue fname = do
+data FunctionType = Leaf | Stem deriving (Eq,Show) -- leaf functions don't need to save the link register
+emitPrologue :: String -> FunctionType -> Writer Program ()
+emitPrologue fname ftype = do
     tell $ [Inst_Directive Globl 0]
     tell $ [Inst_Label ("_" ++ fname)]
-    tell $ [Inst PushLR]
+    if ftype == Stem then
+        tell $ [Inst PushLR]
+    else 
+        tell $ []
     tell $ [Inst_R Push R6]
     tell $ [Inst_RR Mov R6 R7]
     tell $ [Inst_RI Sub R7 (Const 16)]
@@ -26,9 +29,13 @@ emitPrologue fname = do
     return ()
 
 epilogue = [Inst_RR Mov R7 R6, Inst_R Pop R6,Inst_R Pop R1, Inst_Jmp Jmp Al R1]
-emitEpilogue :: Writer Program ()   
-emitEpilogue = do
-    tell $ epilogue
+epilogueLeaf = [Inst_RR Mov R7 R6, Inst_R Pop R6, Inst Ret]
+emitEpilogue ::FunctionType -> Writer Program ()   
+emitEpilogue ftype = do
+    if ftype == Stem then
+        tell epilogue
+    else
+        tell epilogueLeaf
     return ()
 
 append :: [a] -> [a] -> [a]
@@ -40,8 +47,8 @@ assemble :: Proc -> Program
 assemble p = execWriter (assembleFunction p)
 --The fold over the graph is backwards for some reason. 
 
-assembleNode :: String -> Node e x -> [Instruction] -> [Instruction]
-assembleNode _ node@(Assign (R r) (E.Binop op (E.Reg r2) (E.Reg r3))) 
+assembleNode :: String -> FunctionType -> Node e x -> [Instruction] -> [Instruction]
+assembleNode _ _ node@(Assign (R r) (E.Binop op (E.Reg r2) (E.Reg r3))) 
     | canBeOp op =
     if r == r2 then
         append [(Inst_RR (binopToOp op) r2 r3)]
@@ -50,7 +57,7 @@ assembleNode _ node@(Assign (R r) (E.Binop op (E.Reg r2) (E.Reg r3)))
             (\_ ->error $ "Cannot convert to 2 address code "++ (show node))
         else
             append [(Inst_RR Mov r r2),(Inst_RR (binopToOp op) r r3)] 
-assembleNode _(Assign (R r) (E.Binop op (E.Reg r2) (E.Lit (E.Int i)))) 
+assembleNode _ _(Assign (R r) (E.Binop op (E.Reg r2) (E.Lit (E.Int i)))) 
     | canBeOp op =
     if r == r2 then
         append [instruction] 
@@ -58,60 +65,74 @@ assembleNode _(Assign (R r) (E.Binop op (E.Reg r2) (E.Lit (E.Int i))))
         append [(Inst_RR Mov r r2),instruction] 
         where
             instruction = (Inst_RI (binopToOp op) r (Const i))
-assembleNode _(Assign (R r) (E.Binop op (E.Reg r2) (E.Lit (E.Int i)))) =
+assembleNode _ _(Assign (R r) (E.Binop op (E.Reg r2) (E.Lit (E.Int i)))) =
     append [Inst_RI Cmp r2 (Const i), Inst_Jmp Set (binopToCond op) r]
-assembleNode _(Assign (R r) (E.Binop op (E.Reg r2) (E.Reg r3))) =
+assembleNode _ _(Assign (R r) (E.Binop op (E.Reg r2) (E.Reg r3))) =
     append [Inst_RR Cmp r2 r3, Inst_Jmp Set (binopToCond op) r]
-assembleNode _(Assign (R r) (E.Unop op (E.Reg r2))) =
+assembleNode _ _(Assign (R r) (E.Unop op (E.Reg r2))) =
     append [Inst_R (unopToOp op) r2, Inst_RR Mov r r2]
-assembleNode _ (Assign (R r) (E.Lit (E.Int i))) =
+assembleNode _ _ (Assign (R r) (E.Lit (E.Int i))) =
     append [Inst_RI Mov r (Const i)]
-assembleNode _ (Assign (R r) (E.Str str)) =
+assembleNode _ _ (Assign (R r) (E.Str str)) =
     append [Inst_RI Mov r (Label str)]
-assembleNode _ (Assign (R r) (E.Reg r2)) = 
+assembleNode _ _ (Assign (R r) (E.Reg r2)) = 
     append [Inst_RR Mov r r2]
-assembleNode _ (Assign (R r) (E.Load (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))))) =
+assembleNode _ _ (Assign (R r) (E.Load (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))))) =
     append [Inst_MemI Ld r R6 (Const i) Word Displacement]
-assembleNode _ (Store (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))) (E.Reg r)) =
+assembleNode _ _ (Store (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))) (E.Reg r)) =
     append [Inst_MemI St R6 r (Const i) Word Displacement]
-assembleNode _ (Store (E.Reg r) (E.Reg r2)) =
+assembleNode _ _ (Store (E.Reg r) (E.Reg r2)) =
     append [Inst_Mem St r r2 Word]
-assembleNode _ (Assign (R r) (E.Load (E.Reg r2))) = 
+assembleNode _ _ (Assign (R r) (E.Load (E.Reg r2))) = 
     append [Inst_Mem Ld r r2 Word]
-assembleNode _(Return ((E.Reg r):[]))  = 
-    if r /= R0 then
-        append ((Inst_RR Mov R0 r):epilogue) 
+assembleNode _ ftype  (Return ((E.Reg r):[])) = 
+    let ep = case ftype of
+                Stem -> epilogue
+                Leaf -> epilogueLeaf
+    in if r /= R0 then
+        append ((Inst_RR Mov R0 r):ep) 
     else
-        append epilogue
-assembleNode _ (Return ((E.Lit (E.Int i)):[])) = 
-    append $ (Inst_RI Mov R0 (Const i)):epilogue
-assembleNode _ (Return _) =
-    append epilogue
-assembleNode _ (None (E.Call name rs)) =
+        append ep
+assembleNode _ ftype (Return ((E.Lit (E.Int i)):[])) = 
+    case ftype of
+        Stem ->
+            append $ (Inst_RI Mov R0 (Const i)):epilogue
+        Leaf ->
+            append $ (Inst_RI Mov R0 (Const i)):epilogueLeaf
+assembleNode _ ftype (Return _) =
+    case ftype of
+        Stem -> append epilogue
+        Leaf -> append epilogueLeaf
+assembleNode _ _ (None (E.Call name rs)) =
     append [Inst_JmpI Call Al (Label ("_" ++ name))]
-assembleNode _ (Assign (R R0) (E.Call name rs)) =
+assembleNode _ _ (Assign (R R0) (E.Call name rs)) =
     append [Inst_JmpI Call Al (Label ("_" ++ name))]
-assembleNode _ (None _) =
+assembleNode _ _ (None _) =
     id
-assembleNode name (IR.Label lbl) =
+assembleNode name _ (IR.Label lbl) =
     append [Inst_Label (lblToLabel lbl name)]
 
-assembleNode name (Branch lbl) =
+assembleNode name _ (Branch lbl) =
     append [Inst_JmpI Jmp Al (Label (lblToLabel lbl name))]
-assembleNode name (Cond (E.Reg r) tl fl) =
+assembleNode name _ (Cond (E.Reg r) tl fl) =
     append [Inst_RR Test r r,
             Inst_JmpI Jmp Ne (Label (lblToLabel tl name)),
             Inst_JmpI Jmp Al (Label (lblToLabel fl name))]
-assembleNode _ n = error $ "No assembleNode defined for " ++ (show n)
+assembleNode _ _ n = error $ "No assembleNode defined for " ++ (show n)
 
 
 assembleFunction :: Proc -> Writer Program ()
 assembleFunction proc = do
-    emitPrologue $ name proc
-    tell $ foldGraphNodes' (assembleNode (name proc)) (body proc) []
+    let fType = foldGraphNodes' (isLeaf) (body proc) Leaf 
+    emitPrologue  (name proc) fType
+    tell $ foldGraphNodes' (assembleNode (name proc) fType) (body proc) []
     
     return ()
 
+isLeaf :: Node e x -> FunctionType -> FunctionType
+isLeaf (Assign _ (E.Call _ _)) ft = Stem
+isLeaf (None (E.Call _ _)) ft = Stem
+isLeaf _ ft = ft
 lblToLabel :: Label -> String -> String
 lblToLabel lbl name =  ("_" ++ (show lbl) ++ "_" ++ name)
 
