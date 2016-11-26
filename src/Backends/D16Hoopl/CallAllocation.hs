@@ -34,7 +34,7 @@ emptyTransfer = mkFTransfer ft
     ft (Label _)            f = f
     ft (Assign v _)         f = f
     
-    ft (Store _ _)          f = f
+    ft (Store _ _ _)          f = f
     ft (Branch l)           f = mapSingleton l f
     ft (Cond _ tl fl)       f =
         mkFactBase emptyLattice [(tl,f), (fl,f)]

@@ -7,6 +7,15 @@ int strlen_test(char* str){
     }
     return str-sav;
 }
+char* strcpy(char* dest, char* src){
+    char* sav = dest;
+    while(*src != 0 ){
+        *dest=*src;
+        dest=dest+1;
+        src=src+1;
+    }
+    return sav;
+}
 
 void main(void){
     print_hex(strlen_test("hello!"));

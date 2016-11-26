@@ -39,7 +39,7 @@ killed = mkBTransfer3 firstLive middleLive lastLive
     middleLive n@(Assign (S x) _)   f = addUses (S.delete x f) n
     middleLive (Assign (V x) _)   _ = error $ "Variable " ++ x ++ " is not in SSA Form"
     middleLive (Assign (R _) _)   _ = error $ "SSA Pass not intended to be run on registers"
-    middleLive n@(Store _ _)    f = addUses f n
+    middleLive n@(Store _ _ _)    f = addUses f n
     middleLive n@(None _)       f = addUses f n
     
     lastLive :: Node O C -> FactBase Kill -> Kill
@@ -65,7 +65,7 @@ killVars = mkBRewrite kill
     kill_node :: Fact x Kill -> Node e x -> Maybe (Node e x)
     --Open Nodes
     kill_node f n@(Assign _ _) = mapSVN (kill_var f) n
-    kill_node f n@(Store _ _) = mapSVN (kill_var f) n
+    kill_node f n@(Store _ _ _) = mapSVN (kill_var f) n
     
     
     --Closed Nodes

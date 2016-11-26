@@ -36,11 +36,11 @@ nullTransfer = mkFTransfer ft
     ft :: Node e x -> NullPtrFact -> Fact x NullPtrFact
     ft (Label _)                              f = f
     ft (Assign (S sv)  (Lit (Int 0)))         f = Map.insert sv Null f
-    ft (Assign _ (Load (SVar sv)))            f = Map.insert sv Nonnull f
+    ft (Assign _ (Load (SVar sv) _))            f = Map.insert sv Nonnull f
     ft (Assign _ _)                           f = f
 
-    ft (Store (SVar sv) _)                    f = Map.insert sv Nonnull f
-    ft (Store _ _)                            f = f
+    ft (Store (SVar sv) _ _)                  f = Map.insert sv Nonnull f
+    ft (Store _ _ _)                          f = f
     ft (Branch l)                             f = mapSingleton l f
     ft (Cond _ tl fl)                         f =
         mkFactBase nullLattice [(tl,f), (fl,f)]

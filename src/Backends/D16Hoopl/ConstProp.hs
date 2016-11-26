@@ -33,7 +33,7 @@ varHasLit = mkFTransfer ft
     ft (Assign (S x) (Lit k))           f = Map.insert x (PElem k) f
     ft (Assign (S x) _)                 f = Map.insert x Top f
     ft (None _)                         f = f
-    ft (Store _ _)                      f = f
+    ft (Store _ _ _)                      f = f
     ft (Branch l)                       f = mapSingleton l f
     ft (Cond (SVar x) tl fl)            f =
         mkFactBase constLattice

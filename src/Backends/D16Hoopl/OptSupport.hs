@@ -60,10 +60,10 @@ mapEE f e@(Str _)     = f e
 mapEE f   (Call n es) = 
     let es' = (map (uncurry fromMaybe) (zip es (map (mapEE f) es)))
     in f (Call n es')
-mapEE f e@(Load addr) =
+mapEE f e@(Load addr bf) =
   case mapEE f addr of
     Just addr' -> Just $ fromMaybe e' (f e')
-                    where e' = Load addr'
+                    where e' = Load addr' bf
     Nothing    -> f e
 mapEE f e@(Binop op e1 e2) =
   case (mapEE f e1, mapEE f e2) of
@@ -78,10 +78,10 @@ mapEE f e@(Unop op e1) =
 
 mapEN _   (Label _)           = Nothing
 mapEN f   (Assign v e)        = liftM (Assign v) $ f e
-mapEN f   (Store addr e)      =
+mapEN f   (Store addr e bf)      =
   case (f addr, f e) of
     (Nothing, Nothing) -> Nothing
-    (addr', e') -> Just $ Store (fromMaybe addr addr') (fromMaybe e e')
+    (addr', e') -> Just $ Store (fromMaybe addr addr') (fromMaybe e e') bf
 mapEN _   (Branch _)          = Nothing
 mapEN f   (Cond e tid fid)    =
   case f e of Just e' -> Just $ Cond e' tid fid
@@ -104,7 +104,7 @@ fold_EE f z e@(Reg _)         = f z e
 fold_EE f z e@(SVar _)        = f z e
 fold_EE f z e@(Str  _)        = f z e
 fold_EE f z e@(Call _ es)     = f ((foldl . fold_EE) f z es) e
-fold_EE f z e@(Load addr)     = f (fold_EE f z addr) e
+fold_EE f z e@(Load addr _)     = f (fold_EE f z addr) e
 fold_EE f z e@(Binop _ e1 e2) =
   let afterE1 = fold_EE f z e1
       afterE2 = fold_EE f afterE1 e2
@@ -115,7 +115,7 @@ fold_EE f z e@(Unop _ e1) =
   
 fold_EN _ z (Label _)       = z
 fold_EN f z (Assign _ e)    = f z e
-fold_EN f z (Store addr e)  = f (f z e) addr
+fold_EN f z (Store addr e _)  = f (f z e) addr
 fold_EN _ z (Branch _)      = z
 fold_EN f z (Cond e _ _)    = f z e
 fold_EN f z (None e)        = f z e
@@ -128,7 +128,7 @@ fold_EN f z (Return es)     = foldl f z es
 insnToG :: Node e x -> Graph Node e x
 insnToG n@(Label _)      = mkFirst n
 insnToG n@(Assign _ _)   = mkMiddle n
-insnToG n@(Store _ _)    = mkMiddle n
+insnToG n@(Store _ _ _)    = mkMiddle n
 insnToG n@(Branch _)     = mkLast n
 insnToG n@(Cond _ _ _)   = mkLast n
 insnToG n@(None _)       = mkMiddle n

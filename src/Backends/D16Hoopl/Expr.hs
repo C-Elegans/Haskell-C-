@@ -10,11 +10,11 @@ data Expr = Lit   Lit
           | Str Var
           | Reg   Register
           | Call  String [Expr]
-          | Load  Expr
+          | Load  Expr MemSize
           | Binop BinOp Expr Expr 
           | Unop  UnOp Expr
         deriving (Eq, Typeable, Data)
-          
+data MemSize = Word | Byte   deriving(Eq,Data)       
 data BinOp = Add | Sub | Mul | Div | Eq | Ne | Lt | Gt | Lte | Gte | 
     Shl | Shr | And | Or | Xor | Sar
     deriving (Eq,Data)
@@ -41,7 +41,8 @@ instance Show Expr where
   show (Var   v) = v
   show (SVar  s) = show s
   show (Reg   r) = show r
-  show (Load  e) = "m[" ++ show e ++ "]"
+  show (Load  e Byte) = "m[" ++ show e ++ "].b"
+  show (Load  e Word) = "m[" ++ show e ++ "]"
   show (Str   s) = "Str " ++ s
   show (Call name s) = 
         name ++ tuple (map show s)

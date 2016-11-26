@@ -24,7 +24,7 @@ instance Show Assignable where
 data Node e x where                                 
   Label  :: Label  ->                                       Node C O
   Assign :: Assignable    -> Expr    ->                     Node O O
-  Store  :: Expr   -> Expr    ->                            Node O O
+  Store  :: Expr   -> Expr    -> MemSize ->                 Node O O
   None   :: Expr   ->                                       Node O O
   Branch :: Label  ->                                       Node O C
   Cond   :: Expr   -> Label   -> Label  ->                  Node O C
@@ -50,7 +50,8 @@ instance Show (Node e x) where
   show (Assign (V v) e)       = ind $ v ++ " = " ++ show e
   show (Assign (S s) e)       = ind $ (show s) ++ " = " ++ show e
   show (Assign (R r) e)       = ind $ (show r) ++ " = " ++ show e
-  show (Store addr e)     = ind $ "m[" ++ show addr ++ "] = " ++ show e
+  show (Store addr e Word)     = ind $ "m[" ++ show addr ++ "] = " ++ show e
+  show (Store addr e Byte)     = ind $ "m[" ++ show addr ++ "].b = " ++ show e
   show (Branch lbl)       = ind $ "goto " ++ show lbl
   show (Cond e t f)       =
     ind $ "if " ++ show e ++ " then goto " ++ show t ++ " else goto " ++ show f

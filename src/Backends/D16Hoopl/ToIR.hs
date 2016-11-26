@@ -5,6 +5,8 @@ import Compiler.Hoopl
 import Instructions (Register(..))
 import qualified Parse as P
 import Prelude hiding ((<*>))
+import Type
+import Tree (getType)
 import Debug.Trace(trace)
 
 buildExpr :: P.Tree -> Expr
@@ -20,7 +22,12 @@ buildExpr (P.AnnotatedVar name t) =
 buildExpr (P.UnaryOp op t) =
     Unop (opToUnOp op) (buildExpr t)
 buildExpr (P.Deref x) = 
-    Load (buildExpr x)
+    let bf = if (sizeof . derefType . getType) x == 2 then
+                Word
+            else 
+                Byte
+
+    in Load (buildExpr x ) bf
 buildExpr (P.StrLabel str) =
     Str str
 buildExpr (P.FCallRet name (P.List exprs)) =
@@ -34,7 +41,7 @@ buildNode :: P.Tree -> LabelMapM (Node O O)
 buildNode (P.Assign (P.AnnotatedVarAssign nam t) (left)) =
     return $ Assign (V nam) (buildExpr left)
 buildNode (P.Assign (P.Deref expr) (left)) =
-    return $ Store (buildExpr expr) (buildExpr left)
+    return $ Store (buildExpr expr) (buildExpr left) (getMemSize expr)
 buildNode x = error $ "No BuildNode defined for " ++ (show x) 
 
 
@@ -138,7 +145,12 @@ treeToIR (P.List lst) =
     map (\ x -> runSimpleUniqueMonad $ runWithFuel 0 ( run (buildGraphCC x))) (filter canBecomeGraph lst)
     
     
-
+getMemSize :: P.Tree -> MemSize
+getMemSize e =
+    if (sizeof . derefType . getType) e == 2 then
+        Word
+    else 
+        Byte
 
     
 

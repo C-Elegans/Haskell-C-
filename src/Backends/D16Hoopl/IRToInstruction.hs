@@ -77,14 +77,14 @@ assembleNode _ _ (Assign (R r) (E.Str str)) =
     append [Inst_RI Mov r (Label str)]
 assembleNode _ _ (Assign (R r) (E.Reg r2)) = 
     append [Inst_RR Mov r r2]
-assembleNode _ _ (Assign (R r) (E.Load (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))))) =
-    append [Inst_MemI Ld r R6 (Const i) Word Displacement]
-assembleNode _ _ (Store (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))) (E.Reg r)) =
-    append [Inst_MemI St R6 r (Const i) Word Displacement]
-assembleNode _ _ (Store (E.Reg r) (E.Reg r2)) =
-    append [Inst_Mem St r r2 Word]
-assembleNode _ _ (Assign (R r) (E.Load (E.Reg r2))) = 
-    append [Inst_Mem Ld r r2 Word]
+assembleNode _ _ (Assign (R r) (E.Load (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))) bf)) =
+    append [Inst_MemI Ld r R6 (Const i) (mSizeToBf bf) Displacement]
+assembleNode _ _ (Store (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))) (E.Reg r) bf) =
+    append [Inst_MemI St R6 r (Const i) (mSizeToBf bf) Displacement]
+assembleNode _ _ (Store (E.Reg r) (E.Reg r2) bf) =
+    append [Inst_Mem St r r2 (mSizeToBf bf)]
+assembleNode _ _ (Assign (R r) (E.Load (E.Reg r2) bf)) = 
+    append [Inst_Mem Ld r r2 (mSizeToBf bf)]
 assembleNode _ ftype  (Return ((E.Reg r):[])) = 
     let ep = case ftype of
                 Stem -> epilogue
@@ -136,7 +136,9 @@ isLeaf _ ft = ft
 lblToLabel :: Label -> String -> String
 lblToLabel lbl name =  ("_" ++ (show lbl) ++ "_" ++ name)
 
-
+mSizeToBf :: E.MemSize -> ByteFlag
+mSizeToBf E.Word = Word
+mSizeToBf E.Byte = Byte
 binopToOp :: E.BinOp -> Opcode
 binopToOp E.Add = Add
 binopToOp E.Sub = Sub

@@ -34,7 +34,7 @@ countNodes = mkFTransfer ft
     ft (Label _)            f = f
     ft (Assign _ _)         f = f + 1
     
-    ft (Store _ _)          f = f
+    ft (Store _ _ _)          f = f
     ft (Branch l)           f = mapSingleton l f
     ft (Cond _ tl fl)       f =
         mkFactBase splitLattice [(tl,f + 1 ), (fl,f + 1)]
@@ -79,10 +79,10 @@ splitExpr = mkFRewrite split
         let (lst,expr,_) = splitExpr e f
             graph = mkMiddles lst
         in return $ Just $ graph <*> (mkMiddle (None expr))
-    split (Store loc expr) f =
+    split (Store loc expr fl) f =
         let (lst,expr',_) = splitExpr expr f
             graph = mkMiddles lst
-        in return $ Just $ graph <*> (mkMiddle (Store loc expr'))
+        in return $ Just $ graph <*> (mkMiddle (Store loc expr' fl))
     split (Return e) f = 
         let (lst,expr,_) = fold_split e f
             graph = mkMiddles (lst)
@@ -97,7 +97,7 @@ splitExpr = mkFRewrite split
         let tmp = (Svar "tmp" (i+1) S_None)
             node = (Assign (S tmp) l)
             in ([node], (SVar tmp), i+1)
-    splitExpr l@(Load _) i =
+    splitExpr l@(Load _ _) i =
         let tmp = (Svar "tmp" (i+1) S_None)
             node = (Assign (S tmp) l)
             in ([node], (SVar tmp), i+1)
