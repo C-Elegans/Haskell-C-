@@ -1,18 +1,14 @@
 #include <stdio.h>
-/*void print_hex(int i){*/
-    /*printf("%04x\n",i);*/
-/*}*/
-int mod(int num,int den){
-    int div = num/den;
-    return num-div*den;
-}
-int gcd(int a, int b);
-int gcd(int a, int b){
-    if (a==0) return b;
-    return gcd(mod(b,a),a);
+int strlen_test(char* str){
+    int count = 0;
+    while(*str != 0){
+        str=str+1;
+        count = count+1;
+    }
+    return count;
 }
 
 void main(void){
-    print_hex(gcd(6,15));
+    print_hex(strlen_test("hello!"));
 }
 

@@ -114,7 +114,8 @@ run_passes ((pass,flag):passes) tree =
 run_passes [] tree = tree
 
 fix_ptr_arith all@(Operator op p1 p2)
-    |((isPtr $getType p1) || (isArr $ getType p1)) && (op `elem` [Plus,Minus]) =
+    |((isPtr $getType p1) || (isArr $ getType p1)) 
+    && (op `elem` [Plus,Minus]) && (sizeof $ derefType $ getType p1) == 2 =
         return (Operator op p1 (Operator Shl p2 (Num 1)))
 
 fix_ptr_arith x = return x
