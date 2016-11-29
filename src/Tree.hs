@@ -315,4 +315,6 @@ getType (Operator op left right) =
 getType (UnaryOp op expr) =
     getType expr
 getType (Cast t expr) = t
+getType (PostAssign a _) = getType a
+getType (PreAssign a _) = getType a
 getType n = trace ("no definition of getType for " ++ (show n)) (P_Int)

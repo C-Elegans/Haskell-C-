@@ -21,8 +21,8 @@ lexer  = P.makeTokenParser
 table = [   [postfix "++" (\t -> (PostAssign t (Operator Plus t (Num 1)))),
                 postfix "--" (\t -> (PostAssign t (Operator Minus t (Num 1))))],
             [prefix "++" (\t -> (PreAssign t (Operator Plus t (Num 1)))),
-                prefix "--" (\t -> (PreAssign t (Operator Minus t (Num 1))))],
-            [prefix "~" (UnaryOp Not), prefix "-" (UnaryOp Neg), prefix "*" Deref, prefix "&" Addr ],
+                prefix "--" (\t -> (PreAssign t (Operator Minus t (Num 1)))),
+                prefix "~" (UnaryOp Not), prefix "-" (UnaryOp Neg), prefix "*" Deref, prefix "&" Addr ],
             [binary "*" (Operator Mul) AssocRight, binary "/" (Operator Div) AssocRight],
             [binary "+" (Operator Plus) AssocRight, binary "-" (Operator Minus) AssocRight],
             [binary "<<" (Operator Shl) AssocRight, binary ">>" (Operator Shr) AssocRight],
@@ -31,7 +31,16 @@ table = [   [postfix "++" (\t -> (PostAssign t (Operator Plus t (Num 1)))),
                 binary ">" (Operator Gt) AssocRight,binary "==" (Operator Ge) AssocRight],
             [binary "&" (Operator And) AssocRight],
             [binary "^" (Operator Xor) AssocRight],
-            [binary "|" (Operator Or) AssocRight]
+            [binary "|" (Operator Or) AssocRight],
+            [binary "+=" (\t n-> PostAssign t (Operator Plus t n)) AssocRight,
+                binary "-=" (\t n-> PostAssign t (Operator Plus t n)) AssocRight,
+                binary "*=" (\t n-> PostAssign t (Operator Mul t n)) AssocRight,
+                binary "/=" (\t n-> PostAssign t (Operator Div t n)) AssocRight,
+                binary "|=" (\t n-> PostAssign t (Operator Or t n)) AssocRight,
+                binary "&=" (\t n-> PostAssign t (Operator And t n)) AssocRight,
+                binary "^=" (\t n-> PostAssign t (Operator Xor t n)) AssocRight
+
+            ]
 
         ]
 prefix name fun = Prefix (do reservedOp name; return fun;)
