@@ -75,7 +75,16 @@ mapEE f e@(Unop op e1) =
         Nothing -> f e
         e1'     -> Just $ fromMaybe e' (f e')
             where e' = Unop op (fromMaybe e1 e1')
-
+mapEE f e@(PostAssign a r) =
+    case (mapEE f a, mapEE f r) of
+        (Nothing, Nothing) -> f e
+        (a',      r') -> Just $ fromMaybe e' (f e')
+            where e' = PostAssign (fromMaybe a a') (fromMaybe r r')
+mapEE f e@(PreAssign a r) =
+    case (mapEE f a, mapEE f r) of
+        (Nothing, Nothing) -> f e
+        (a',      r') -> Just $ fromMaybe e' (f e')
+            where e' = PreAssign (fromMaybe a a') (fromMaybe r r')
 mapEN _   (Label _)           = Nothing
 mapEN f   (Assign v e)        = liftM (Assign v) $ f e
 mapEN f   (Store addr e bf)      =
@@ -112,6 +121,14 @@ fold_EE f z e@(Binop _ e1 e2) =
 fold_EE f z e@(Unop _ e1) =
   let afterE1 = fold_EE f z e1    
   in f afterE1 e
+fold_EE f z e@(PostAssign e2 e1) =
+  let z' = fold_EE f z e1
+      z'' = fold_EE f z' e2
+  in f z'' e
+fold_EE f z e@(PreAssign e2 e1 ) =
+  let z' = fold_EE f z e1
+      z'' = fold_EE f z' e2
+  in f z'' e
   
 fold_EN _ z (Label _)       = z
 fold_EN f z (Assign _ e)    = f z e

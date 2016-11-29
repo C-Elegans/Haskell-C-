@@ -18,7 +18,11 @@ lexer  = P.makeTokenParser
             P.commentStart = "/*",
             P.commentEnd = "*/"
          }
-table = [   [prefix "~" (UnaryOp Not), prefix "-" (UnaryOp Neg), prefix "*" Deref, prefix "&" Addr ],
+table = [   [postfix "++" (\t -> (PostAssign t (Operator Plus t (Num 1)))),
+                postfix "--" (\t -> (PostAssign t (Operator Minus t (Num 1))))],
+            [prefix "++" (\t -> (PreAssign t (Operator Plus t (Num 1)))),
+                prefix "--" (\t -> (PreAssign t (Operator Minus t (Num 1))))],
+            [prefix "~" (UnaryOp Not), prefix "-" (UnaryOp Neg), prefix "*" Deref, prefix "&" Addr ],
             [binary "*" (Operator Mul) AssocRight, binary "/" (Operator Div) AssocRight],
             [binary "+" (Operator Plus) AssocRight, binary "-" (Operator Minus) AssocRight],
             [binary "<<" (Operator Shl) AssocRight, binary ">>" (Operator Shr) AssocRight],
@@ -35,7 +39,7 @@ postfix name fun = Postfix (do reservedOp name; return fun;)
 binary name fun = Infix (do reservedOp name; return fun;) 
 expr = buildExpressionParser table factor
 data OP = Plus | Minus | Mul | Div | Shl | Shr | And | Or | Xor | Not | Neg |
-    Lt | Gt | Eq | Ge | Le | Ne | Sar
+    Lt | Gt | Eq | Ge | Le | Ne | Sar 
     deriving (Show, Eq)
 
 whiteSpace = P.whiteSpace lexer
@@ -90,6 +94,8 @@ data Tree =     Operator OP Tree Tree
             |   Addr Tree
             |   Str String
             |   StrLabel String
+            |   PostAssign Tree Tree
+            |   PreAssign  Tree Tree
             |   Cast Type Tree
             deriving (Show)
 spaceTabs n = replicateM_ n (putStr "    ")

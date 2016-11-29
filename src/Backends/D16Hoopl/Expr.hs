@@ -13,7 +13,14 @@ data Expr = Lit   Lit
           | Load  Expr MemSize
           | Binop BinOp Expr Expr 
           | Unop  UnOp Expr
+          | PostAssign Expr Expr
+          | PreAssign  Expr Expr
         deriving (Eq, Typeable, Data)
+data Assignable = V Var | S SVar | R Register deriving (Eq, Data)
+instance Show Assignable where
+    show (V v) = v
+    show (S s) = show s
+    show (R r) = show r
 data MemSize = Word | Byte   deriving(Eq,Data)       
 data BinOp = Add | Sub | Mul | Div | Eq | Ne | Lt | Gt | Lte | Gte | 
     Shl | Shr | And | Or | Xor | Sar
@@ -50,7 +57,8 @@ instance Show Expr where
     where sub e@Binop{} = tuple [show e]
           sub e = show e
   show (Unop u l) = show u ++ (show l)
-
+  show (PostAssign l r) = show l ++ "; "++ show l ++ " = " ++ show r
+  show (PreAssign l r) = show l ++ " = " ++ show r ++ "; " ++ show l
 instance Show Lit where
   show (Int  i) = show i
   show (Bool b) = show b

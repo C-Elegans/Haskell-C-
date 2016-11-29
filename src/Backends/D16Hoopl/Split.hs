@@ -129,6 +129,13 @@ splitExpr = mkFRewrite split
             tmp = (Svar "tmp" (i'+1) S_None)
             node = (Assign (S tmp) (Call n exprs))
             in (nodes ++ [node], (SVar tmp), i'+1)   
+    splitExpr (PostAssign (SVar a) e) i =
+        let tmp = (Svar "tmp" (i+1) S_None)
+            nodes = [(Assign (S tmp) (SVar a)),Assign (S a) e]
+        in  (nodes,SVar tmp,i+1)
+    splitExpr (PreAssign (SVar a) e) i =
+        let nodes = [Assign (S a) e]
+        in  (nodes, SVar a, i)
     splitExpr e i = --trace ("Default splitExpr on " ++ (show e)) $
         ([],e,i)
     fold_split :: [Expr] -> Int -> ([Node O O],[Expr],Int)

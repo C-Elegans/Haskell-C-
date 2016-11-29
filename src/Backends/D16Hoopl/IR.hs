@@ -15,11 +15,6 @@ data Value = B Bool | I Integer deriving Eq
 
 data Proc = Proc { name :: String, args :: [Var], entry :: Label, body :: Graph Node C C }
 
-data Assignable = V Var | S SVar | R Register
-instance Show Assignable where
-    show (V v) = v
-    show (S s) = show s
-    show (R r) = show r
 
 data Node e x where                                 
   Label  :: Label  ->                                       Node C O

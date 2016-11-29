@@ -48,7 +48,7 @@ assemble p = execWriter (assembleFunction p)
 --The fold over the graph is backwards for some reason. 
 
 assembleNode :: String -> FunctionType -> Node e x -> [Instruction] -> [Instruction]
-assembleNode _ _ node@(Assign (R r) (E.Binop op (E.Reg r2) (E.Reg r3))) 
+assembleNode _ _ node@(Assign (E.R r) (E.Binop op (E.Reg r2) (E.Reg r3))) 
     | canBeOp op =
     if r == r2 then
         append [(Inst_RR (binopToOp op) r2 r3)]
@@ -57,7 +57,7 @@ assembleNode _ _ node@(Assign (R r) (E.Binop op (E.Reg r2) (E.Reg r3)))
             (\_ ->error $ "Cannot convert to 2 address code "++ (show node))
         else
             append [(Inst_RR Mov r r2),(Inst_RR (binopToOp op) r r3)] 
-assembleNode _ _(Assign (R r) (E.Binop op (E.Reg r2) (E.Lit (E.Int i)))) 
+assembleNode _ _(Assign (E.R r) (E.Binop op (E.Reg r2) (E.Lit (E.Int i)))) 
     | canBeOp op =
     if r == r2 then
         append [instruction] 
@@ -65,25 +65,25 @@ assembleNode _ _(Assign (R r) (E.Binop op (E.Reg r2) (E.Lit (E.Int i))))
         append [(Inst_RR Mov r r2),instruction] 
         where
             instruction = (Inst_RI (binopToOp op) r (Const i))
-assembleNode _ _(Assign (R r) (E.Binop op (E.Reg r2) (E.Lit (E.Int i)))) =
+assembleNode _ _(Assign (E.R r) (E.Binop op (E.Reg r2) (E.Lit (E.Int i)))) =
     append [Inst_RI Cmp r2 (Const i), Inst_Jmp Set (binopToCond op) r]
-assembleNode _ _(Assign (R r) (E.Binop op (E.Reg r2) (E.Reg r3))) =
+assembleNode _ _(Assign (E.R r) (E.Binop op (E.Reg r2) (E.Reg r3))) =
     append [Inst_RR Cmp r2 r3, Inst_Jmp Set (binopToCond op) r]
-assembleNode _ _(Assign (R r) (E.Unop op (E.Reg r2))) =
+assembleNode _ _(Assign (E.R r) (E.Unop op (E.Reg r2))) =
     append [Inst_R (unopToOp op) r2, Inst_RR Mov r r2]
-assembleNode _ _ (Assign (R r) (E.Lit (E.Int i))) =
+assembleNode _ _ (Assign (E.R r) (E.Lit (E.Int i))) =
     append [Inst_RI Mov r (Const i)]
-assembleNode _ _ (Assign (R r) (E.Str str)) =
+assembleNode _ _ (Assign (E.R r) (E.Str str)) =
     append [Inst_RI Mov r (Label str)]
-assembleNode _ _ (Assign (R r) (E.Reg r2)) = 
+assembleNode _ _ (Assign (E.R r) (E.Reg r2)) = 
     append [Inst_RR Mov r r2]
-assembleNode _ _ (Assign (R r) (E.Load (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))) bf)) =
+assembleNode _ _ (Assign (E.R r) (E.Load (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))) bf)) =
     append [Inst_MemI Ld r R6 (Const i) (mSizeToBf bf) Displacement]
 assembleNode _ _ (Store (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))) (E.Reg r) bf) =
     append [Inst_MemI St R6 r (Const i) (mSizeToBf bf) Displacement]
 assembleNode _ _ (Store (E.Reg r) (E.Reg r2) bf) =
     append [Inst_Mem St r r2 (mSizeToBf bf)]
-assembleNode _ _ (Assign (R r) (E.Load (E.Reg r2) bf)) = 
+assembleNode _ _ (Assign (E.R r) (E.Load (E.Reg r2) bf)) = 
     append [Inst_Mem Ld r r2 (mSizeToBf bf)]
 assembleNode _ ftype  (Return ((E.Reg r):[])) = 
     let ep = case ftype of
@@ -105,7 +105,7 @@ assembleNode _ ftype (Return _) =
         Leaf -> append epilogueLeaf
 assembleNode _ _ (None (E.Call name rs)) =
     append [Inst_JmpI Call Al (Label ("_" ++ name))]
-assembleNode _ _ (Assign (R R0) (E.Call name rs)) =
+assembleNode _ _ (Assign (E.R R0) (E.Call name rs)) =
     append [Inst_JmpI Call Al (Label ("_" ++ name))]
 assembleNode _ _ (None _) =
     id

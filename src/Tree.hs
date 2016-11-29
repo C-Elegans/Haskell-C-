@@ -79,7 +79,14 @@ m_apply f (Addr tree) b = do
 m_apply f (Cast t expr) b = do
     e <- m_apply f expr b
     f (Cast t e)
-
+m_apply f (PostAssign a e) b = do
+    a' <- m_apply f a b
+    e' <- m_apply f e b
+    f (PostAssign a' e')
+m_apply f (PreAssign a e) b = do
+    a' <- m_apply f a b
+    e' <- m_apply f e b
+    f (PreAssign a' e')
 m_apply f tree _ = f tree
 getFunctions (List lst) = [FuncDef t str decls body | (FuncDef t str decls body) <- lst]
 getGlobals (List lst) = [GlobalDec t str | (GlobalDec t str) <- lst]

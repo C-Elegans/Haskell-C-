@@ -34,6 +34,10 @@ buildExpr (P.FCallRet name (P.List exprs)) =
     Call name (map buildExpr exprs)
 buildExpr (P.AnnotatedFCallRet name (P.List exprs) t) =
     Call name (map buildExpr exprs)
+buildExpr (P.PostAssign (P.AnnotatedVar nam _) expr) =
+    PostAssign (Var nam) (buildExpr expr)
+buildExpr (P.PreAssign (P.AnnotatedVar nam _) expr ) =
+    PreAssign (Var nam) (buildExpr expr)
 buildExpr t = error $ "No BuildExpr defined for " ++ (show t)
     
 buildNode :: P.Tree -> LabelMapM (Node O O)
@@ -42,6 +46,11 @@ buildNode (P.Assign (P.AnnotatedVarAssign nam t) (left)) =
     return $ Assign (V nam) (buildExpr left)
 buildNode (P.Assign (P.Deref expr) (left)) =
     return $ Store (buildExpr expr) (buildExpr left) (getMemSize expr)
+buildNode tree@(P.PostAssign _ _) =
+    return $ None (buildExpr tree)
+buildNode tree@(P.PreAssign _ _) =
+    return $ None (buildExpr tree)
+    
 buildNode x = error $ "No BuildNode defined for " ++ (show x) 
 
 
