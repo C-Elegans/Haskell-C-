@@ -6,6 +6,7 @@ import Debug.Trace (trace)
 import Control.Monad.State
 import Control.Monad.Trans.Maybe
 import Data.Map (Map)
+import Data.Tuple (swap)
 import Data.Bits
 import qualified Data.Map as M
 
@@ -292,9 +293,14 @@ mul_div_reduction x = return x
 getStrings :: Tree -> State ([(String,String)],Int) Tree
 getStrings (Str str) = do
     (lst,count) <- get
-    let label = "str_const_" ++ (show count)
-    put $ ((label,str):lst,count+1)
-    return (StrLabel label)
+
+    case lookup str (map swap lst) of
+        Just lbl ->
+            return (StrLabel lbl)    
+        Nothing -> do
+            let label = "str_const_" ++ (show count)
+            put $ ((label,str):lst,count+1)
+            return (StrLabel label)
 getStrings x = return x
 isPowerOf2 n = ((.&.) n (n-1)) == 0
 
