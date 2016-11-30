@@ -7,7 +7,7 @@ import LinearScan.Hoopl
 import LinearScan.Hoopl.DSL
 import LinearScan
 import Data.Maybe
-import Instructions (Register(..), intToReg)
+import Instructions (Register(..), intToReg, regToInt)
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport
@@ -40,8 +40,9 @@ instance Hashable SVar where
        abs $ (hashWithSalt s name) + (hashWithSalt s i)
 
 instance NodeAlloc Node Node where
-    isCall (Assign _ (Call _ _)) = True
-    isCall (None (Call _ _))     = True
+    --It seems that Linearscan does unneccesary spills if these are marked as calls
+    isCall (Assign _ (Call _ _)) = False
+    isCall (None (Call _ _))     = False
     isCall _                     = False
     
     isBranch (Branch _)   = True
@@ -61,15 +62,24 @@ instance NodeAlloc Node Node where
     mkJumpOp lbl  = (Branch lbl)
 
     --Returns all variables and registers referenced by the given node
-    getReferences (Assign (S v) (Call _ es)) =
+    {-getReferences n | trace ("getReferences " ++ show n) False = undefined-}
+    getReferences (Assign (R _) (Call name es)) 
+        | name `elem` ["mul","div","abs"] =
         let lst   = (foldl . fold_EE) (svToVInfo Input) [] es
-            lst'  = (svToVInfo Output) lst (SVar v)
-            --This ensures that linearscan knows r0-r3 are not preserved across calls.
-            lst'' = lst' ++ [
+            --This ensures that linearscan knows r0-r1 are not preserved across special calls.
+            lst'' = lst ++ [
                 VarInfo{varId=Left 0,varKind=Output,regRequired=True},
-                VarInfo{varId=Left 1,varKind=Output,regRequired=True},
-                VarInfo{varId=Left 2,varKind=Output,regRequired=True},
-                VarInfo{varId=Left 3,varKind=Output,regRequired=True}
+                VarInfo{varId=Left 1,varKind=Output,regRequired=True}
+                ]
+        in lst''
+    getReferences (Assign (R _) (Call _ es)) =
+        let lst   = (foldl . fold_EE) (svToVInfo Input) [] es
+            --This ensures that linearscan knows r0-r3 are not preserved across calls.
+            lst'' = lst ++ [
+                VarInfo{varId=Left 0,varKind=Output,regRequired=True},
+                VarInfo{varId=Left 1,varKind=Output,regRequired=False},
+                VarInfo{varId=Left 2,varKind=Output,regRequired=False},
+                VarInfo{varId=Left 3,varKind=Output,regRequired=False}
                 ]
         in lst''
     getReferences (Assign (S sv) e) =  
@@ -117,6 +127,13 @@ instance NodeAlloc Node Node where
 
 --Function mapped over nodes in getReferences
 svToVInfo :: VarKind -> [VarInfo] -> Expr -> [VarInfo]
+svToVInfo vk vi (Reg r) = (convert r):vi
+    where
+        convert r = VarInfo{
+            varId = Left $ regToInt r,
+            varKind = vk,
+            regRequired = True
+        }
 svToVInfo vk vi (SVar sv) =  (convert sv):vi
     where 
         convert sv = VarInfo{

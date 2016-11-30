@@ -22,7 +22,7 @@ instance Show Assignable where
     show (S s) = show s
     show (R r) = show r
 data MemSize = Word | Byte   deriving(Eq,Data)       
-data BinOp = Add | Sub | Mul | Div | Eq | Ne | Lt | Gt | Lte | Gte | 
+data BinOp = Add | Sub | Mul | Div | Mod | Eq | Ne | Lt | Gt | Lte | Gte | 
     Shl | Shr | And | Or | Xor | Sar
     deriving (Eq,Data)
 data UnOp = Not | Neg | Addr
@@ -72,6 +72,7 @@ instance Show BinOp where
   show Sub  = "-"
   show Mul  = "*"
   show Div  = "/"
+  show Mod  = "%"
   show Eq   = "=="
   show Ne   = "/="
   show Gt   = ">"
@@ -99,6 +100,7 @@ opToBinOp Parse.Plus  = Add
 opToBinOp Parse.Minus = Sub
 opToBinOp Parse.Mul   = Mul
 opToBinOp Parse.Div   = Div
+opToBinOp Parse.Mod   = Mod
 opToBinOp Parse.Eq    = Eq
 opToBinOp Parse.Ne    = Ne
 opToBinOp Parse.Gt    = Gt

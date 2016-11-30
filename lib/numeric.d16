@@ -16,7 +16,35 @@ xor r0,r0
 3:
 ret
 .global
-abs:
+_mul2: ;takes 2 parameters
+push r4
+push r2
+push r3
+mov r3,r0
+xor r0,r0
+mov r2,r1
+xor r1,r1
+xor r4,r4
+1:
+	cmp r2,0
+	jmp.eq 3f
+	test r2,1
+	jmp.eq 2f
+	add r0,r3
+    adc r1,r4
+2:
+	shl r3,1
+    rcl r4,1
+	shr r2,1
+	cmp r2,0
+	jmp 1b
+3:
+pop r3
+pop r2
+pop r4
+ret
+.global
+_abs:
 	cmp r0,0
 	jmp.p 1f
 	neg r0
@@ -24,6 +52,8 @@ abs:
 	ret
 .global
 _div: ; divide r0 by r1
+        push r2
+        push r3
 		test r1,r1
 		jmp.eq div_end
 		xor r2,r2
@@ -69,6 +99,8 @@ div_end:
 	jmp.eq 1f
 	neg r0
 1:
+    pop r3
+    pop r2
 	ret
 
 div_sign: .dw 0

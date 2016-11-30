@@ -36,7 +36,7 @@ main =
                     --prettyprint_tree tree
                     let (List l) = tree
                     let (tree',strings) = run_tree tree
-                    prettyprint_tree tree'
+                    {-prettyprint_tree tree'-}
                     --print tree'
                     let (code,assembledStrings) = runBackend tree' strings cleanFileName
                     

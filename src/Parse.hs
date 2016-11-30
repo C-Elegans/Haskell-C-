@@ -23,7 +23,7 @@ table = [   [postfix "++" (\t -> (PostAssign t (Operator Plus t (Num 1)))),
             [prefix "++" (\t -> (PreAssign t (Operator Plus t (Num 1)))),
                 prefix "--" (\t -> (PreAssign t (Operator Minus t (Num 1)))),
                 prefix "~" (UnaryOp Not), prefix "-" (UnaryOp Neg), prefix "*" Deref, prefix "&" Addr ],
-            [binary "*" (Operator Mul) AssocRight, binary "/" (Operator Div) AssocRight],
+            [binary "*" (Operator Mul) AssocRight, binary "/" (Operator Div) AssocRight, binary "%" (Operator Mod) AssocRight],
             [binary "+" (Operator Plus) AssocRight, binary "-" (Operator Minus) AssocRight],
             [binary "<<" (Operator Shl) AssocRight, binary ">>" (Operator Shr) AssocRight],
             [binary "==" (Operator Eq) AssocRight, binary "!=" (Operator Ne) AssocRight,
@@ -47,7 +47,7 @@ prefix name fun = Prefix (do reservedOp name; return fun;)
 postfix name fun = Postfix (do reservedOp name; return fun;)
 binary name fun = Infix (do reservedOp name; return fun;) 
 expr = buildExpressionParser table factor
-data OP = Plus | Minus | Mul | Div | Shl | Shr | And | Or | Xor | Not | Neg |
+data OP = Plus | Minus | Mul | Div | Mod | Shl | Shr | And | Or | Xor | Not | Neg |
     Lt | Gt | Eq | Ge | Le | Ne | Sar 
     deriving (Show, Eq)
 
@@ -222,7 +222,7 @@ prettyprint_helper col tree =
             (Cast t exp) -> do
                 putStrLn $ "Cast (" ++ show t ++ ")"
                 prettyprint_helper (col+1) exp
-
+            n -> error $ "No prettyprint defined for " ++ show n
 
 
 op :: String -> OP

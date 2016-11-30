@@ -107,7 +107,8 @@ assembleNode _ ftype (Return _) =
         Leaf -> append epilogueLeaf
 assembleNode _ _ (None (E.Call name rs)) =
     append [Inst_JmpI Call Al (Label ("_" ++ name))]
-assembleNode _ _ (Assign (E.R R0) (E.Call name rs)) =
+assembleNode _ _ (Assign (E.R r) (E.Call name rs)) 
+    | r `elem` [R0,R1] = 
     append [Inst_JmpI Call Al (Label ("_" ++ name))]
 assembleNode _ _ (None _) =
     id

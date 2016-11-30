@@ -53,6 +53,12 @@ callAlloc = mkFRewrite alloc
        let nodes = assign_args call_registers args
            args' = map (\r -> Reg r) (take (length args) call_registers)
        in Just $ (mkMiddles nodes) <*> mkMiddle (None (Call name args'))
+    a_node (Assign (S s) (Call "mod" args)) =
+        let nodes = assign_args call_registers args
+            args' = map (Reg) (take (length args) call_registers)
+        in  Just $  (mkMiddles nodes) <*> 
+                    (mkMiddle (Assign (R R1) (Call "div" args'))) <*>
+                    (mkMiddle (Assign (S s) (Reg R1)))
     a_node (Assign (S s) (Call name args)) =
         let nodes = assign_args call_registers args
             args' = map (Reg) (take (length args) call_registers)

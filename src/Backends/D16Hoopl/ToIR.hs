@@ -65,6 +65,7 @@ buildGraph (P.Compound defs body) = do
     graph <- buildGraph defs
     bdy <- buildGraph body
     return $ graph <*> bdy
+buildGraph (P.VarDec _ _) = return $ emptyGraph
 buildGraph (P.FCall name (P.List arglist)) = do
     let exprs = map buildExpr arglist
     let call = mkMiddle (None (Call name exprs))

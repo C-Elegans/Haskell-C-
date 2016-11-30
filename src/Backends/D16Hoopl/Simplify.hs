@@ -59,6 +59,7 @@ simplify = deepFwdRw simp
     intOp Sub = Just (-)
     intOp Mul = Just (*)
     intOp Div = Just div
+    intOp Mod = Just mod
     intOp And = Just (.&.)
     intOp Or  = Just (.|.)
     intOp Xor = Just xor

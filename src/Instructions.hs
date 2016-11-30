@@ -57,6 +57,14 @@ intToReg 5 = R5
 intToReg 6 = R6
 intToReg 7 = R7
 
+regToInt R0 = 0
+regToInt R1 = 1
+regToInt R2 = 2
+regToInt R3 = 3
+regToInt R4 = 4
+regToInt R5 = 5
+regToInt R6 = 6
+regToInt R7 = 7
 cond_inverse :: Condition -> Condition
 cond_inverse Al = Al
 cond_inverse Nv = Nv

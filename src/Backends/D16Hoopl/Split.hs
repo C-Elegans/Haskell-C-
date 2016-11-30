@@ -84,11 +84,18 @@ splitExpr = mkFRewrite split
         {-let tmp = (Svar "tmp" (f+1) S_None)-}
             {-node = Assign (S tmp) l-}
         {-in return $ Just $ mkMiddles [node,Store loc (SVar tmp) fl]-}
-    split n@(Store loc expr fl) f = trace ("Splitting node " ++ show n) $
+    split n@(Store loc@(Binop Add _ (Lit _)) expr fl) f = trace ("Splitting node " ++ show n) $
         let (lst,expr',_) = splitExpr expr f
             tmp = Svar "tmp" (f+1) S_None
             graph = mkMiddles lst
         in return $ Just $ graph <*> (mkMiddles [Assign (S tmp) expr', Store loc expr' fl])
+    split n@(Store loc expr fl) f = trace ("Splitting node " ++ show n) $
+        let (lst,expr',i) = splitExpr expr f
+            (lst',loc',i') = splitExpr loc i
+            tmp = Svar "tmp" (i'+1) S_None
+            tmp2 = Svar "tmp" (i'+2) S_None
+            graph = mkMiddles $ lst ++ lst'
+        in return $ Just $ graph <*> (mkMiddles [Assign (S tmp) expr', Store loc' expr' fl])
     split (Return e) f = 
         let (lst,expr,_) = fold_split e f
             graph = mkMiddles (lst)
@@ -118,6 +125,12 @@ splitExpr = mkFRewrite split
             (r_nodes,r_e,r_i) = splitExpr r l_i
             tmp = (Svar "tmp" (r_i+1) S_None)
             node = (Assign (S tmp) (Call "div" [l_e,r_e]))
+        in  (l_nodes ++ r_nodes ++ [node], SVar tmp, r_i+1)
+    splitExpr (Binop Mod l r) i =
+        let (l_nodes,l_e,l_i) = splitExpr l i
+            (r_nodes,r_e,r_i) = splitExpr r l_i
+            tmp = (Svar "tmp" (r_i+1) S_None)
+            node = (Assign (S tmp) (Call "mod" [l_e,r_e]))
         in  (l_nodes ++ r_nodes ++ [node], SVar tmp, r_i+1)
     splitExpr (Binop op l r) i = 
         let (l_nodes,l_e,l_i) = splitExpr l i
