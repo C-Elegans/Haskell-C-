@@ -61,8 +61,10 @@ buildGraph (P.List (x:xs)) = do
     return $ node <*> graph
 buildGraph (P.List []) =
     return $ emptyGraph
-buildGraph (P.Compound defs body) =
-    buildGraph body
+buildGraph (P.Compound defs body) = do
+    graph <- buildGraph defs
+    bdy <- buildGraph body
+    return $ graph <*> bdy
 buildGraph (P.FCall name (P.List arglist)) = do
     let exprs = map buildExpr arglist
     let call = mkMiddle (None (Call name exprs))
@@ -118,6 +120,8 @@ buildGraph (P.While cond tree) = do
             (mkFirst (Label lblNext))
     return $ condGraph |*><*| whileGraph
     
+buildGraph (P.ArrayDec t name size) =
+    return $ mkMiddles [Assign (R R7) (Binop Sub (Reg R7) (Lit (Int size))), Assign (V name) (Reg R7)]
 buildGraph x =do
     node <- buildNode x 
     return $ mkMiddle node

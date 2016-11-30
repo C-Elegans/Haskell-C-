@@ -293,7 +293,7 @@ mul_div_reduction x = return x
 getStrings :: Tree -> State ([(String,String)],Int) Tree
 getStrings (Str str) = do
     (lst,count) <- get
-
+        {-TODO - swap label and str around to reduce computation-}
     case lookup str (map swap lst) of
         Just lbl ->
             return (StrLabel lbl)    

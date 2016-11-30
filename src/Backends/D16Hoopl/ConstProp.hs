@@ -32,6 +32,7 @@ varHasLit = mkFTransfer ft
     ft (Label _)                        f = f
     ft (Assign (S x) (Lit k))           f = Map.insert x (PElem k) f
     ft (Assign (S x) _)                 f = Map.insert x Top f
+    ft (Assign (R _) _)                 f = f
     ft (None _)                         f = f
     ft (Store _ _ _)                      f = f
     ft (Branch l)                       f = mapSingleton l f

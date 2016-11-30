@@ -34,6 +34,7 @@ liveness = mkBTransfer3 firstLive middleLive lastLive
     middleLive :: Node O O -> Live -> Live
     middleLive n@(Assign (S x) _)   f = addUses (S.delete x f) n
     middleLive (Assign (V x) _)   _ = error $ "Variable " ++ x ++ " is not in SSA Form"
+    middleLive n@(Assign (R _) _)   f = addUses f n
     middleLive (Assign _ _)       _ = error $ "Broken assignment"
     middleLive n@(Store _ _ _)    f = addUses f n
     middleLive n@(None _)       f = addUses f n
