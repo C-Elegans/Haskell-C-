@@ -7,6 +7,7 @@ import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport
 import Prelude hiding ((<*>))
+import Debug.Trace (trace)
 
 {-
  -This pass splits expressions into assignments with a single binary, unary, or call expression.
@@ -79,10 +80,15 @@ splitExpr = mkFRewrite split
         let (lst,expr,_) = splitExpr e f
             graph = mkMiddles lst
         in return $ Just $ graph <*> (mkMiddle (None expr))
-    split (Store loc expr fl) f =
+    {-split (Store loc l@(Lit _) fl) f =-}
+        {-let tmp = (Svar "tmp" (f+1) S_None)-}
+            {-node = Assign (S tmp) l-}
+        {-in return $ Just $ mkMiddles [node,Store loc (SVar tmp) fl]-}
+    split n@(Store loc expr fl) f = trace ("Splitting node " ++ show n) $
         let (lst,expr',_) = splitExpr expr f
+            tmp = Svar "tmp" (f+1) S_None
             graph = mkMiddles lst
-        in return $ Just $ graph <*> (mkMiddle (Store loc expr' fl))
+        in return $ Just $ graph <*> (mkMiddles [Assign (S tmp) expr', Store loc expr' fl])
     split (Return e) f = 
         let (lst,expr,_) = fold_split e f
             graph = mkMiddles (lst)

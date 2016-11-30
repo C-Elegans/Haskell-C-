@@ -3,6 +3,7 @@
 module Backends.D16Hoopl.ConstProp where
 import qualified Data.Map as Map
 import Compiler.Hoopl
+import Data.Maybe (fromMaybe)
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport
@@ -52,6 +53,9 @@ constProp :: forall m . FuelMonad m => FwdRewrite m Node ConstFact
 constProp = mkFRewrite cp
   where
     cp :: Node e x -> ConstFact -> m (Maybe (Graph Node e x))
+    cp (Store loc val bf) f =
+        let expr = (mapEE . mapSVE) (lookup f) loc
+        in return $ fmap insnToG $ Just (Store (fromMaybe loc expr) val bf)
     cp node f =
         return $ fmap insnToG $ mapVN (lookup f) node
     mapVN :: (SVar -> Maybe Expr) -> MaybeChange (Node e x)

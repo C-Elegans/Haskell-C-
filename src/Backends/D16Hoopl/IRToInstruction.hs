@@ -83,6 +83,8 @@ assembleNode _ _ (Store (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))) (E.Reg r) b
     append [Inst_MemI St R6 r (Const i) (mSizeToBf bf) Displacement]
 assembleNode _ _ (Store (E.Reg r) (E.Reg r2) bf) =
     append [Inst_Mem St r r2 (mSizeToBf bf)]
+assembleNode _ _ (Store (E.Binop E.Add (E.Reg r) (E.Lit (E.Int i))) (E.Reg r2) bf) = 
+    append [Inst_MemI St r r2 (Const i) (mSizeToBf bf) Displacement] 
 assembleNode _ _ (Assign (E.R r) (E.Load (E.Reg r2) bf)) = 
     append [Inst_Mem Ld r r2 (mSizeToBf bf)]
 assembleNode _ ftype  (Return ((E.Reg r):[])) = 
