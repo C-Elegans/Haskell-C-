@@ -7,6 +7,7 @@ import qualified Parse as P
 import Prelude hiding ((<*>))
 import Type
 import Tree (getType)
+import Data.Bits
 import Debug.Trace(trace)
 
 buildExpr :: P.Tree -> Expr
@@ -122,7 +123,9 @@ buildGraph (P.While cond tree) = do
     return $ condGraph |*><*| whileGraph
     
 buildGraph (P.ArrayDec t name size) =
-    return $ mkMiddles [Assign (R R7) (Binop Sub (Reg R7) (Lit (Int size))), Assign (V name) (Reg R7)]
+    let sz = size * sizeof t
+        sz' = (sz+1) .&. (-2)
+    in return $ mkMiddles [Assign (R R7) (Binop Sub (Reg R7) (Lit (Int sz'))), Assign (V name) (Reg R7)]
 buildGraph x =do
     node <- buildNode x 
     return $ mkMiddle node

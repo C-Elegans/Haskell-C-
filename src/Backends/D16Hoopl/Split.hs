@@ -2,6 +2,8 @@
 {-# LANGUAGE ScopedTypeVariables, GADTs #-}
 module Backends.D16Hoopl.Split where
 import Control.Monad
+import Control.Applicative hiding ((<*>))
+import qualified Control.Applicative as A
 import Compiler.Hoopl
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.IR
@@ -44,32 +46,52 @@ countNodes = mkFTransfer ft
         
     
 
+newtype SplitE n i a = Split ([n] -> i -> ([n],a,i))
+instance Monad (SplitE n i) where
+    return a = Split $ \n i -> (n,a,i)
+    (Split ma) >>= k = Split $ \n i ->
+        let (n', a, i') = ma n i
+            (Split ma') = k a
+        in ma' (n++n') (i')
+instance Applicative (SplitE n i) where
+    pure = return
+    (<*>) = ap
+instance Functor (SplitE n i) where
+    fmap = liftM
+getTmp :: SplitE n Int SVar
+getTmp = Split $ \n i ->
+    let tmp = Svar "tmp" (i+1) S_None
+    in (n,tmp,i+1)
+put :: [Node O O] -> SplitE (Node O O) i ()
+put nodes = Split $ \_ i -> (nodes,(),i)
 
+runSplit :: SplitE n i a -> [n] -> i -> ([n],a,i)
+runSplit (Split sp) = sp
 splitExpr :: forall m . FuelMonad m => FwdRewrite m Node SplitFact
 splitExpr = mkFRewrite split
   where
     split :: Node e x -> SplitFact -> m (Maybe (Graph Node e x))
     split (Assign v (Binop Div l r)) f =
-        let (lst,left,i) = splitExpr l f
-            (lst',right,_) = splitExpr r i
+        let (lst,left,i) = runSplitExpr l f
+            (lst',right,_) = runSplitExpr r i
             graph = mkMiddles (lst ++ lst' ++ [(Assign v (Call "div" [left,right]))])
         in return $ Just graph
     split (Assign v (Binop Mul l r)) f =
-        let (lst,left,i) = splitExpr l f
-            (lst',right,_) = splitExpr r i
+        let (lst,left,i) = runSplitExpr l f
+            (lst',right,_) = runSplitExpr r i
             graph = mkMiddles (lst ++ lst' ++ [(Assign v (Call "mul" [left,right]))])
         in return $ Just graph
     split (Assign v (Binop op l r)) f =
-        let (lst,left,i) = splitExpr l f
-            (lst',right,_) = splitExpr r i
+        let (lst,left,i) = runSplitExpr l f
+            (lst',right,_) = runSplitExpr r i
             graph = mkMiddles (lst ++ lst' ++ [(Assign v (Binop op left right))])
         in return $ Just graph
     split (Assign v e) f = 
-        let (lst,expr,_) = splitExpr e f
+        let (lst,expr,_) = runSplitExpr e f
             graph = mkMiddles (lst ++ [(Assign v expr)])
         in  return $ Just graph
     split (Cond c l r) f = 
-        let (lst,expr,_) = splitExpr c f
+        let (lst,expr,_) = runSplitExpr c f
             graph = mkMiddles lst
         in  return $ Just $ graph <*> (mkLast (Cond expr l r))
 --    split (None c@(Call name es)) f = trace ("Split call " ++ (show c)) $ 
@@ -77,7 +99,7 @@ splitExpr = mkFRewrite split
 --            graph = mkMiddles lst
 --        in return $ Just $ graph <*> ( mkMiddle $ None $ Call name exprs)
     split (None e) f=
-        let (lst,expr,_) = splitExpr e f
+        let (lst,expr,_) = runSplitExpr e f
             graph = mkMiddles lst
         in return $ Just $ graph <*> (mkMiddle (None expr))
     {-split (Store loc l@(Lit _) fl) f =-}
@@ -85,83 +107,84 @@ splitExpr = mkFRewrite split
             {-node = Assign (S tmp) l-}
         {-in return $ Just $ mkMiddles [node,Store loc (SVar tmp) fl]-}
     split n@(Store loc@(Binop Add _ (Lit _)) expr fl) f = trace ("Splitting node " ++ show n) $
-        let (lst,expr',_) = splitExpr expr f
+        let (lst,expr',_) = runSplitExpr expr f
             tmp = Svar "tmp" (f+1) S_None
             graph = mkMiddles lst
         in return $ Just $ graph <*> (mkMiddles [Assign (S tmp) expr', Store loc expr' fl])
     split n@(Store loc expr fl) f = trace ("Splitting node " ++ show n) $
-        let (lst,expr',i) = splitExpr expr f
-            (lst',loc',i') = splitExpr loc i
+        let (lst,expr',i) = runSplitExpr expr f
+            (lst',loc',i') = runSplitExpr loc i
             tmp = Svar "tmp" (i'+1) S_None
             tmp2 = Svar "tmp" (i'+2) S_None
             graph = mkMiddles $ lst ++ lst'
         in return $ Just $ graph <*> (mkMiddles [Assign (S tmp) expr', Store loc' expr' fl])
     split (Return e) f = 
-        let (lst,expr,_) = fold_split e f
+        let (lst,expr,_) = runSplit (fold_split e) [] f
             graph = mkMiddles (lst)
         in  return $ Just $ graph <*> (mkLast (Return expr))
         
     split _ _ = 
         return $ liftM insnToG $ Nothing
-    
-    splitExpr :: Expr -> Int -> ([Node O O],Expr,Int)
+   
+
+    splitExpr :: Expr -> SplitE (Node O O) Int Expr
     {-splitExpr node _ | trace ("SplitExpr " ++ show node) False = undefined-}
-    splitExpr l@(Lit (Int _)) i =
-        let tmp = (Svar "tmp" (i+1) S_None)
-            node = (Assign (S tmp) l)
-            in ([node], (SVar tmp), i+1)
-    splitExpr l@(Load _ _) i =
-        let tmp = (Svar "tmp" (i+1) S_None)
-            node = (Assign (S tmp) l)
-            in ([node], (SVar tmp), i+1)
-    splitExpr (Binop Mul l r) i =
-        let (l_nodes,l_e,l_i) = splitExpr l i
-            (r_nodes,r_e,r_i) = splitExpr r l_i
-            tmp = (Svar "tmp" (r_i+1) S_None)
-            node = (Assign (S tmp) (Call "mul" [l_e,r_e]))
-        in  (l_nodes ++ r_nodes ++ [node], SVar tmp, r_i+1)
-    splitExpr (Binop Div l r) i =
-        let (l_nodes,l_e,l_i) = splitExpr l i
-            (r_nodes,r_e,r_i) = splitExpr r l_i
-            tmp = (Svar "tmp" (r_i+1) S_None)
-            node = (Assign (S tmp) (Call "div" [l_e,r_e]))
-        in  (l_nodes ++ r_nodes ++ [node], SVar tmp, r_i+1)
-    splitExpr (Binop Mod l r) i =
-        let (l_nodes,l_e,l_i) = splitExpr l i
-            (r_nodes,r_e,r_i) = splitExpr r l_i
-            tmp = (Svar "tmp" (r_i+1) S_None)
-            node = (Assign (S tmp) (Call "mod" [l_e,r_e]))
-        in  (l_nodes ++ r_nodes ++ [node], SVar tmp, r_i+1)
-    splitExpr (Binop op l r) i = 
-        let (l_nodes,l_e,l_i) = splitExpr l i
-            (r_nodes,r_e,r_i) = splitExpr r l_i
-            tmp = (Svar "tmp" (r_i+1) S_None)
-            node = (Assign (S tmp) (Binop op l_e r_e ))
-            in (l_nodes ++ r_nodes ++ [node], (SVar tmp), r_i+1)
-    splitExpr (Unop op e) i =
-        let (e_nodes,e_e,e_i) = splitExpr e i
-            tmp = (Svar "tmp" (e_i+1) S_None)
-            node = (Assign (S tmp) (Unop op e_e ))
-            in (e_nodes ++ [node], (SVar tmp), e_i+1)
-    splitExpr (Call n es) i =
-        let (nodes,exprs,i') = fold_split es i 
-            tmp = (Svar "tmp" (i'+1) S_None)
-            node = (Assign (S tmp) (Call n exprs))
-            in (nodes ++ [node], (SVar tmp), i'+1)   
-    splitExpr (PostAssign (SVar a) e) i =
-        let tmp = (Svar "tmp" (i+1) S_None)
-            nodes = [(Assign (S tmp) (SVar a)),Assign (S a) e]
-        in  (nodes,SVar tmp,i+1)
-    splitExpr (PreAssign (SVar a) e) i =
-        let nodes = [Assign (S a) e]
-        in  (nodes, SVar a, i)
-    splitExpr e i = --trace ("Default splitExpr on " ++ (show e)) $
-        ([],e,i)
-    fold_split :: [Expr] -> Int -> ([Node O O],[Expr],Int)
-    fold_split (e:rest) i =
-        let (lst,new_e,i' ) = splitExpr e i
-            (lst_rest,es,i'') = fold_split rest i'
-        in  (lst ++ lst_rest, new_e:es, i'')
-    fold_split [] i = 
-        ([],[],i)
-    
+    splitExpr l@(Lit (Int _)) = do
+        tmp <- getTmp
+        put [Assign (S tmp) l]
+        return $ SVar tmp
+    splitExpr l@(Load _ _) = do
+        tmp <- getTmp
+        put [Assign (S tmp) l]
+        return $ SVar tmp
+    splitExpr (Binop Mul l r) = do
+        left <- splitExpr l
+        right <- splitExpr r
+        tmp <- getTmp
+        put [Assign (S tmp) (Call "mul" [left,right])]
+        return $ SVar tmp
+    splitExpr (Binop Div l r) = do
+        left <- splitExpr l
+        right <- splitExpr r
+        tmp <- getTmp
+        put [Assign (S tmp) (Call "div" [left,right])]
+        return $ SVar tmp
+    splitExpr (Binop Mod l r) = do
+        left <- splitExpr l
+        right <- splitExpr r
+        tmp <- getTmp
+        put [Assign (S tmp) (Call "mod" [left,right])]
+        return $ SVar tmp
+    splitExpr (Binop op l r) = do
+        left <- splitExpr l
+        right <- splitExpr r
+        tmp <- getTmp
+        put [Assign (S tmp) (Binop op left right)]
+        return $ SVar tmp
+    splitExpr (Unop op e) = do
+        exp <- splitExpr e
+        tmp <- getTmp
+        put [Assign (S tmp) (Unop op exp)]
+        return $ SVar tmp
+    splitExpr (Call n es) = do
+        exprs <- fold_split es
+        tmp <- getTmp
+        put [Assign (S tmp) (Call n exprs)]
+        return $ SVar tmp
+    splitExpr (PostAssign (SVar a) e) = do
+        tmp <- getTmp
+        put [Assign (S tmp) (SVar a), Assign (S a) e]
+        return $ SVar tmp
+    splitExpr (PreAssign (SVar a) e) = do
+        put [Assign (S a) e]
+        return $ SVar a
+    splitExpr e = --trace ("Default splitExpr on " ++ (show e)) $
+        return e
+    fold_split :: [Expr] -> SplitE (Node O O) Int [Expr]
+    fold_split (e:es) = do
+        exprs <- fold_split es
+        expr <- splitExpr e
+        return $ expr:exprs
+    fold_split [] = return []
+    runSplitExpr :: Expr -> Int -> ([Node O O],Expr,Int)
+    runSplitExpr ex i = runSplit (splitExpr ex) [] i
