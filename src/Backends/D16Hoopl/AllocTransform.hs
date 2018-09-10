@@ -97,12 +97,12 @@ allocpass p =
 
 
 
-runPass :: CheckpointMonad m => Label -> Graph Node C C -> [Var] -> 
+runPass :: (CheckpointMonad m, Show f) => Label -> Graph Node C C -> [Var] -> 
             (Label -> Graph Node C C -> [Var] -> m (Graph Node C C,
            FactBase f, MaybeO x f)) -> m (Graph Node C C, FactBase f)
 runPass e b a f = do
-    (body,fb,_) <- f e b a 
-    return (body, fb)
+    (body,fb,m) <- f e b a 
+    return $ trace (show fb) (body, fb)
 
 
 

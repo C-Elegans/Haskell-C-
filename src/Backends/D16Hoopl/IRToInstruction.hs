@@ -110,6 +110,8 @@ assembleNode _ _ (None (E.Call name rs)) =
 assembleNode _ _ (Assign (E.R r) (E.Call name rs)) 
     | r `elem` [R0,R1] = 
     append [Inst_JmpI Call Al (Label ("_" ++ name))]
+assembleNode _ _ (None (E.Alloca i)) =
+     append [Inst_RI Sub R7 (Const i)]
 assembleNode _ _ (None _) =
     id
 assembleNode name _ (IR.Label lbl) =

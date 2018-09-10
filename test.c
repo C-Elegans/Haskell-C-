@@ -21,9 +21,15 @@
 /*}*/
 
 void main(int i){
+    int j;
+    int k;
+    int l;
     i=3;
-    puts("test");
-    return i+1;
+    j=4; 
+    k=10;
+    l = 4;
+    //puts("test");
+    return i+j+k+l;
 
 }
 
