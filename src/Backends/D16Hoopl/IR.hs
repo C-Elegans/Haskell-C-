@@ -13,7 +13,7 @@ type M = CheckingFuelMonad SimpleUniqueMonad
 
 data Value = B Bool | I Integer deriving Eq
 
-data Proc = Proc { name :: String, args :: [Var], entry :: Label, body :: Graph Node C C }
+data Proc = Proc { name :: String, args :: [Var], entry :: Label, body :: Graph Node C C, stackoff :: Int}
 
 
 data Node e x where                                 
@@ -36,7 +36,7 @@ instance NonLocal Node where
 --------------------------------------------------------------------------------
 
 showProc :: Proc -> String
-showProc proc = name proc ++ tuple (args proc) ++ graph
+showProc proc = name proc ++ tuple (args proc) ++ " stackoff: " ++ show (stackoff proc) ++ graph
   where
     graph  = " {\n" ++ showGraph show (body proc) ++ "}\n"
 

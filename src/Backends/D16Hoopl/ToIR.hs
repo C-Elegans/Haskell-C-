@@ -150,7 +150,7 @@ buildGraphCC (P.FuncDef t name (P.List args) body) = do
     let graph = (mkMiddles pars) <*> bodyGraph
     let graph' = catNodeCOGraph (Label lbl) graph
     let graph'' = catGraphNodeOC graph' (Return [])
-    return $ Proc{ name=name, args=(args2Vars args), entry = lbl, body = graph''}
+    return $ Proc{ name=name, args=(args2Vars args), entry = lbl, body = graph'', stackoff=0}
 
 
 canBecomeGraph :: P.Tree -> Bool

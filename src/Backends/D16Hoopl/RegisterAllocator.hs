@@ -154,7 +154,7 @@ setRegister mp sv =
 allocate :: Label -> Graph Node C C -> CheckingFuelMonad SimpleUniqueMonad (Graph Node C C)
 allocate entry g  = 
     let nRegs       = 6
-        stackOffset = 2
+        stackOffset = 4
         regSize     = 2
         verifier    = VerifyEnabled
         

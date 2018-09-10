@@ -77,8 +77,8 @@ assembleNode _ _ (Assign (E.R r) (E.Str str)) =
     append [Inst_RI Mov r (Label str)]
 assembleNode _ _ (Assign (E.R r) (E.Reg r2)) = 
     append [Inst_RR Mov r r2]
-assembleNode _ _ (Assign (E.R r) (E.Load (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))) bf)) =
-    append [Inst_MemI Ld r R6 (Const i) (mSizeToBf bf) Displacement]
+assembleNode _ _ (Assign (E.R r) (E.Load (E.Binop E.Add (E.Reg r2) (E.Lit (E.Int i))) bf)) =
+    append [Inst_MemI Ld r r2 (Const i) (mSizeToBf bf) Displacement]
 assembleNode _ _ (Store (E.Binop E.Add (E.Reg R6) (E.Lit (E.Int i))) (E.Reg r) bf) =
     append [Inst_MemI St R6 r (Const i) (mSizeToBf bf) Displacement]
 assembleNode _ _ (Store (E.Reg r) (E.Reg r2) bf) =
@@ -121,6 +121,9 @@ assembleNode name _ (Cond (E.Reg r) tl fl) =
     append [Inst_RR Test r r,
             Inst_JmpI Jmp Ne (Label (lblToLabel tl name)),
             Inst_JmpI Jmp Al (Label (lblToLabel fl name))]
+assembleNode _ _ (Assign _ (E.Alloca i)) =
+     append [Inst_RI Sub R7 (Const i)]
+                  
 assembleNode _ _ n = error $ "No assembleNode defined for " ++ (show n)
 
 

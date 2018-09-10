@@ -67,7 +67,9 @@ executable cmm
     hoopl == 3.10.2.*,
     linearscan-hoopl,
     hashable,
-    linearscan 
+    linearscan,
+    Earley == 0.11.0.1,
+    text
 
   -- Directories containing source files.
   hs-source-dirs: src/

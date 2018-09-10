@@ -111,6 +111,12 @@ splitExpr = mkFRewrite split
             tmp = Svar "tmp" (f+1) S_None
             graph = mkMiddles lst
         in return $ Just $ graph <*> (mkMiddles [Assign (S tmp) expr', Store loc expr' fl])
+    split n@(Store loc@(Binop Sub r (Lit (Int i))) expr fl) f = trace ("Splitting node " ++ show n) $
+        let (lst,expr',_) = runSplitExpr expr f
+            tmp = Svar "tmp" (f+1) S_None
+            graph = mkMiddles lst
+        in return $ Just $ graph <*> (mkMiddles [Assign (S tmp) expr', Store
+                                                  (Binop Add r (Lit (Int (0-i)))) expr' fl])
     split n@(Store loc expr fl) f = trace ("Splitting node " ++ show n) $
         let (lst,expr',i) = runSplitExpr expr f
             (lst',loc',i') = runSplitExpr loc i
@@ -132,6 +138,10 @@ splitExpr = mkFRewrite split
     splitExpr l@(Lit (Int _)) = do
         tmp <- getTmp
         put [Assign (S tmp) l]
+        return $ SVar tmp
+    splitExpr l@(Load (Binop Sub r (Lit (Int i))) s) = do
+        tmp <- getTmp
+        put [Assign (S tmp) (Load (Binop Add r (Lit (Int (0-i))) )s)]
         return $ SVar tmp
     splitExpr l@(Load _ _) = do
         tmp <- getTmp

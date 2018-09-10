@@ -15,6 +15,7 @@ data Expr = Lit   Lit
           | Unop  UnOp Expr
           | PostAssign Expr Expr
           | PreAssign  Expr Expr
+          | Alloca Int
         deriving (Eq, Typeable, Data)
 data Assignable = V Var | S SVar | R Register deriving (Eq, Data)
 instance Show Assignable where
@@ -51,6 +52,7 @@ instance Show Expr where
   show (Load  e Byte) = "m[" ++ show e ++ "].b"
   show (Load  e Word) = "m[" ++ show e ++ "]"
   show (Str   s) = "Str " ++ s
+  show (Alloca i) = "Alloca " ++ show i
   show (Call name s) = 
         name ++ tuple (map show s)
   show (Binop b e1 e2) = sub e1 ++ " " ++ show b ++ " " ++ sub e2
