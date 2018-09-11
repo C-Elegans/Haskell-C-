@@ -25,11 +25,15 @@ void main(int i){
     int k;
     int l;
     int *p;
+    int *p2;
     i=3;
     j=4; 
     k=10;
     p=&k;
+    p2=&j;
     *p=4;
+    *p = *p + 1;
+    *p2 = *p;
     //puts("test");
     return i+j+k;
 

@@ -16,7 +16,7 @@ import Debug.Trace (trace)
 runBackend :: Tree -> [(String,String)] -> String -> ([Instruction],String)
 runBackend tree strings cleanfilename = 
     let ir = treeToIR tree
-        ir' = runAllocTransform ir
+        ir' = trace (concat $ map showProc ir) $ runAllocTransform ir
         
         ir'' = trace (concat $ map showProc ir' ) (optimize ir')
         

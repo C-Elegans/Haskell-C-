@@ -12,14 +12,24 @@ import Prelude hiding ((<*>))
 import Debug.Trace (trace)
 import qualified Data.Map as Map
 
+data Alias = NoAlias | MayAlias | Aliases [Var]
+  deriving (Show, Eq)
+
+amax :: Alias -> Alias -> Alias
+amax (Aliases x) (Aliases y) = Aliases (x++y)
+amax (MayAlias) _ = MayAlias
+amax _ (MayAlias) = MayAlias
+amax NoAlias x = x
+
 data AllocFact = AllocFact {
   hmap :: Map.Map Var Int,
+  alias :: Map.Map Var Alias,
   sp  :: Int,
   tmp :: Int
   }
-  deriving (Show)
+  deriving (Show, Eq)
 
-emptyfact = AllocFact{ hmap=Map.empty, sp=0, tmp=0}
+emptyfact = AllocFact{ hmap=Map.empty, alias=Map.empty, sp=0, tmp=0}
 lattice :: DataflowLattice AllocFact
 lattice = DataflowLattice {
     fact_name = "Alloc Map",
@@ -28,10 +38,13 @@ lattice = DataflowLattice {
     where
         add _ (OldFact old) (NewFact new) =
             let m = Map.unionWith max (hmap old) (hmap new)
-                changeFlag = changeIf  False
+                --a = Map.unionWith amax (alias old) (alias new)
+                a = Map.union (alias old) (alias new)
                 s = max (sp old) (sp new)
                 t = max (tmp old) (tmp new)
-            in (changeFlag, AllocFact {hmap = m, sp = s, tmp=t})
+                newfact =  AllocFact {hmap = m, sp = s, tmp=t, alias=a}
+                changeFlag = changeIf (newfact /= old || newfact /= new)
+            in (changeFlag,newfact)
 
 pass :: FuelMonad m => FwdPass m Node AllocFact
 pass = FwdPass {
@@ -42,27 +55,41 @@ pass = FwdPass {
 
 
 rewrite :: forall m . FuelMonad m => FwdRewrite m Node AllocFact
-rewrite = mkFRewrite rw
+rewrite = deepFwdRw rw
   where
     rw :: Node e x -> AllocFact -> m (Maybe (Graph Node e x))
-    rw (Assign (V v) a) f =
-      let a' = fromMaybe a (mapEE (cvt f) a)
-      in case Map.lookup v (hmap f) of
-        Just i ->
-            return $ Just $ insnToG $
-            Store (Binop Sub (Reg R6) (Lit (Int i))) a' Word
-        Nothing ->
-          let n = Assign (V v) $ Alloca 2
-              s = (sp f) + 2
-              n2 = Store (Binop Sub (Reg R6) (Lit (Int s))) a' Word
-          in return $ Just $ insnToG n <*> insnToG n2
-      
+    --rw n f | trace (show n ++ ": " ++  show f) False = return $ Nothing
+    --rw (Assign _ (Alloca n)) _ = return $ Just $ insnToG $ None $ Alloca n
+    rw n@(Assign (V v) e) f =
+      let aliases = aliasanalyze Map.empty e
+      in if aliases == Map.empty then
+           return Nothing
+         else
+           let (spills, f') = genSpills f (Map.toList aliases)
+               n' = fromMaybe emptyGraph $ liftM insnToG $ (mapEN . mapEE) (cvt f') n
+           in return $ Just $ spills <*> n'
     rw node f = return $ liftM insnToG $ (mapEN . mapEE ) (cvt f) node
+    rw node f = return $ Nothing
+    genSpills :: AllocFact -> [(String, Alias)] -> (Graph Node O O, AllocFact)
+    genSpills f ((var,flag):rest) =
+      case Map.lookup var (hmap f) of
+        Just i -> genSpills f rest
+        Nothing ->
+          let alloca = insnToG $ Assign (V var) (Alloca 2)
+              spill = insnToG $ Store (Binop Sub (Reg R6) (Lit (Int ((sp f)+2)))) (Var var) Word
+              mp = Map.insert var ((sp f) + 2) (hmap f)
+              f' = f {sp = (sp f) + 2, hmap=mp}
+              (spills, f'') = genSpills f' rest
+          in ( spill <*> alloca <*>spills, f'')
+    genSpills f [] = (emptyGraph, f)
+        
+
+      
     cvt f (Var str) = 
       case Map.lookup str (hmap f) of
         Just i -> Just $ Load (Binop Sub (Reg R6) (Lit (Int i))) Word
-        Nothing -> error $ "Stack variable not found for " ++ str
-    cvt _ e1@(Unop Addr (Load e _)) = Just $ e
+        Nothing -> Nothing
+    cvt f e1@(Unop Addr (Load e _)) = Just $ e 
       
     cvt _ e = Nothing
     
@@ -70,14 +97,30 @@ transfer :: FwdTransfer Node AllocFact
 transfer = mkFTransfer ft
   where
     ft :: Node e x -> AllocFact -> Fact x AllocFact
+    ft n f | trace ("ft: " ++show n ++ " " ++ show f) False = undefined
     ft (Label _)            f = f
-    ft (Assign (V v) _)     f =
-      case Map.lookup v (hmap f) of
-        Just i -> f
+    ft (Assign (V v) (Alloca i)) f = trace ("Assign alloca") $
+        let s = (sp f) + 2
+            hm = Map.insert v s (hmap f)
+        in f {hmap=hm, sp=s}
+    ft (Assign (V v) e)     f =
+      let amap = aliasanalyze (alias f) e
+      in case Map.lookup v (hmap f) of
+        Just i -> f {alias=amap}
         Nothing ->
-          let  s = (sp f) + 2
-               m = Map.insert v s (hmap f)
-          in f{hmap=m, sp=s}
+          case Map.lookup v amap of
+            Just MayAlias ->
+                let  s = (sp f) + 2
+                     m = Map.insert v s (hmap f)
+                     a = Map.insert v NoAlias amap
+                in f{hmap=m, sp=s, alias=a}
+            _ -> f{alias = amap}
+    ft (Assign e (Unop Addr (Var v))) f =
+        let a = case Map.lookup v (alias f) of
+                  Nothing -> MayAlias
+                  Just x -> amax x (Aliases [v])
+        in f {alias= Map.insert v a (alias f)}
+
           
     ft (Assign e _)         f = f
     
@@ -87,6 +130,10 @@ transfer = mkFTransfer ft
         mkFactBase lattice [(tl,f), (fl,f)]
     ft (None _)             f = f
     ft (Return _)           _ = mapEmpty
+aliasanalyze :: Map.Map Var Alias -> Expr -> Map.Map Var Alias
+aliasanalyze a (Unop Addr (Var v)) =
+    Map.insert v MayAlias a
+aliasanalyze a _ = a
 
 runAllocTransform :: [Proc] -> [Proc]
 runAllocTransform p =
@@ -111,5 +158,7 @@ runPass e b a f = do
 
 
 runp entry args body = 
-    runPass entry body args (\ e b a -> analyzeAndRewriteFwd
-        pass (JustC e) b (mapSingleton e emptyfact)) 
+  --let dp = debugFwdTransfers trace show (\x y -> True) pass
+  let dp = pass
+  in runPass entry body args (\ e b a -> analyzeAndRewriteFwd
+        dp (JustC e) b (mapSingleton e emptyfact)) 
