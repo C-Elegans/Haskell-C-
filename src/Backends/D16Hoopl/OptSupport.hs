@@ -61,7 +61,11 @@ mapEE f e@(Str _)     = f e
 mapEE f e@(Alloca _)     = f e
 mapEE f   (Call n es) = 
     let es' = (map (uncurry fromMaybe) (zip es (map (mapEE f) es)))
-    in f (Call n es')
+        c = (Call n es')
+    in if es /= es' then
+      Just $ fromMaybe c (f c)
+    else
+      Nothing
 mapEE f e@(Load addr bf) =
   case mapEE f addr of
     Just addr' -> Just $ fromMaybe e' (f e')

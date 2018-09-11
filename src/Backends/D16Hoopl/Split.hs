@@ -94,10 +94,10 @@ splitExpr = mkFRewrite split
         let (lst,expr,_) = runSplitExpr c f
             graph = mkMiddles lst
         in  return $ Just $ graph <*> (mkLast (Cond expr l r))
---    split (None c@(Call name es)) f = trace ("Split call " ++ (show c)) $ 
---        let (lst,exprs,_) = fold_split es f
---            graph = mkMiddles lst
---        in return $ Just $ graph <*> ( mkMiddle $ None $ Call name exprs)
+    split (None c@(Call name [e])) f = trace ("Split call " ++ (show c)) $ 
+       let (lst,expr,_) = runSplitExpr e f
+           graph = mkMiddles lst
+       in return $ Just $ graph <*> ( mkMiddle $ None $ Call name [expr])
     split (None e) f=
         let (lst,expr,_) = runSplitExpr e f
             graph = mkMiddles lst

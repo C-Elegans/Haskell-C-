@@ -85,6 +85,7 @@ rewrite = deepFwdRw rw
         
 
       
+    cvt _ e | trace (show e) False = undefined
     cvt f (Var str) = 
       case Map.lookup str (hmap f) of
         Just i -> Just $ Load (Binop Sub (Reg R6) (Lit (Int i))) Word
@@ -97,7 +98,7 @@ transfer :: FwdTransfer Node AllocFact
 transfer = mkFTransfer ft
   where
     ft :: Node e x -> AllocFact -> Fact x AllocFact
-    ft n f | trace ("ft: " ++show n ++ " " ++ show f) False = undefined
+    --ft n f | trace ("ft: " ++show n ++ " " ++ show f) False = undefined
     ft (Label _)            f = f
     ft (Assign (V v) (Alloca i)) f = trace ("Assign alloca") $
         let s = (sp f) + 2

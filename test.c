@@ -34,6 +34,7 @@ void main(int i){
     *p=4;
     *p = *p + 1;
     *p2 = *p;
+    print_hex(i+j+k);
     //puts("test");
     return i+j+k;
 
