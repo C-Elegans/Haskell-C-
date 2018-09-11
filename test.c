@@ -24,12 +24,14 @@ void main(int i){
     int j;
     int k;
     int l;
+    int *p;
     i=3;
     j=4; 
     k=10;
-    l = 4;
+    p=&k;
+    *p=4;
     //puts("test");
-    return i+j+k+l;
+    return i+j+k;
 
 }
 

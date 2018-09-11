@@ -54,7 +54,7 @@ simplify = deepFwdRw simp
         
         
         
-    s_exp _ = Nothing
+    s_exp e = Nothing
     intOp Add = Just (+)
     intOp Sub = Just (-)
     intOp Mul = Just (*)

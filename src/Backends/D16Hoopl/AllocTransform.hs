@@ -7,6 +7,7 @@ import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.OptSupport
 import Instructions (Register(..))
 import Compiler.Hoopl
+import Data.Maybe
 import Prelude hiding ((<*>))
 import Debug.Trace (trace)
 import qualified Data.Map as Map
@@ -45,21 +46,24 @@ rewrite = mkFRewrite rw
   where
     rw :: Node e x -> AllocFact -> m (Maybe (Graph Node e x))
     rw (Assign (V v) a) f =
-      case Map.lookup v (hmap f) of
+      let a' = fromMaybe a (mapEE (cvt f) a)
+      in case Map.lookup v (hmap f) of
         Just i ->
             return $ Just $ insnToG $
-            Store (Binop Sub (Reg R6) (Lit (Int i))) a Word
+            Store (Binop Sub (Reg R6) (Lit (Int i))) a' Word
         Nothing ->
           let n = Assign (V v) $ Alloca 2
               s = (sp f) + 2
-              n2 = Store (Binop Sub (Reg R6) (Lit (Int s))) a Word
+              n2 = Store (Binop Sub (Reg R6) (Lit (Int s))) a' Word
           in return $ Just $ insnToG n <*> insnToG n2
       
     rw node f = return $ liftM insnToG $ (mapEN . mapEE ) (cvt f) node
     cvt f (Var str) = 
       case Map.lookup str (hmap f) of
         Just i -> Just $ Load (Binop Sub (Reg R6) (Lit (Int i))) Word
-        Nothing -> undefined
+        Nothing -> error $ "Stack variable not found for " ++ str
+    cvt _ e1@(Unop Addr (Load e _)) = Just $ e
+      
     cvt _ e = Nothing
     
 transfer :: FwdTransfer Node AllocFact

@@ -25,6 +25,7 @@ mapVN :: (Var  -> Maybe Expr) -> MaybeChange (Node e x)
 mapVN = mapEN . mapEE . mapVE
 
 mapVE f (Var v) = f v
+mapVE f (Unop Addr (Var v)) = f v >>= \v' -> return $ Unop Addr v'
 mapVE _ n       = Just n
 
 mapSVE :: (SVar -> Maybe Expr) -> MaybeChange Expr
@@ -87,9 +88,9 @@ mapEE f e@(PreAssign a r) =
         (a',      r') -> Just $ fromMaybe e' (f e')
             where e' = PreAssign (fromMaybe a a') (fromMaybe r r')
 mapEN _   (Label _)           = Nothing
-mapEN f   (Assign v e)        = liftM (Assign v) $ f e
+mapEN f   (Assign v e)        = liftM (Assign v) $ mapEE f e
 mapEN f   (Store addr e bf)      =
-  case (f addr, f e) of
+  case (mapEE f addr, mapEE f e) of
     (Nothing, Nothing) -> Nothing
     (addr', e') -> Just $ Store (fromMaybe addr addr') (fromMaybe e e') bf
 mapEN _   (Branch _)          = Nothing
