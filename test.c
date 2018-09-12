@@ -36,6 +36,6 @@ void main(int i){
     print_hex(i+j+k);
     //puts("test");
     return i+j+k;
-
 }
+
 

@@ -81,7 +81,7 @@ constProp :: forall m . FuelMonad m => FwdRewrite m Node ConstFact
 constProp = mkFRewrite cp
   where
     cp :: Node e x -> ConstFact -> m (Maybe (Graph Node e x))
-    cp n f | trace (show n ++ "  " ++ show f) False = undefined
+    --cp n f | trace (show n ++ "  " ++ show f) False = undefined
     cp n@(Store loc val bf) f = 
       let expr = mapEE (lookup f) loc
           res =  return $ fmap insnToG $ Just (Store (fromMaybe loc expr) val bf)

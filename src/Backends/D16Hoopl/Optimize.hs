@@ -16,6 +16,7 @@ import Backends.D16Hoopl.RegisterAllocator
 import Backends.D16Hoopl.NullPtrUB
 import Backends.D16Hoopl.PostAlloc
 import Backends.D16Hoopl.MemoryAnalysis
+import Backends.D16Hoopl.AllocaCombine
 import Debug.Trace
 
 
@@ -30,6 +31,8 @@ optIr :: Proc -> CheckingFuelMonad SimpleUniqueMonad Proc
 optIr ir@Proc {entry,body,args} =
     -- Note: does not actually perform SSA conversion, but instead converts all vars to SVars -- 
     (return body)               >>=
+    (allocaRun      entry args) >>=
+    (tracePass       ir) >>=
     (ssaRun         entry args) >>=
     (splitPassRun   entry args) >>=
     (nullPtrRun     entry args) >>=
@@ -38,7 +41,6 @@ optIr ir@Proc {entry,body,args} =
     (constPropRun   entry args) >>=
     (deadStoreRun   entry args) >>=
     (deadCodeRun    entry args) >>=
-    (tracePass      ir) >>=
     (callAllocRun   entry args) >>=
     (allocate       entry     ) >>=
     (postAllocRun   entry args) >>=
@@ -93,6 +95,14 @@ deadStorePass = BwdPass
 deadStoreRun entry args body = 
     runPass entry body args (\ e b a -> analyzeAndRewriteBwd deadStorePass (JustC e) b
        mapEmpty )
+
+allocaPass :: FuelMonad m => BwdPass m Node AllocaFact
+allocaPass = BwdPass
+  { bp_lattice  = allocaLattice
+  , bp_transfer = combineTransfer
+  , bp_rewrite  = combineRw }
+allocaRun entry args body = 
+    runPass entry body args (\ e b a -> analyzeAndRewriteBwd allocaPass (JustC e) b mapEmpty )
 
 deadCodePass :: FuelMonad m => BwdPass m Node Live
 deadCodePass = BwdPass {

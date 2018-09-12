@@ -7,7 +7,8 @@ passes = [
         eliminate_redundant_jump,
         condense_loads,
         reduce_instruction_size,
-        combine_load_store
+        combine_load_store,
+        condense_alloca
     ]
 
 runPeephole :: [Instruction] -> [Instruction]
@@ -81,3 +82,10 @@ reduce_size (Inst_RI Cmp r (Const 0)) =
 reduce_size (Inst_RI Mov r (Const 0)) = 
     Inst_RR Xor r r
 reduce_size i = i
+
+
+condense_alloca :: [Instruction] -> [Instruction]
+condense_alloca ((Inst_RI Sub R7 (Const i1)):(Inst_Label l):(Inst_RI Sub R7 (Const i2)):rest) =
+  (Inst_RI Sub R7 (Const (i1+i2)):(Inst_Label l):condense_alloca rest)
+condense_alloca (x:xs) = x:condense_alloca xs
+condense_alloca [] = []

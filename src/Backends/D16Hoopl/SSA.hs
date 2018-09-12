@@ -50,6 +50,7 @@ ssaRewrite :: forall m . FuelMonad m => FwdRewrite m Node SSAFact
 ssaRewrite = mkFRewrite ssa
   where
     ssa :: Node e x -> SSAFact -> m (Maybe (Graph Node e x))
+    ssa (Assign (V " ") _) _ = return $ Just emptyGraph
     ssa node@(Assign _ _) f = 
         return $ fmap insnToG $ convertAssign f node
     ssa node f =

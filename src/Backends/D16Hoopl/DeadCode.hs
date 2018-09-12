@@ -56,6 +56,7 @@ deadCode = mkBRewrite del
   where
     del :: Node e x -> Fact x Live -> m (Maybe (Graph Node e x))
     del (Assign _ (Alloca i)) _ = return $ Just $ insnToG $ None (Alloca i)
+    
     del (Assign (S x) e) live 
         | (mapEE containsCall e) == Nothing =
         case S.member x live of
@@ -64,7 +65,7 @@ deadCode = mkBRewrite del
     del (Assign (S _) e) _ 
         | (mapEE containsCall e) /= Nothing =
         return Nothing
-        
+    del (None (Alloca _)) _ = return $ Nothing  
     del (None (Call _ _)) _ = return $ Nothing
     del (None _) _ = return $ Just emptyGraph
     del _ _ = return $ Nothing
