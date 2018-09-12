@@ -22,7 +22,7 @@ instance Show Assignable where
     show (V v) = v
     show (S s) = show s
     show (R r) = show r
-data MemSize = Word | Byte   deriving(Eq,Data)       
+data MemSize = Word | Byte   deriving(Eq,Data,Ord,Show)       
 data BinOp = Add | Sub | Mul | Div | Mod | Eq | Ne | Lt | Gt | Lte | Gte | 
     Shl | Shr | And | Or | Xor | Sar
     deriving (Eq,Data)

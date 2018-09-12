@@ -14,6 +14,7 @@ import Backends.D16Hoopl.CallAllocation
 import Backends.D16Hoopl.RegisterAllocator
 import Backends.D16Hoopl.NullPtrUB
 import Backends.D16Hoopl.PostAlloc
+import Backends.D16Hoopl.MemoryAnalysis
 
 
 type ErrorM        = Either String
@@ -31,6 +32,8 @@ optIr ir@Proc {entry,body,args} =
     (splitPassRun   entry args) >>=
     (nullPtrRun     entry args) >>=
     (constPropRun   entry args) >>=
+    (memAnalRun     entry args) >>=
+    (tracePass      entry args) >>=
     (deadCodeRun    entry args) >>=
     (callAllocRun   entry args) >>=
     (allocate       entry     ) >>=
@@ -40,6 +43,8 @@ optIr ir@Proc {entry,body,args} =
     return $ ir {body = final}
     
         
+tracePass entry args body =
+  trace(showProc Proc {entry=entry, args=args, body=body}) $ return body
 
 runPass :: CheckpointMonad m => Label -> Graph Node C C -> [Var] -> 
             (Label -> Graph Node C C -> [Var] -> m (Graph Node C C,
@@ -68,6 +73,14 @@ constPropPass = FwdPass
 constPropRun entry args body = 
     runPass entry body args (\ e b a -> analyzeAndRewriteFwd constPropPass (JustC e) b
        (mapSingleton e (initFact a)))
+memAnalPass :: FuelMonad m => FwdPass m Node MemFact
+memAnalPass = FwdPass
+  { fp_lattice  = memLattice
+  , fp_transfer = memTransfer
+  , fp_rewrite  = memRewrite }
+memAnalRun entry args body = 
+    runPass entry body args (\ e b a -> analyzeAndRewriteFwd memAnalPass (JustC e) b
+       mapEmpty )
 
 deadCodePass :: FuelMonad m => BwdPass m Node Live
 deadCodePass = BwdPass {
