@@ -14,7 +14,9 @@ import Debug.Trace
  -This pass performs constant propogation among SVars and is run in tandem with the 
  -pass in Simplify.hs
  -}
-data PropData = L Lit | Disp Register Int
+data PropData = L Lit
+  | Disp Register Int
+  | Mem Register Int
   deriving (Show, Eq)
 type ConstFact = Map.Map SVar (WithTop PropData)
 constLattice :: DataflowLattice ConstFact
@@ -37,10 +39,18 @@ varHasLit = mkFTransfer ft
     ft (Label _)                        f = f
     ft (Assign (S x) (Binop Sub (Reg r) (Lit (Int i)))) f = trace ("Displacement")
       Map.insert x (PElem (Disp r (0-i))) f
+    ft (Assign (S x) (Load (Binop Add (Reg r) (Lit (Int i))) bf)) f =
+      Map.insert x (PElem (Mem r i)) f
     ft (Assign (S x) (Lit k))           f = Map.insert x (PElem (L k)) f
     ft (Assign (S x) _)                 f = Map.insert x Top f
     ft (Assign (R _) _)                 f = f
-    ft (None _)                         f = f
+    ft (Store (Binop Add (Reg r) (Lit (Int i))) e bf) f =
+      let pairs = filter (\(x,y) -> y == (PElem (Mem r i))) (Map.toList f)
+          keys = map (\(x,y) -> x) pairs
+          mp = foldl (\mp k -> Map.delete k mp) f keys
+      in case e of
+        (SVar s) -> Map.insert s (PElem (Mem r i)) mp
+        _ -> mp
     ft (Store _ _ _)                      f = f
     ft (Branch l)                       f = mapSingleton l f
     ft (Cond (SVar x) tl fl)            f =
@@ -49,6 +59,15 @@ varHasLit = mkFTransfer ft
              (fl, Map.insert x (PElem (L (Bool False)))f)]
     ft (Cond _ tl fl)                   f =
         mkFactBase constLattice [(tl,f), (fl,f)]
+    ft (None (Call _ _)) f =
+      let pairs = filter pred (Map.toList f)
+          keys = map (\(x,y) -> x) pairs
+          mp = foldl (\mp k -> Map.delete k mp) f keys
+      in mp
+      where
+        pred (_, (PElem (Mem _ _))) = True
+        pred _ = False
+    ft (None _)                         f = f
     ft (Return _)                       _ = mapEmpty
     ft n _ = error  $ "No ft defined for " ++ show n
 
@@ -59,7 +78,7 @@ constProp :: forall m . FuelMonad m => FwdRewrite m Node ConstFact
 constProp = mkFRewrite cp
   where
     cp :: Node e x -> ConstFact -> m (Maybe (Graph Node e x))
-    cp n f | trace (show n ++ "  " ++ show f) False = undefined
+    --cp n f | trace (show n ++ "  " ++ show f) False = undefined
     cp n@(Store loc val bf) f = 
       let expr = mapEE (lookup f) loc
           res =  return $ fmap insnToG $ Just (Store (fromMaybe loc expr) val bf)
@@ -77,7 +96,15 @@ constProp = mkFRewrite cp
     mapVN = mapEN . mapEE 
     
     lookup :: ConstFact -> Expr -> Maybe Expr
+    lookup f (Load (Binop Add (Reg r) (Lit (Int i))) _) = trace ("replacing read") $
+      let pairs = filter (\(x,y) -> y == (PElem (Mem r i))) (Map.toList f)
+          keys = map (\(x,y) -> x) pairs
+      in if keys /= [] then
+        Just $ SVar (head keys)
+      else
+        Nothing
     lookup f (Load (SVar x) ms) =
+
       case Map.lookup x f of
         Just (PElem (Disp r i)) -> Just $ Load (Binop Add (Reg r) (Lit (Int i))) ms
         _ -> Nothing

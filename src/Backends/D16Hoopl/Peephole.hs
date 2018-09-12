@@ -6,7 +6,8 @@ passes = [
         condense_compare,
         eliminate_redundant_jump,
         condense_loads,
-        reduce_instruction_size
+        reduce_instruction_size,
+        combine_load_store
     ]
 
 runPeephole :: [Instruction] -> [Instruction]
@@ -53,6 +54,16 @@ condense_loads ((Inst_Mem Ld r r2 bf):(Inst_RR Mov r3 r4):rest)
         (Inst_Mem Ld r3 r2 bf):(condense_loads rest)
 condense_loads (x:xs) = x:condense_loads xs
 condense_loads [] = []
+
+combine_load_store (st@(Inst_MemI St rD rS addr bf df):(Inst_MemI Ld rD2 rS2 addr2 bf2 df2):rest)
+  | rD == rS2 && rS == rD2 && addr == addr2 && bf == bf2 && df == df2 =
+    st:combine_load_store rest
+combine_load_store (st@(Inst_MemI St rD rS addr bf df):(Inst_MemI Ld rD2 rS2 addr2 bf2 df2):rest)
+  | rD == rS2 && addr == addr2 && bf == bf2 && df == df2 =
+    st:(Inst_RR Mov rD2 rS):combine_load_store rest
+combine_load_store (x:xs) = x:combine_load_store xs
+combine_load_store [] = []
+    
 
 --Does not work for calls to assembly functions, needs poplr instruction
 tail_call_elimination :: [Instruction] -> [Instruction]
