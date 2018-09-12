@@ -4,15 +4,19 @@ module Backends.D16Hoopl.ConstProp where
 import qualified Data.Map as Map
 import Compiler.Hoopl
 import Data.Maybe (fromMaybe)
+import Instructions (Register(..))
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport
+import Debug.Trace
 
 {-
  -This pass performs constant propogation among SVars and is run in tandem with the 
  -pass in Simplify.hs
  -}
-type ConstFact = Map.Map SVar (WithTop Lit)
+data PropData = L Lit | Disp Register Int
+  deriving (Show, Eq)
+type ConstFact = Map.Map SVar (WithTop PropData)
 constLattice :: DataflowLattice ConstFact
 constLattice = DataflowLattice {
     fact_name = "Constant Value",
@@ -31,7 +35,9 @@ varHasLit = mkFTransfer ft
   where
     ft :: Node e x -> ConstFact -> Fact x ConstFact
     ft (Label _)                        f = f
-    ft (Assign (S x) (Lit k))           f = Map.insert x (PElem k) f
+    ft (Assign (S x) (Binop Sub (Reg r) (Lit (Int i)))) f = trace ("Displacement")
+      Map.insert x (PElem (Disp r (0-i))) f
+    ft (Assign (S x) (Lit k))           f = Map.insert x (PElem (L k)) f
     ft (Assign (S x) _)                 f = Map.insert x Top f
     ft (Assign (R _) _)                 f = f
     ft (None _)                         f = f
@@ -39,8 +45,8 @@ varHasLit = mkFTransfer ft
     ft (Branch l)                       f = mapSingleton l f
     ft (Cond (SVar x) tl fl)            f =
         mkFactBase constLattice
-            [(tl, Map.insert x (PElem (Bool True)) f),
-             (fl, Map.insert x (PElem (Bool False))f)]
+            [(tl, Map.insert x (PElem (L (Bool True))) f),
+             (fl, Map.insert x (PElem (L (Bool False)))f)]
     ft (Cond _ tl fl)                   f =
         mkFactBase constLattice [(tl,f), (fl,f)]
     ft (Return _)                       _ = mapEmpty
@@ -53,15 +59,29 @@ constProp :: forall m . FuelMonad m => FwdRewrite m Node ConstFact
 constProp = mkFRewrite cp
   where
     cp :: Node e x -> ConstFact -> m (Maybe (Graph Node e x))
-    cp (Store loc val bf) f =
-        let expr = (mapEE . mapSVE) (lookup f) loc
-        in return $ fmap insnToG $ Just (Store (fromMaybe loc expr) val bf)
+    cp n f | trace (show n ++ "  " ++ show f) False = undefined
+    cp n@(Store loc val bf) f = 
+      let expr = mapEE (lookup f) loc
+          res =  return $ fmap insnToG $ Just (Store (fromMaybe loc expr) val bf)
+      in case loc of
+        SVar sv ->
+          case Map.lookup sv f of
+            Just (PElem (Disp r i)) -> return $ Just $ insnToG $ Store (Binop Add (Reg r) (Lit (Int i))) val bf
+            _ -> res
+        _ -> res
+
+        
     cp node f =
         return $ fmap insnToG $ mapVN (lookup f) node
-    mapVN :: (SVar -> Maybe Expr) -> MaybeChange (Node e x)
-    mapVN = mapEN . mapEE . mapSVE
+    mapVN :: (Expr -> Maybe Expr) -> MaybeChange (Node e x)
+    mapVN = mapEN . mapEE 
     
-    lookup :: ConstFact -> SVar -> Maybe Expr
-    lookup f x = case Map.lookup x f of
-        Just (PElem v) -> Just $ Lit v
+    lookup :: ConstFact -> Expr -> Maybe Expr
+    lookup f (Load (SVar x) ms) =
+      case Map.lookup x f of
+        Just (PElem (Disp r i)) -> Just $ Load (Binop Add (Reg r) (Lit (Int i))) ms
+        _ -> Nothing
+    lookup f (SVar x) = case Map.lookup x f of
+        Just (PElem (L v)) -> Just $ Lit v
         _              -> Nothing
+    lookup f _ = Nothing
