@@ -7,6 +7,7 @@ import Compiler.Hoopl
 import Backends.D16Hoopl.ConstProp
 import Backends.D16Hoopl.Simplify
 import Backends.D16Hoopl.DeadCode
+import Backends.D16Hoopl.DeadStore
 import Backends.D16Hoopl.SSA
 import Backends.D16Hoopl.Kill
 import Backends.D16Hoopl.Split
@@ -15,6 +16,7 @@ import Backends.D16Hoopl.RegisterAllocator
 import Backends.D16Hoopl.NullPtrUB
 import Backends.D16Hoopl.PostAlloc
 import Backends.D16Hoopl.MemoryAnalysis
+import Debug.Trace
 
 
 type ErrorM        = Either String
@@ -33,8 +35,10 @@ optIr ir@Proc {entry,body,args} =
     (nullPtrRun     entry args) >>=
     (constPropRun   entry args) >>=
     (memAnalRun     entry args) >>=
-    (tracePass      entry args) >>=
+    (constPropRun   entry args) >>=
+    (deadStoreRun   entry args) >>=
     (deadCodeRun    entry args) >>=
+    (tracePass      ir) >>=
     (callAllocRun   entry args) >>=
     (allocate       entry     ) >>=
     (postAllocRun   entry args) >>=
@@ -43,8 +47,8 @@ optIr ir@Proc {entry,body,args} =
     return $ ir {body = final}
     
         
-tracePass entry args body =
-  trace(showProc Proc {entry=entry, args=args, body=body}) $ return body
+tracePass p body =
+  trace(showProc p {body=body}) $ return body
 
 runPass :: CheckpointMonad m => Label -> Graph Node C C -> [Var] -> 
             (Label -> Graph Node C C -> [Var] -> m (Graph Node C C,
@@ -80,6 +84,14 @@ memAnalPass = FwdPass
   , fp_rewrite  = memRewrite }
 memAnalRun entry args body = 
     runPass entry body args (\ e b a -> analyzeAndRewriteFwd memAnalPass (JustC e) b
+       mapEmpty )
+deadStorePass :: FuelMonad m => BwdPass m Node LiveMem
+deadStorePass = BwdPass
+  { bp_lattice  = dsLattice
+  , bp_transfer = liveStoreTransfer
+  , bp_rewrite  = liveStoreRw}
+deadStoreRun entry args body = 
+    runPass entry body args (\ e b a -> analyzeAndRewriteBwd deadStorePass (JustC e) b
        mapEmpty )
 
 deadCodePass :: FuelMonad m => BwdPass m Node Live

@@ -5,14 +5,16 @@ import Compiler.Hoopl
 import Data.Maybe (fromMaybe)
 import Instructions (Register(..))
 import Backends.D16Hoopl.Expr
-import Backends.D16Hoopl.IR
+import Backends.D16Hoopl.IR hiding (Value(..))
 import Backends.D16Hoopl.OptSupport
 import Debug.Trace
 
 data MemData = Disp Register Int MemSize
   deriving (Show, Eq, Ord)
+data ConstData = I Int | Sv SVar
+  deriving (Show, Eq, Ord)
 
-type MemFact = Map.Map MemData (WithTop Int)
+type MemFact = Map.Map MemData (WithTop ConstData)
 memLattice :: DataflowLattice MemFact
 memLattice  = DataflowLattice {
   fact_name = "Memory propogation",
@@ -33,7 +35,8 @@ memRewrite = mkFRewrite cp
     replace :: MemFact -> Expr -> Maybe Expr
     replace f (Load (Binop Add (Reg r) (Lit (Int i))) mf) =
       case Map.lookup (Disp r i mf) f of
-        Just (PElem i) -> Just $ Lit $ Int i
+        Just (PElem (I i)) -> Just $ Lit $ Int i
+        Just (PElem (Sv s)) -> Just $ SVar s
         _ -> Nothing
     replace _ _ = Nothing
     mapEEN = mapEN . mapEE
@@ -46,7 +49,10 @@ memTransfer = mkFTransfer ft
     
     ft (Store (Binop Add (Reg r) (Lit (Int i))) (Lit (Int k)) mf) f =
       let d = Disp r i mf
-      in Map.insert d (PElem k) f
+      in Map.insert d (PElem (I k)) f
+    ft (Store (Binop Add (Reg r) (Lit (Int i))) (SVar s) mf) f =
+      let d = Disp r i mf
+      in Map.insert d (PElem (Sv s)) f
     ft (Store (Binop Add (Reg r) (Lit (Int i))) _ mf) f =
       Map.insert (Disp r i mf) Top f
     ft (Branch l)           f = mapSingleton l f

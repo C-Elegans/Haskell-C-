@@ -44,13 +44,16 @@ varHasLit = mkFTransfer ft
     ft (Assign (S x) (Lit k))           f = Map.insert x (PElem (L k)) f
     ft (Assign (S x) _)                 f = Map.insert x Top f
     ft (Assign (R _) _)                 f = f
-    ft (Store (Binop Add (Reg r) (Lit (Int i))) e bf) f =
-      let pairs = filter (\(x,y) -> y == (PElem (Mem r i))) (Map.toList f)
-          keys = map (\(x,y) -> x) pairs
-          mp = foldl (\mp k -> Map.delete k mp) f keys
-      in case e of
-        (SVar s) -> Map.insert s (PElem (Mem r i)) mp
-        _ -> mp
+    -- ft (Store (Binop Add (Reg r) (Lit (Int i))) e bf) f =
+    --   let pairs = filter (\(x,y) -> y == (PElem (Mem r i))) (Map.toList f)
+    --       keys = map (\(x,y) -> x) pairs
+    --       mp = foldl (\mp k -> Map.delete k mp) f keys
+    --   in case e of
+    --     (SVar s) ->
+    --       case Map.lookup s f of
+    --         Just (PElem i) -> mp
+    --         _ -> Map.insert s (PElem (Mem r i)) mp
+    --     _ -> mp
     ft (Store _ _ _)                      f = f
     ft (Branch l)                       f = mapSingleton l f
     ft (Cond (SVar x) tl fl)            f =
@@ -78,7 +81,7 @@ constProp :: forall m . FuelMonad m => FwdRewrite m Node ConstFact
 constProp = mkFRewrite cp
   where
     cp :: Node e x -> ConstFact -> m (Maybe (Graph Node e x))
-    --cp n f | trace (show n ++ "  " ++ show f) False = undefined
+    cp n f | trace (show n ++ "  " ++ show f) False = undefined
     cp n@(Store loc val bf) f = 
       let expr = mapEE (lookup f) loc
           res =  return $ fmap insnToG $ Just (Store (fromMaybe loc expr) val bf)
