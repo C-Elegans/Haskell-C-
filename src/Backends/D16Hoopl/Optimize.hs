@@ -32,13 +32,13 @@ optIr ir@Proc {entry,body,args} =
     -- Note: does not actually perform SSA conversion, but instead converts all vars to SVars -- 
     (return body)               >>=
     (allocaRun      entry args) >>=
-    (tracePass       ir) >>=
     (ssaRun         entry args) >>=
     (splitPassRun   entry args) >>=
-    (nullPtrRun     entry args) >>=
     (constPropRun   entry args) >>=
+    (nullPtrRun     entry args) >>=
     (memAnalRun     entry args) >>=
     (constPropRun   entry args) >>=
+    (tracePass       ir) >>=
     (deadStoreRun   entry args) >>=
     (deadCodeRun    entry args) >>=
     (callAllocRun   entry args) >>=

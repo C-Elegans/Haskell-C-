@@ -6,6 +6,7 @@ import Compiler.Hoopl
 import Backends.D16Hoopl.Expr
 import Backends.D16Hoopl.IR
 import Backends.D16Hoopl.OptSupport
+import Debug.Trace
 
 {-
  -Performs null pointer analysis and optimization. Likely will be disabled by default, 
@@ -54,11 +55,19 @@ nullRewrite :: forall m . FuelMonad m => FwdRewrite m Node NullPtrFact
 nullRewrite = mkFRewrite rw
   where
     rw :: Node e x -> NullPtrFact -> m (Maybe (Graph Node e x))
+    --rw n f | trace ("nullptr " ++ show n ++ " Fact " ++ show f) False = undefined
     rw node f =
         return $ fmap insnToG $ (mapEN . mapEE) (lookup f) node
     
     lookup :: NullPtrFact -> Expr -> Maybe Expr
-    {-lookup f n | trace ("nullptr " ++ show n ++ " Fact " ++ show f) False = undefined-}
+    lookup f (Binop op (SVar sv) (Lit (Int 0))) =
+      do
+        opr <- cmpOp op
+        n <- Map.lookup sv f
+        case n of
+          Null -> Just $ Lit $ Bool $ opr 0 0
+          Nonnull -> Just $ Lit $ Bool $ opr 1 0
+          _ -> Nothing
     lookup f (Binop op (SVar sv) (SVar sv2)) =
         do
             opr <- cmpOp op

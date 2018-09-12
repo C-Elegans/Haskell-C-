@@ -38,4 +38,13 @@ void main(int i){
     return i+j+k;
 }
 
+int test(int *ptr){
+    int x;
+    x = *ptr;
+    if(ptr == 0){
+        return 0;
+    }
+    return x;
+}
+
 
