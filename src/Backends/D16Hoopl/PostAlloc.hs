@@ -16,7 +16,7 @@ import Debug.Trace (trace)
  -This pass rearranges it to be r1=r1+r2 (since addition is commutative),
  -which will be converted into
  -    add r1, r2
- -which is incorrect.
+ -which is correct.
  -This pass also does the same thing with subtractions, except that it negates the 
  -destination register first because subtraction is not commutative.
  -}

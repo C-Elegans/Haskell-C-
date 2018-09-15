@@ -151,10 +151,10 @@ setRegister mp sv =
 
 
 
-allocate :: Label -> Graph Node C C -> CheckingFuelMonad SimpleUniqueMonad (Graph Node C C)
-allocate entry g  = 
+allocate :: Label -> FactBase Int -> Graph Node C C -> CheckingFuelMonad SimpleUniqueMonad (Graph Node C C)
+allocate entry facts g  = 
     let nRegs       = 6
-        stackOffset = 4
+        stackOffset = 2 + fromMaybe 0 (lookupFact entry facts)
         regSize     = 2
         verifier    = VerifyEnabled
         

@@ -17,6 +17,7 @@ import Backends.D16Hoopl.NullPtrUB
 import Backends.D16Hoopl.PostAlloc
 import Backends.D16Hoopl.MemoryAnalysis
 import Backends.D16Hoopl.AllocaCombine
+import Backends.D16Hoopl.NewRegisterAllocator
 import Debug.Trace
 
 
@@ -32,9 +33,11 @@ optIr ir@Proc {entry,body,args} =
     -- Note: does not actually perform SSA conversion, but instead converts all vars to SVars -- 
     (return body)               >>=
     (allocaRun      entry args) >>=
+    \ (body', allocafacts) -> (return body') >>=
+                
     (ssaRun         entry args) >>=
-    (splitPassRun   entry args) >>=
     (constPropRun   entry args) >>=
+    (splitPassRun   entry args) >>=
     (nullPtrRun     entry args) >>=
     (memAnalRun     entry args) >>=
     (constPropRun   entry args) >>=
@@ -42,7 +45,8 @@ optIr ir@Proc {entry,body,args} =
     (deadStoreRun   entry args) >>=
     (deadCodeRun    entry args) >>=
     (callAllocRun   entry args) >>=
-    (allocate       entry     ) >>=
+    (killCodeRun    entry args) >>=
+    (allocate       entry allocafacts    ) >>=
     (postAllocRun   entry args) >>=
     
     \final -> 
@@ -101,8 +105,10 @@ allocaPass = BwdPass
   { bp_lattice  = allocaLattice
   , bp_transfer = combineTransfer
   , bp_rewrite  = combineRw }
-allocaRun entry args body = 
-    runPass entry body args (\ e b a -> analyzeAndRewriteBwd allocaPass (JustC e) b mapEmpty )
+
+allocaRun entry args body = do
+    (body, facts, _) <- (\ e b a -> analyzeAndRewriteBwd allocaPass (JustC e) b mapEmpty ) entry body args 
+    return (body, facts)
 
 deadCodePass :: FuelMonad m => BwdPass m Node Live
 deadCodePass = BwdPass {
@@ -161,3 +167,12 @@ postAllocPass = FwdPass {
 }
 postAllocRun entry args body =
     runPass entry body args (\e b _ -> analyzeAndRewriteFwd postAllocPass (JustC e) b mapEmpty)
+
+newRAPass :: FuelMonad m => FwdPass m Node RaFact
+newRAPass = FwdPass {
+    fp_lattice = raLattice,
+    fp_transfer = raTransfer,
+    fp_rewrite = raRewrite
+}
+newRARun entry args body =
+    runPass entry body args (\e b _ -> analyzeAndRewriteFwd newRAPass (JustC e) b mapEmpty)

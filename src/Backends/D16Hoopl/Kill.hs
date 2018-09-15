@@ -38,7 +38,7 @@ killed = mkBTransfer3 firstLive middleLive lastLive
     middleLive :: Node O O -> Kill -> Kill
     middleLive n@(Assign (S x) _)   f = addUses (S.delete x f) n
     middleLive (Assign (V x) _)   _ = error $ "Variable " ++ x ++ " is not in SSA Form"
-    middleLive (Assign (R _) _)   _ = error $ "SSA Pass not intended to be run on registers"
+    middleLive n@(Assign (R _) _)   f = addUses f n
     middleLive n@(Store _ _ _)    f = addUses f n
     middleLive n@(None _)       f = addUses f n
     
@@ -56,30 +56,43 @@ killed = mkBTransfer3 firstLive middleLive lastLive
     addSVar s _       = s
 
 killVars :: forall m. FuelMonad m => BwdRewrite m Node Kill
-killVars = mkBRewrite kill
+killVars = deepBwdRw kill
   where
     kill :: Node e x -> Fact x Kill -> m (Maybe (Graph Node e x))
        
     kill n f = return $ liftM insnToG $ kill_node f n
-    mapSVN = (mapEN . mapEE . mapSVE) 
+    mapNE = (mapEN . mapEE) 
     kill_node :: Fact x Kill -> Node e x -> Maybe (Node e x)
     --Open Nodes
-    kill_node f n@(Assign _ _) = mapSVN (kill_var f) n
-    kill_node f n@(Store _ _ _) = mapSVN (kill_var f) n
+    -- kill_node f (Assign (R r) e) =
+    --   let name = " " ++ show r
+    --       num = 0
+    --       var = S $ Svar name num S_None
+    --       expr = fromMaybe e (mapEE (kill_var f) e)
+    --   in return $ Assign var e
+    kill_node f n@(Assign _ _) = mapNE (kill_var f) n
+    kill_node f n@(Store _ _ _) = mapNE (kill_var f) n
     
     
     --Closed Nodes
-    kill_node f n@(Cond _ tl fl) = mapSVN (kill_var (fact f tl `S.union` fact f fl)) n
-    kill_node _ n@(Return _) = mapSVN (kill_var S.empty) n
-    kill_node f n@(None _)   = mapSVN (kill_var f) n
+    kill_node f n@(Cond _ tl fl) = mapNE (kill_var (fact f tl `S.union` fact f fl)) n
+    kill_node _ n@(Return _) = mapNE (kill_var S.empty) n
+    kill_node f n@(None _)   = mapNE (kill_var f) n
     kill_node _ _ = Nothing
     
-    kill_var :: Kill -> SVar -> Maybe Expr
-    kill_var f v@(Svar n i _)= 
+    kill_var :: Kill -> Expr -> Maybe Expr
+    kill_var f (SVar v@(Svar n i S_None)) =
         if S.member v f then
-            Just $ SVar $ Svar n i S_None
+            Nothing
         else
             Just $ SVar $ Svar n i S_Kill
+    -- kill_var f (Reg r) =
+    --   let name = " " ++ show r
+    --       num = 0
+    --   in Just $ SVar $ Svar name num S_None
+
+      
+    kill_var f _ = Nothing
 
     fact :: FactBase (S.Set SVar) -> Label -> Kill
     fact f l = fromMaybe S.empty $ lookupFact l f
