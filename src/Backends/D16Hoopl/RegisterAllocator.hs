@@ -41,8 +41,8 @@ instance Hashable SVar where
 
 instance NodeAlloc Node Node where
     --It seems that Linearscan does unneccesary spills if these are marked as calls
-    isCall (Assign _ (Call _ _)) = False
-    isCall (None (Call _ _))     = False
+    isCall (Assign _ (Call _ _)) = True
+    isCall (None (Call _ _))     = True
     isCall _                     = False
     
     isBranch (Branch _)   = True
@@ -82,6 +82,17 @@ instance NodeAlloc Node Node where
                 VarInfo{varId=Left 3,varKind=Output,regRequired=False}
                 ]
         in lst''
+    getReferences (None (Call _ es)) =
+        let lst   = (foldl . fold_EE) (svToVInfo Input) [] es
+            --This ensures that linearscan knows r0-r3 are not preserved across calls.
+            lst'' = lst ++ [
+                VarInfo{varId=Left 0,varKind=Output,regRequired=False},
+                VarInfo{varId=Left 1,varKind=Output,regRequired=False},
+                VarInfo{varId=Left 2,varKind=Output,regRequired=False},
+                VarInfo{varId=Left 3,varKind=Output,regRequired=False}
+                ]
+        in lst''
+
     getReferences (Assign (S sv) e) =  
         let lst  = fold_EE (svToVInfo Input) [] e
             lst' = svToVInfo Output lst (SVar sv)

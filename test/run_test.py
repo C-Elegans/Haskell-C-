@@ -7,7 +7,7 @@ if len(sys.argv) != 3:
 
 expected = open(sys.argv[2]).read().strip()
 
-p = Popen(["d16-jit",sys.argv[1]], 
+p = Popen(["d16-jit", '-q', sys.argv[1]], 
     stdin=PIPE, stdout=PIPE, stderr=PIPE)
 #p = Popen(["d16i","-q",sys.argv[1]], 
    # stdin=PIPE, stdout=PIPE, stderr=PIPE)
@@ -22,6 +22,6 @@ else:
     print "expected:"
     print expected
     print "actual"
-    print output.strip()
+    print output
     sys.exit(1);
     
