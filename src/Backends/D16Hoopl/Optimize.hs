@@ -41,11 +41,11 @@ optIr ir@Proc {entry,body,args} =
     (nullPtrRun     entry args) >>=
     (memAnalRun     entry args) >>=
     (constPropRun   entry args) >>=
-    (tracePass       ir) >>=
     (deadStoreRun   entry args) >>=
     (deadCodeRun    entry args) >>=
     (callAllocRun   entry args) >>=
     (killCodeRun    entry args) >>=
+
     (allocate       entry allocafacts    ) >>=
     (postAllocRun   entry args) >>=
     
@@ -54,7 +54,7 @@ optIr ir@Proc {entry,body,args} =
     
         
 tracePass p body =
-  trace(showProc p {body=body}) $ return body
+  trace ("trace:\n" ++ showProc p {body=body}) $ return body
 
 runPass :: CheckpointMonad m => Label -> Graph Node C C -> [Var] -> 
             (Label -> Graph Node C C -> [Var] -> m (Graph Node C C,

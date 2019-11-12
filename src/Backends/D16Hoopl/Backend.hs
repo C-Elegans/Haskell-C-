@@ -20,7 +20,7 @@ runBackend tree strings cleanfilename =
         
         ir'' = trace (concat $ map showProc ir' ) (optimize ir')
         
-        insns = trace (concat $ map showProc ir'' ) $ map (assemble) ir''
+        insns = trace ("after optimization:\n" ++ (concat $ map showProc ir'')) $ map (assemble) ir''
         insns' = map (runPeephole) insns
         assembledStrings = trace (show strings) $ assemble_strings strings cleanfilename
     in  (concat insns',assembledStrings)

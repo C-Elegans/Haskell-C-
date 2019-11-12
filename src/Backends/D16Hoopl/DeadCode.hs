@@ -56,6 +56,7 @@ deadCode = mkBRewrite del
   where
     del :: Node e x -> Fact x Live -> m (Maybe (Graph Node e x))
     del (Assign _ (Alloca i)) _ = return $ Just $ insnToG $ None (Alloca i)
+    del (Assign _ c@(Call _ _)) _ = return $ Just $ insnToG $ None c
     
     del (Assign (S x) e) live 
         | (mapEE containsCall e) == Nothing =
