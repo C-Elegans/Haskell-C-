@@ -98,10 +98,6 @@ splitExpr = mkFRewrite split
        let (lst,expr,_) = runSplitExpr e f
            graph = mkMiddles lst
        in return $ Just $ graph <*> ( mkMiddle $ None $ Call name [expr])
-    split (None e) f=
-        let (lst,expr,_) = runSplitExpr e f
-            graph = mkMiddles lst
-        in return $ Just $ graph <*> (mkMiddle (None expr))
     {-split (Store loc l@(Lit _) fl) f =-}
         {-let tmp = (Svar "tmp" (f+1) S_None)-}
             {-node = Assign (S tmp) l-}

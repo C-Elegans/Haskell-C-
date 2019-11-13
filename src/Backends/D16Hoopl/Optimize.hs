@@ -31,20 +31,24 @@ optimizeM = mapM optIr
 optIr :: Proc -> CheckingFuelMonad SimpleUniqueMonad Proc 
 optIr ir@Proc {entry,body,args} =
     -- Note: does not actually perform SSA conversion, but instead converts all vars to SVars -- 
+  let debug = False
+  in
     (return body)               >>=
     (allocaRun      entry args) >>=
     \ (body', allocafacts) -> (return body') >>=
                 
     (ssaRun         entry args) >>=
-    (constPropRun   entry args) >>=
+    (constPropRun   debug entry args) >>=
+    (tracePass ir) >>=
     (splitPassRun   entry args) >>=
+    (tracePass ir) >>=
     (nullPtrRun     entry args) >>=
-    (memAnalRun     entry args) >>=
-    (constPropRun   entry args) >>=
-    (deadStoreRun   entry args) >>=
-    (deadCodeRun    entry args) >>=
-    (callAllocRun   entry args) >>=
-    (killCodeRun    entry args) >>=
+    (memAnalRun     debug entry args) >>=
+    (constPropRun   debug entry args) >>=
+    (deadStoreRun   debug entry args) >>=
+    (deadCodeRun    debug entry args) >>=
+    (callAllocRun   debug entry args) >>=
+    (killCodeRun    debug entry args) >>=
 
     (allocate       entry allocafacts    ) >>=
     (postAllocRun   entry args) >>=
@@ -75,29 +79,29 @@ ssaRun entry args body =
     runPass entry body args (\ e b a -> analyzeAndRewriteFwd
         ssaPass (JustC e) b (mapSingleton e (initSSAFact a)) )
 
-constPropPass :: FuelMonad m => FwdPass m Node ConstFact
-constPropPass = FwdPass
+constPropPass :: FuelMonad m => Bool -> FwdPass m Node ConstFact
+constPropPass debug = debugFwdTransfers trace show (\ _ _ -> debug) FwdPass
   { fp_lattice  = constLattice
   , fp_transfer = varHasLit
   , fp_rewrite  = constProp `thenFwdRw` simplify }
-constPropRun entry args body = 
-    runPass entry body args (\ e b a -> analyzeAndRewriteFwd constPropPass (JustC e) b
+constPropRun debug entry args body = 
+    runPass entry body args (\ e b a -> analyzeAndRewriteFwd (constPropPass debug) (JustC e) b
        (mapSingleton e (initFact a)))
-memAnalPass :: FuelMonad m => FwdPass m Node MemFact
-memAnalPass = FwdPass
+memAnalPass :: FuelMonad m => Bool -> FwdPass m Node MemFact
+memAnalPass debug = debugFwdTransfers trace show (\ _ _ -> debug) FwdPass
   { fp_lattice  = memLattice
   , fp_transfer = memTransfer
   , fp_rewrite  = memRewrite }
-memAnalRun entry args body = 
-    runPass entry body args (\ e b a -> analyzeAndRewriteFwd memAnalPass (JustC e) b
+memAnalRun debug entry args body = 
+    runPass entry body args (\ e b a -> analyzeAndRewriteFwd (memAnalPass debug) (JustC e) b
        mapEmpty )
-deadStorePass :: FuelMonad m => BwdPass m Node LiveMem
-deadStorePass = BwdPass
+deadStorePass :: FuelMonad m => Bool -> BwdPass m Node LiveMem
+deadStorePass debug = debugBwdTransfers trace show (\_ _ -> debug) BwdPass
   { bp_lattice  = dsLattice
   , bp_transfer = liveStoreTransfer
   , bp_rewrite  = liveStoreRw}
-deadStoreRun entry args body = 
-    runPass entry body args (\ e b a -> analyzeAndRewriteBwd deadStorePass (JustC e) b
+deadStoreRun debug entry args body = 
+    runPass entry body args (\ e b a -> analyzeAndRewriteBwd (deadStorePass debug) (JustC e) b
        mapEmpty )
 
 allocaPass :: FuelMonad m => BwdPass m Node AllocaFact
@@ -110,23 +114,23 @@ allocaRun entry args body = do
     (body, facts, _) <- (\ e b a -> analyzeAndRewriteBwd allocaPass (JustC e) b mapEmpty ) entry body args 
     return (body, facts)
 
-deadCodePass :: FuelMonad m => BwdPass m Node Live
-deadCodePass = BwdPass {
+deadCodePass :: FuelMonad m => Bool -> BwdPass m Node Live
+deadCodePass debug = debugBwdTransfers trace show (\_ _ -> debug) BwdPass {
     bp_lattice = liveLattice,
     bp_transfer = liveness,
     bp_rewrite = deadCode
     }
-deadCodeRun entry args body =
-    runPass entry body args (\ e b _ -> analyzeAndRewriteBwd deadCodePass (JustC e) b mapEmpty)
-killCodePass :: FuelMonad m => BwdPass m Node Kill    
-killCodePass = BwdPass {
+deadCodeRun debug entry args body =
+    runPass entry body args (\ e b _ -> analyzeAndRewriteBwd (deadCodePass debug) (JustC e) b mapEmpty)
+killCodePass :: FuelMonad m => Bool -> BwdPass m Node Kill    
+killCodePass debug = debugBwdTransfers trace show (\_ _ -> debug) BwdPass {
     bp_lattice = killLattice,
     bp_transfer = killed,
     bp_rewrite = killVars
     }
-killCodeRun entry args body = 
+killCodeRun debug entry args body = 
     runPass entry body args (\ e b _ ->analyzeAndRewriteBwd 
-        killCodePass (JustC e) b mapEmpty )
+        (killCodePass debug) (JustC e) b mapEmpty )
 
 --regAllocatePass = FwdPass {
 --    fp_lattice = regLattice,
@@ -141,14 +145,14 @@ splitPass = FwdPass {
     }
 splitPassRun entry args body = 
     runPass entry body args (\e b _ -> analyzeAndRewriteFwd splitPass (JustC e) b mapEmpty)
-callAllocPass :: FuelMonad m => FwdPass m Node CallFact
-callAllocPass = FwdPass {
+callAllocPass :: FuelMonad m => Bool -> FwdPass m Node CallFact
+callAllocPass debug = debugFwdTransfers trace show (\ _ _ -> debug) FwdPass {
     fp_lattice = emptyLattice,
     fp_transfer = emptyTransfer,
     fp_rewrite = callAlloc
 }
-callAllocRun entry args body = 
-    runPass entry body args (\e b _ -> analyzeAndRewriteFwd callAllocPass (JustC e) b mapEmpty)
+callAllocRun debug entry args body = 
+    runPass entry body args (\e b _ -> analyzeAndRewriteFwd (callAllocPass debug) (JustC e) b mapEmpty)
 nullPtrPass :: FuelMonad m => FwdPass m Node NullPtrFact
 nullPtrPass = FwdPass {
     fp_lattice = nullLattice,
